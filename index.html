@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="mk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Хотел Тино РОМС</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&display=swap');
+:root{
+  --gold:#c9a84c;--gold2:#e8c96a;--black:#0a0a0a;--dark:#111;
+  --d2:#1a1a1a;--d3:#222;--d4:#2a2a2a;--text:#e8e0d0;
+  --mut:#888880;--dim:#555550;--grn:#4caf50;--tel:#0099aa;
+  --red:#cc3300;--org:#cc5500;
+  --bdr:rgba(201,168,76,0.15);--bdr2:rgba(201,168,76,0.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);min-height:100vh;overflow-x:hidden}
+.screen{display:none}.screen.active{display:block}
+
+/* LOGIN */
+.lwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.lcard{background:var(--dark);border:1px solid var(--bdr2);border-radius:16px;padding:36px 28px;width:100%;max-width:360px}
+.llogo{text-align:center;margin-bottom:24px}
+.llogo img{height:70px;width:auto;display:block;margin:0 auto 10px;border-radius:10px}
+.lsub{color:var(--mut);font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-top:4px}
+.lsub2{color:var(--dim);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+.fld{margin-bottom:14px}
+.fld label{display:block;color:var(--gold);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.inp{width:100%;background:var(--d2);border:1px solid var(--d4);border-radius:8px;color:var(--text);padding:14px;font-size:16px;font-family:"Raleway",sans-serif;transition:border-color .2s}
+.inp:focus{outline:none;border-color:var(--gold)}
+.lbtn{width:100%;background:var(--gold);border:none;border-radius:8px;color:var(--black);font-size:15px;font-weight:700;font-family:"Cinzel",serif;letter-spacing:2px;padding:15px;cursor:pointer;margin-top:6px;transition:all .2s}
+.lbtn:active{transform:scale(.98)}
+.lerr{color:var(--red);font-size:12px;text-align:center;margin-top:8px;display:none}
+.lhint{text-align:center;color:var(--dim);font-size:11px;margin-top:14px}
+
+/* TOPBAR */
+.topbar{background:var(--dark);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:8px 14px;position:sticky;top:0;z-index:100;gap:8px}
+.tlogo{display:flex;align-items:center;gap:8px}
+.tlogo img{height:30px;width:auto;border-radius:6px}
+.tsub{color:var(--mut);font-size:10px;letter-spacing:1px}
+.tright{display:flex;align-items:center;gap:6px}
+.ubadge{background:var(--d2);border:1px solid var(--bdr);color:var(--gold);font-size:10px;padding:4px 10px;border-radius:20px;font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbtn{background:transparent;border:1px solid var(--bdr);color:var(--mut);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:"Raleway",sans-serif}
+.nbtn{background:transparent;border:1px solid var(--bdr);color:var(--mut);padding:5px 9px;border-radius:6px;cursor:pointer;font-size:14px}
+
+/* SLABEL */
+.sl{color:var(--gold);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-family:"Cinzel",serif}
+
+/* SHIFT BAR */
+.sbar{background:rgba(201,168,76,.07);border:1px solid var(--bdr);border-radius:8px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.sinfo{color:var(--mut);font-size:11px}.sinfo b{color:var(--gold);font-weight:600}
+.esb{background:transparent;border:1px solid var(--org);color:var(--org);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:"Raleway",sans-serif}
+
+/* KELNER LAYOUT - DESKTOP: always show 2 columns */
+.klyt{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px;align-items:start}
+.kleft{min-width:0}
+
+/* ORDER PANEL - DESKTOP: always visible sticky column */
+.opnl{background:var(--dark);border:1px solid var(--bdr);border-radius:10px;padding:14px;position:sticky;top:65px;display:block}
+.osum{background:rgba(201,168,76,.04);border:1px solid var(--bdr);border-radius:8px;padding:10px;margin-bottom:10px;min-height:60px}
+.sr{display:flex;justify-content:space-between;color:var(--mut);font-size:12px;padding:2px 0}
+.sr.tot{color:var(--gold);font-size:14px;font-weight:600;border-top:1px solid var(--bdr);margin-top:5px;padding-top:7px}
+.semp{color:var(--dim);font-size:12px;text-align:center;padding:12px 0}
+.ntxt{width:100%;background:var(--d2);border:1px solid var(--d4);border-radius:7px;color:var(--text);padding:8px 10px;font-size:14px;resize:none;height:46px;font-family:"Raleway",sans-serif;margin-bottom:10px}
+.ntxt:focus{outline:none;border-color:var(--gold)}
+.sbtn{width:100%;background:var(--gold);border:none;border-radius:9px;color:var(--black);font-size:14px;font-weight:700;font-family:"Cinzel",serif;letter-spacing:1px;padding:14px;cursor:pointer;transition:all .15s}
+.sbtn:active{transform:scale(.97)}
+.sbtn:disabled{background:var(--d4);color:var(--dim);cursor:not-allowed}
+.shnt{text-align:center;color:var(--dim);font-size:10px;margin-top:5px}
+
+/* FLOATING ORDER BUTTON - mobile only, hidden on desktop */
+.fbtn{display:none;position:fixed;bottom:20px;right:16px;z-index:500;background:var(--gold);color:var(--black);border:none;border-radius:50px;padding:14px 22px;font-family:"Cinzel",serif;font-size:13px;font-weight:700;cursor:pointer;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(201,168,76,.5)}
+.fbtn.pulse{animation:fp 1.5s infinite}
+@keyframes fp{0%,100%{box-shadow:0 4px 20px rgba(201,168,76,.5)}50%{box-shadow:0 6px 30px rgba(201,168,76,.8)}}
+.fbdg{background:var(--black);color:var(--gold);border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.opov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:140}
+.opov.on{display:block}
+
+/* MOBILE: single column, panel slides from bottom */
+@media(max-width:768px){
+  .lwrap{padding:12px;align-items:flex-start;padding-top:30px}
+  .klyt{grid-template-columns:1fr !important;padding:8px}
+  .opnl{position:fixed !important;bottom:0 !important;left:0 !important;right:0 !important;top:auto !important;border-radius:20px 20px 0 0 !important;z-index:150 !important;max-height:82vh !important;overflow-y:auto !important;transform:translateY(110%) !important;transition:transform .3s ease !important;width:100% !important}
+  .opnl.on{transform:translateY(0) !important}
+  .fbtn{display:flex !important}
+  .tgrd{grid-template-columns:repeat(5,1fr)}
+  .mgrd{grid-template-columns:1fr}
+  .mi{min-height:56px;border-radius:10px}
+  .ogrd{grid-template-columns:1fr}
+  .rb{padding:14px;font-size:14px}
+  .sgrd{grid-template-columns:1fr 1fr}
+  .asec{overflow-x:auto}
+  .dt{min-width:480px}
+  .fg2{grid-template-columns:1fr}
+  .ubadge{max-width:120px}
+}
+/* TABLET */
+@media(min-width:769px) and (max-width:1100px){
+  .klyt{grid-template-columns:1fr 260px !important}
+  .tgrd{grid-template-columns:repeat(6,1fr)}
+  .ogrd{grid-template-columns:repeat(2,1fr)}
+}
+/* ZONE TABS */
+.ztabs{display:flex;gap:5px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.ztabs::-webkit-scrollbar{display:none}
+.ztab{background:var(--d2);border:1px solid var(--bdr);border-radius:20px;color:var(--mut);font-size:11px;font-weight:600;padding:6px 14px;cursor:pointer;transition:all .2s;font-family:"Raleway",sans-serif;white-space:nowrap;flex-shrink:0}
+.ztab.on{background:rgba(201,168,76,.15);border-color:var(--gold);color:var(--gold)}
+/* TABLE GRID */
+.tgrd{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:14px}
+.tbl{background:var(--d2);border:1px solid var(--bdr);border-radius:7px;color:var(--mut);padding:8px 3px;cursor:pointer;text-align:center;font-size:11px;font-weight:600;transition:all .2s;line-height:1.3;min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.tbl:active{opacity:.7}
+.tbl.sel{background:rgba(201,168,76,.2);border-color:var(--gold);color:var(--gold)}
+.tbl.occ{border-color:rgba(204,85,0,.5);background:rgba(204,85,0,.08);color:var(--org)}
+.ts{font-size:8px;color:var(--dim);margin-top:1px}
+.ta{font-size:9px;color:var(--org);margin-top:1px;font-weight:600}
+/* CAT TABS */
+.ctabs{display:flex;gap:5px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.ctabs::-webkit-scrollbar{display:none}
+.ctab{background:var(--d2);border:1px solid var(--d4);border-radius:20px;color:var(--mut);font-size:11px;font-weight:600;padding:6px 14px;cursor:pointer;transition:all .2s;font-family:"Raleway",sans-serif;white-space:nowrap;flex-shrink:0}
+.ctab.on{background:rgba(201,168,76,.1);border-color:var(--gold);color:var(--gold)}
+/* MENU ITEMS */
+.mgrd{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mgrd-inner{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+
+/* 2-LEVEL MENU NAV */
+.mgrp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:4px}
+.mgrp-btn{background:var(--d2);border:1px solid var(--bdr);border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center;transition:all .2s;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px}
+.mgrp-btn:hover,.mgrp-btn:active{border-color:var(--gold);background:rgba(201,168,76,.1)}
+.mgrp-icon{font-size:22px}
+.mgrp-label{color:var(--text);font-size:11px;font-weight:600;line-height:1.2}
+.mgrp-badge{position:absolute;top:6px;right:6px;background:var(--gold);color:var(--black);border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.mcat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mcat-btn{background:var(--d2);border:1px solid var(--bdr);border-radius:9px;padding:12px 14px;cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:column;gap:2px}
+.mcat-btn:hover,.mcat-btn:active{border-color:var(--gold);background:rgba(201,168,76,.08)}
+.mcat-name{color:var(--text);font-size:13px;font-weight:600}
+.mcat-count{color:var(--mut);font-size:10px}
+.mback-btn{display:inline-flex;align-items:center;gap:6px;background:var(--d2);border:1px solid var(--bdr);border-radius:20px;color:var(--gold);font-size:12px;font-weight:600;padding:6px 14px;cursor:pointer;margin-bottom:10px;transition:all .2s}
+.mback-btn:hover{background:rgba(201,168,76,.15)}
+.mback-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+
+@media(max-width:768px){
+  .mgrp-grid{grid-template-columns:repeat(3,1fr)}
+  .mcat-grid{grid-template-columns:1fr}
+  .mgrd-inner{grid-template-columns:1fr}
+}
+.mi{background:var(--d2);border:1px solid var(--d4);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;transition:border-color .2s}
+.mi.sel{border-color:var(--gold);background:rgba(201,168,76,.07)}
+.mn{color:var(--text);font-size:13px;font-weight:500}
+.mp{color:var(--gold);font-size:11px;margin-top:2px}
+.qc{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.qb{width:36px;height:36px;border-radius:50%;border:1px solid var(--d4);background:var(--d3);color:var(--mut);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;user-select:none;-webkit-tap-highlight-color:transparent}
+.qb:active{border-color:var(--gold);color:var(--gold);transform:scale(.88)}
+.qn{color:#fff;font-size:15px;font-weight:700;min-width:24px;text-align:center}
+/* STATION */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px}
+.stit{font-family:"Cinzel",serif;color:var(--gold);font-size:20px;font-weight:700;letter-spacing:2px}
+.stit.bar{color:var(--tel)}
+.liv{display:flex;align-items:center;gap:5px;color:var(--grn);font-size:12px;font-weight:500}
+.ld{width:7px;height:7px;background:var(--grn);border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.ogrd{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.oc{background:var(--dark);border:1px solid var(--bdr);border-radius:10px;padding:14px;position:relative;overflow:hidden;animation:si .3s ease}
+@keyframes si{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.oc::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold)}
+.oc.urg::before{background:var(--red)}
+.oc.bc{background:#001a1a;border-color:#002a2a}
+.oc.bc::before{background:var(--tel)}
+.och{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.otn{color:var(--gold);font-size:20px;font-weight:700;font-family:"Cinzel",serif}
+.otn.bar{color:var(--tel)}
+.okl{color:var(--mut);font-size:10px;margin-top:2px}
+.tc{font-size:10px;padding:3px 8px;border-radius:10px;background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.2);font-weight:600}
+.tc.urg{background:rgba(204,51,0,.15);color:#ff5500;border-color:rgba(204,51,0,.3)}
+.tc.bar{background:rgba(0,153,170,.1);color:var(--tel);border-color:rgba(0,153,170,.2)}
+.ois{margin-bottom:10px}
+.oi{display:flex;align-items:flex-start;gap:7px;padding:3px 0;border-bottom:1px solid rgba(201,168,76,.06)}
+.oi:last-child{border-bottom:none}
+.oqb{background:var(--gold);color:var(--black);font-size:10px;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.oqb.bar{background:var(--tel)}
+.oit{color:var(--text);font-size:12px}
+.oin{color:var(--mut);font-size:10px;font-style:italic}
+.cn{color:var(--org);font-size:11px;font-style:italic;margin-bottom:8px;padding:5px 8px;background:rgba(204,85,0,.08);border-radius:5px;border-left:2px solid var(--org)}
+.rb{width:100%;background:transparent;border:1px solid var(--grn);color:var(--grn);font-size:13px;font-weight:600;padding:10px;border-radius:8px;cursor:pointer;font-family:"Raleway",sans-serif}
+.rb:active{background:var(--grn);color:var(--black)}
+.rb.bar{border-color:var(--tel);color:var(--tel)}
+.rb.bar:active{background:var(--tel);color:var(--black)}
+.noo{text-align:center;color:var(--dim);padding:50px 20px;border:1px dashed var(--bdr);border-radius:10px}
+.noo .bi{font-size:32px;margin-bottom:10px;opacity:.3}
+
+/* ADMIN */
+.adm{padding:12px}
+.anav{display:flex;gap:5px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.anav::-webkit-scrollbar{display:none}
+.ab{background:var(--d2);border:1px solid var(--bdr);color:var(--mut);font-size:12px;font-weight:600;padding:8px 14px;border-radius:7px;cursor:pointer;font-family:"Raleway",sans-serif;white-space:nowrap;flex-shrink:0}
+.ab.on{background:rgba(201,168,76,.15);border-color:var(--gold);color:var(--gold)}
+.sgrd{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:16px}
+.sc{background:var(--d2);border-radius:9px;padding:12px;border:1px solid var(--bdr)}
+.scl{color:var(--mut);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.scv{color:var(--gold);font-size:22px;font-weight:700;font-family:"Cinzel",serif}
+.scs{color:var(--dim);font-size:10px;margin-top:1px}
+.asec{background:var(--dark);border:1px solid var(--bdr);border-radius:9px;padding:14px;margin-bottom:12px}
+.ash{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px}
+.ast{color:var(--gold);font-size:13px;font-weight:600;font-family:"Cinzel",serif}
+.aab{background:rgba(201,168,76,.1);border:1px solid var(--gold);color:var(--gold);font-size:11px;font-weight:600;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:"Raleway",sans-serif}
+.dt{width:100%;border-collapse:collapse;font-size:12px}
+.dt th{color:var(--mut);font-weight:600;text-align:left;padding:5px 8px;border-bottom:1px solid var(--bdr);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.dt td{color:var(--text);padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.dt tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.tf{background:rgba(201,168,76,.12);color:var(--gold);border:1px solid rgba(201,168,76,.2)}
+.tdr{background:rgba(0,153,170,.12);color:var(--tel);border:1px solid rgba(0,153,170,.2)}
+.tkl{background:rgba(201,168,76,.12);color:var(--gold)}
+.tku{background:rgba(204,85,0,.12);color:var(--org)}
+.tbr{background:rgba(0,153,170,.12);color:var(--tel)}
+.tmg{background:rgba(200,200,255,.12);color:#aabbff}
+.tad{background:rgba(255,100,100,.12);color:#ff8888}
+.sw{width:30px;height:17px;background:var(--d4);border-radius:9px;cursor:pointer;position:relative;border:1px solid var(--d4);transition:background .2s;display:inline-block;flex-shrink:0}
+.sw.on{background:var(--gold);border-color:var(--gold)}
+.sw::after{content:"";width:12px;height:12px;background:#888;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s}
+.sw.on::after{left:15px;background:var(--black)}
+.act{background:transparent;border:1px solid var(--d4);color:var(--mut);font-size:10px;padding:3px 7px;border-radius:4px;cursor:pointer;margin-right:3px;font-family:"Raleway",sans-serif}
+.act:active{border-color:var(--gold);color:var(--gold)}
+.act.del:active{border-color:var(--red);color:var(--red)}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fg{margin-bottom:10px}
+.fl{display:block;color:var(--gold);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.fi{width:100%;background:var(--d2);border:1px solid var(--d4);border-radius:6px;color:var(--text);padding:9px 10px;font-size:14px;font-family:"Raleway",sans-serif}
+.fi:focus{outline:none;border-color:var(--gold)}
+.fs{width:100%;background:var(--d2);border:1px solid var(--d4);border-radius:6px;color:var(--text);padding:9px 10px;font-size:14px;font-family:"Raleway",sans-serif}
+.svb{background:var(--gold);border:none;border-radius:7px;color:var(--black);font-size:12px;font-weight:700;font-family:"Cinzel",serif;letter-spacing:1px;padding:10px 22px;cursor:pointer}
+.chart{background:var(--d2);border-radius:9px;padding:14px;margin-bottom:12px}
+.cbrs{display:flex;align-items:flex-end;gap:5px;height:90px;margin-top:10px}
+.cbw{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.cb{width:100%;background:rgba(201,168,76,.25);border-radius:3px 3px 0 0;min-height:3px}
+.cb.td{background:var(--gold)}
+.cdy{color:var(--dim);font-size:9px}
+
+/* TABLE DETAIL */
+.tdc{background:var(--d2);border:1px solid var(--bdr);border-radius:8px;padding:10px;margin-bottom:8px}
+.tdh{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.tds{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.tds-p{background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.2)}
+.tds-r{background:rgba(76,175,80,.1);color:var(--grn);border:1px solid rgba(76,175,80,.2)}
+.tir{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.tir:last-child{border-bottom:none}
+
+/* MODAL */
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+.mov.on{display:flex}
+.mdl{background:var(--dark);border:1px solid var(--bdr2);border-radius:12px;padding:22px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto}
+.mtt{color:var(--gold);font-family:"Cinzel",serif;font-size:15px;font-weight:700;margin-bottom:16px}
+.mac{display:flex;gap:8px;margin-top:14px;justify-content:flex-end}
+.cnc{background:transparent;border:1px solid var(--bdr);color:var(--mut);font-size:12px;padding:8px 16px;border-radius:6px;cursor:pointer;font-family:"Raleway",sans-serif}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);border:1px solid var(--gold);color:var(--gold);padding:10px 24px;border-radius:30px;font-size:13px;font-weight:500;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1}
+.toast.err{border-color:var(--red);color:var(--red)}
+.toast.ok{border-color:var(--grn);color:var(--grn)}
+
+/* MOBILE */
+@media(max-width:768px){
+  .lwrap{padding:12px;align-items:flex-start;padding-top:30px}
+  .klyt{grid-template-columns:1fr;padding:8px}
+  .opnl{position:fixed;bottom:0;left:0;right:0;border-radius:20px 20px 0 0;z-index:150;max-height:82vh;overflow-y:auto;top:auto;transform:translateY(110%);transition:transform .3s ease}
+  .opnl.on{transform:translateY(0) !important}
+  .fbtn{display:flex}
+  .tgrd{grid-template-columns:repeat(5,1fr)}
+  .mgrd{grid-template-columns:1fr}
+  .mi{min-height:56px;border-radius:10px}
+  .ogrd{grid-template-columns:1fr}
+  .rb{padding:14px;font-size:14px}
+  .sgrd{grid-template-columns:1fr 1fr}
+  .asec{overflow-x:auto}
+  .dt{min-width:480px}
+  .fg2{grid-template-columns:1fr}
+  .ubadge{max-width:120px}
+}
+@media(min-width:769px){
+  .klyt{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px}
+  .opnl{display:block !important;position:sticky;top:65px;transform:none !important;border-radius:10px;max-height:none;overflow-y:visible}
+}
+@media(min-width:769px) and (max-width:1100px){
+  .klyt{grid-template-columns:1fr 260px}
+  .tgrd{grid-template-columns:repeat(6,1fr)}
+  .ogrd{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="screen active">
+  <div class="lwrap"><div class="lcard">
+    <div class="llogo">
+      <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iNTAwIiB6b29tQW5kUGFuPSJtYWduaWZ5IiB2aWV3Qm94PSIwIDAgMzc1IDM3NC45OTk5OTEiIGhlaWdodD0iNTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCBtZWV0IiB2ZXJzaW9uPSIxLjAiPjxkZWZzPjxmaWx0ZXIgeD0iMCUiIHk9IjAlIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBpZD0iMDkxYzAxNGI2ZiI+PGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIDEgMCAwIDAgMCAxIDAgMCAwIDAgMSAwIDAgMCAxIDAiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiIvPjwvZmlsdGVyPjxmaWx0ZXIgeD0iMCUiIHk9IjAlIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBpZD0iZTczNWY4NTIwNCI+PGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIDEgMCAwIDAgMCAxIDAgMCAwIDAgMSAwLjIxMjYgMC43MTUyIDAuMDcyMiAwIDAiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiIvPjwvZmlsdGVyPjxjbGlwUGF0aCBpZD0iN2Q5OGM1NWZjNiI+PHBhdGggZD0iTSAzLjE5OTIxOSAxMTQgTCAzNzEgMTE0IEwgMzcxIDI2MS41MzEyNSBMIDMuMTk5MjE5IDI2MS41MzEyNSBaIE0gMy4xOTkyMTkgMTE0ICIgY2xpcC1ydWxlPSJub256ZXJvIi8+PC9jbGlwUGF0aD48bWFzayBpZD0iN2FkNTllNjdkMiI+PGcgZmlsdGVyPSJ1cmwoIzA5MWMwMTRiNmYpIj48ZyBmaWx0ZXI9InVybCgjZTczNWY4NTIwNCkiIHRyYW5zZm9ybT0ibWF0cml4KDEuMjI3NSwgMCwgMCwgMS4yMzEyNSwgMy4xOTg2NDIsIDExMy43Nzk0NDUpIj48aW1hZ2UgeD0iMCIgeT0iMCIgd2lkdGg9IjMwMCIgeGxpbms6aHJlZj0iZGF0YTppbWFnZS9wbmc7YmFzZTY0LGlWQk9SdzBLR2dvQUFBQU5TVWhFVWdBQUFTd0FBQUI0Q0FBQUFBQnRmcEQ4QUFBQUFtSkxSMFFBLzRlUHpMOEFBQlZmU1VSQlZIaWM3VjE1WEZSSDh2LzJtM3VBWVRnRUFRRUZGSTJLSUI0eGlsY1NjMmxNWXVMR1hDWW1HblZOL0ptc3V1c2FONGR1WE5kZFhZMHgzakV4NjZwSnZGYU54dnUrRVJVRWIrNzdocm5mcTk4Zk0rRE1NTUFNaUpMOXpQZXY5NmJyZFZjWDNkVlYxZFVONElZYmJyamhoaHR1dU9HR0cyNjQ0WVliYnJqaHhrTUdhOTdYM3NQaTFCeXFyNSs2WnJoUERQM1BRdFIzbTVhSWlQamNKYUVQbTVsV0R1bDdtVlFEZm92L3cyYW5WWU9OS3FGN01DNlVQMnlHV2pQVWg4a2FwVU1mTmtNdERxN3BuN2JyWXZPcWZyS1pyTFIrTkVOWUlydHZ2WnZIeVc4QXpSQldYbzdOcTNDdG1hejg5c0VrY25FOXRwaG90dEZhWjEyT2RFekdlZnA3aTF1T3dRZUpocnVoN1BaRXJGZDUwb0dVS2dlRi9EZGh3d05FbGhkOXlvdzdqbXFRZGgzVDExdWJ0dU5VdnRCTVRsczdmSllYQ1VRa0ZIL1gxbUc1OHBIMzd4SVJVZmxYejRjNG5OQ3lHVGxFUktSTkhDRnlWUDYvQXpiZVlKbGlwbm4xZEpWYlFVUkU1MzNycVdKZ3JTbVdOYVRGK0h4Z2FFakJjd01sbGlkUnZNUXhDVk1DQUlLRDZxa2l3S3ZtS2VRWjE1bHJiV2h3TmRUVVBCajIxZU1ucXpvQkFBSWVxMmNSdUhpajVxbjZwTXU4L2JhUWNNc3loN2JXTjgzaUM4d0VlMVdPeTdreFJXYUM2a1VlTGNibUEwT0RhamZyV0dseHRreUZnc20zSEJQNHpPMWpIbEpCMlpmSUVRR2xlU2F3MUExN0R5eGY2MmhCL2Q4Q2t5ckdteWl6cCtOWkp2MUNYNk8vc3g5M1hJRnlnV0FhMTd5ZzJXOEpRelFrbkg5QjRhaG9VTkU5bTNTTG82QURGNzJpbW9SM204bUJwRk05azd6MVlXQTFFWlV2RGFoYndpMnhNdUJ6dTlVbGtMeVJKaERSeC9WWHpqd2I5N2M2TEQwVTRnSy9MUWduZlVQVnBML1Y5Wk1sN2ExZXZPcVdpOFlzN3NRQTFCbVZURzIyUkZqSXBGbjEyQ1JXeEsvOHZxcllPUzViR28wTHl5UUFnR2hVVEowU1k2clZTMlptblhMdnlYNEFBTDNkNzIybnJEV1BVK244eFVLanNYdEpYM2JDdm9hSGhNYUZaVEFCQURJejZwUUltN05ybjJsdmRwM3lpbjBtUjIxd00vNFpVZzBBOE9tSml3NFhVV3Q0UjJrYkozb3dhRnhZUmhNQThHdnFqaHhjV2x3N0x1NnM0dXNVbTVaZkFGQm5HaXA3aW0rYTdZalFvTkliOWgvVlFWQnd3YzFHaVI0TW5CaFpQQUNrYjNjUU5UQnRTS2w1M0psYXR4aDVLeDFOTXY4d0pKb2xHNjNLem5GQVlJdEk3MXY1alJJOUdEaWhzM2dBT0ZkM0ZnSW9yakZXVGFmckRpeUFmcjBOQUZyYlg4UGFhQklKQUZpY0tLMjhzZVpaZDBtaXBqR2lCd1FuUnBZUkFGSk5EZ3RyekUyajR6OStmaG9BVk5yKzJNVWp6enl2Rk4xeDBaR01iU0NPTVoxckpTckxHWjJsQityZHVhN3BockdCUDc1UVlmTXE2c1ZTektMMWk5QmRka0svbDdhYWVIWGp3dEpyQUtDNzFGRVpYeU1IbldQUEw3d2JBSlB0VkZQRndHSUtoQWNVM1c2MCthRGdqS3hHaVI0UW5CQldKUUQwNitGb2JIRTFDNTNjeDlHbkh2L1hBWURKZG1TRmRhZzZaUjVQajNobTJNOWVwb3EyQzNSSHFwTXIwRXJnaE00cUJJQzJzNExyU290MTdHVjU4aHJuVi9kTDVRZHZjd0NNTmdxZXhmbmVOcStjWER5N2FqOGdCLzA4M1pZajFsMTB4ckc2YkpWZ0M4MlI1ZjN4OW9KbGtYdUVHdGZRc05iZlRwaGNoMlhWUkVSVTFNUDZaOGtQdE5oY2tmbzAvNDVkamFKMXdsVGJhbVRiUy9yY2oxNDhLTHpEbStWeGExcTAzS29uekhQRUtlR2VJMjNZbWFDNFY4cmswZE11Vzc3THQzR3hRNjVwaDV1ZnV1U1U5clZyeXVkTTVTRGJYd0t2WG5iZ3dqOGtPTEdqZDZYVVBNVWlGa3hMUEp1U1hWbHRNRUdpYXRkaldEL3J5SWxrZUwrakI2OFhhL1FrOS9BSjd0UWpKcmdtcmxoUVpGMWJsN0QwUythblNOODc5c1piWUdpZW5jb1BDZHBmNm54dldoaE9DQ3Z0b2lXTFFSd2ErcnhSbzlWcERaQ3J2QlgyT3N6dnhSZjBXcjJKcERLNTFHckdHcjR2dENKaWc1UW44OHhQUFdRM1MreXFpUFM5VkdUM2k5ZjUxcU95bkJCVzFhcCtuclV2RXU4R1VocVl2RzRFa04rdzB0cndWQTNTN3pMM1hoeUxKTE0zeENubFdnMEJTbzgrc2h1ZW5zWnlBaVIrNGtJOUFGOWpZbXN4U1owU0Z1MWFOYVhScUZPOU9EU256UHExYzlkYnA4MVA2azVtT2JEd04wS1ovOEVOWlhqMWxSZ2F1QjdudnpCeWo0eFQrOTMrdEJ3c3ROVjQwYzdDOXp1ZW1vZzd2VzFtSzVzamZPMnJWcXZWYW5YL29vSVlBRnkvdlg4SlU0OHRXS1JBWU4vVS9LYzZkZ3hpTFBib05KOFJSVU1BMmJaOXlvZlU2U1lqN0VRVFphWC8wSGI3eU9PQUlmWDBybTNidG0zYmRvWlA5QWRZditRMWNzQmpUK2tnb0Z2K0dSOEFhSC93U3prYlh6NFVDTGl5NERlMzI4R2VMbWxjTUhiUTZJam9nSjJ0MmoxNzA2U1VsWEhSMGRIUjYray9FaUQ0YUY1ZkFHdzV6UUplMEs4V0FWQ3N1QmtGLzBObkFvSFkzRmNlUm4vcmdYTXhlRHE4eldVMVc2MERxcjZ5WGUvRW8wWExWb3dOZmFrZ0xTMGpFQmRNRUwzVGIzY2lBQ1pGQU5CZGZKWUgyT0RSdjZaN2ZoQTZ0d0RvWkdvMVhyUUxpTTkxZFdRSkF0RjJUOXRhNHU3T2xZQ0ZybC90aDVBYlZVT0JpQnVWVHdLQXgwR2FEcmF5T0I2QXg0Nkt3ZUhmN0JzZ0J0amZqN1dtWFRCbk0vK1NUN2hhTTJNd2JLcTIrVWsrMmZTREVaUTVPK1FURDRXaThEWVFHNTZaREFCdEk3UlhJQXZKekFBUUdsOFN1YkJnM0FrVElPdDZzelZ0WkRzckxQMHZqWWJwNmlManBNM2taVTgvUGY4NkFHVE5mdnk5OXVvN2hVQ281RzRKQU5ZNzZGb2lmQ0pTU2dFRSt5Zzd6LzA4aXdENFJoUzBwaHc0WnhNWTZYeXA2NmNDRW0waTdDeG05b1lmZUFDZ3hLVi9QS1c4cWdWRXlEY0FrSS9DMmtJRUJTVHk0TVJTN3M2OE1nQ3lnT3hnLzJRd3RCcXIxT2tFM0t3bWhPQk9HNjFiNnJYNDZIeEx0RWJZZkcwMFhSU0FMSk5TQkxDRW9YczJDdkNWRlJBMzlNMXlYWEFRQU1tWU43aGdhWkg0bVNqWEcyNGhPQzJzQ29jcG93MUNsMHlBMk53Qzh4dTNhTTlmYW1PbTVjdjFsYWtBenFaMURRUUxuM1YxWmltZ0V3WjFlUEhkVTJsSndWTjlPTCtKL2RlYm1DUmg4b2l5K3VwdnZXQ0xYTGEwOHJzQjdOMmxZL3BFUmlWOHRQVzdnZFkray9yUTFXQUEzTXUzVno3NjNNOXJJeGdBdjMzYTZ6dmlHSHM4VFh0dzNaNS9oVEJFSkZkdGE5OTZyRkxuT2ZuRDMxMnRPMlBRWGZqODlKaFFVVkpTY1BIWEsxcHIzY1BpdkU2WUFJamludmN1UFg2cUdnQlkxS0Nxdy9rRXJzdklzSUtEWjdRQU42RFg1dXhXbzdKY0VOYmJhMTM5RTJjTVRJZXNlNkJNVjVhWHI2bTN5NHhSNnhGSHczQStuYitTYjBycXYvNThZeFFQUTFUTU15eUkwdSs2R2lselhnRFZUUktXTmRRRDJseEpNalpPVnkrWXdsc3BWSlE1WS9FeHFVcEZGYVdPU2JtNE9iRSs0dDFqVzA1WXV1YWFoK3JGbytVNTcreHY2a0JpNnJnbmVnY3JXTW5lUllXTmtjcTdEQmtRNGNXVkhGbDJ5MEZ6TEhhZGJrcWJqNCsyWUZiQVk1V3Vyb2JwNFRZVmpOUVMwU1paMDFwbm5tOGV5VHkrOEoxUmswNGIvK0Z3dy9jZWxNLyttSDVwMWFSUkU0N3crOW80S1BmZFhmMHk0M3EzNUVIbHZ1WE5GTllFSXFMalh2VlUzekM0dU0xM1Z3MVNNNEE5VloxYTN4RUZNMm5YNzNQKyszSmJFY0FTeXFzRzFTVmdiK2t1QlFETWRaUEUrV25vMGZUUXNobVhDd0pBcDVzMDlxVXZmVjQ2OFpCNTA5Ky9ZVDdFejgwemZMU3JpZ0RBUitwSVozbThKcnRRakpaMW90NTJPYlJzTjdJazd5Wmw3bWlTN3lLZGxQZERqVzBhY0pBMk56Q1Z4V096Zis1b0lmWGRTZGNjekxYWWZQNjlwbkRoQ21hNUtpdDdZWUVMalBScWlqbk9YaTc4cVViM2VQN1RXRG04Z1VwaTcrNnB5VE5RZnFFM3pYRndLT0k5dnFSM0U3aHdDWE5kRjFiNys5TnlXR0pPdkVVQTZ2a2FZV3NEbTNISzd3c0hXRWc5NWxUUmZnZmFUYlNHa2xwNms1c3RkMWxZK1YzdDJKVFh1dTJjdk9aUHpxUXkyNEhDeVJXMnc0Rk5OTzB5NzBleXFBMTY0VmpuQmdaV242TEQ1aFdFK2MzVjBOa1lCNlRxTTdTaGlSYWowNTlKZzEydVc5VXUyZXJObzllWThCM3JkQUFnZWVUMW1ITUx5d0ZJMnc4YkxOLzRZMjNxTmhjWVA2eWpLR1BIQWFzUXEyaUFTR3UyOGJ4bnZzRHZuWkhXZ0dxTzlkV2FMVTNSVysreGZkT3ZFQ0NTMlRpbENBNFRUalVoa09rU0FxKzRQTExvRTZ0TWtYWnJTb2lLK2dDQTU1K3lCZEk4QjdEQUw5Tk5SRVVEYXFnVWIxL1NFQkZWZm02bHc2VmJLV2N3QXdEVzVxVlgxUTFxdmFsVStDd0hBTXhyNkJ0K0RKQTgrdmZKdGwrTU5oVDNjdmp0ZmNTanBhNEw2NWZhRFZMVy9yODhFZW1IQS9CY29DRWltZ3pXZFkrSmlJZ21XcWk4NWxZYVN5cUppSXI2MzJ1Wi9VV2d5ME9kT3pYOFZCV2xQV3M5VzJMdUdsKzNvV0R6NldKTDN3VERQaGJxRjBwOXlPMWU4M21icmZvOUY0bXFCZ0dTUDJtU2YrSkplSmYxUG1lOCt1MVpJdnJRVENUK2svYnFoUGpCYTNSRTlGZXI0UkI5bFNocmlsUFdyUGNXZ2ZMK1lEWDZYalVXeGRsUUtQYlErcGErREVCMTBIVlpFVC9kd2pVM1UvL3Z3UFZtbGY5WWZscnZaM1JrZURIMll0bmNVTkU0Z2ZnM0FRRHNxZHprZUFaNGJ5R2lYVmJ6a0J1U0pKRDI2ekFuekE0V2ZVSWczYzg5YTVlUCtaUm9PNDdhWGVjbjNRZDVOSWduWEhaMmlJak9CWnEvOWppVUVxM1lTNVFhRE16VWpPTmVORkRWVzBmTHBzaUFzUUpwaHdFQUlpNVV2OFlBNERrTjBXbnIvVUxXWlpPVytEUERHL0VKQVlCRmZWdE5kUGNEaTNraDMyVy85UFd2S092WGJHazBET1hHcHNpS0RCUE54b0o0OWdTdVRSTFJNUzhnWWFVUHhndFVkVjQ3UndaZ0tsRmhEQURJbGdvSHpGMk1TQ2M2cTdZUmdXcnlIYUxpT2Q0QXdCUlNBQWhJY0t6R1BNZWxDYVQ5b1FNRGdPRFUycnhMVHNJQVlEeC8xZXJlQmFaV0E0QkV4UUR1UHNXdjJmTk5HbGhFVnlMTUZjamw2SlJOdEZFTWNKNE1ueEdSc04wWDVvelY2eUVBTUxDSVpwalo5VXNrT21hM2x5M3ErWXVKOUlzOUFlbVFEYjBBRnJJeHRSN1hpZXU2UVVQQ3ZuQWdiTmJYMWFhTm44Nk9CSlRQZmJOcGlwZm9kNThlcDF0elA1Mm9oQ1IreHRLcFBTZnVmUktROWwvMlBsT09XUDVadS9zaXJOQlRUWk1WOGN0cVR6a2xWTmFxYlc0MUVlVTh5Z0JJTmhNZDlRSWdYVWU4WmQzeU9rbTB4ZDVkWnNGTHFra3pua1BrOWVyQkFCdW5OYnhVSDd0ZVUzS0ovMHFDd1NleXFQckMyZjJkRWZoMTFyck5tbmVVS3hLMWRQUHMyV1Z5OVp5c3kxdXU1aG95T3dHeEdicVIva3RLamZ5Uys2SDVQWmFabWlnc3FoaGJZN1dQTVpGZ2NXQmxPNGxvaVFRQVZDZUovaTBHRUoxQmxRbm1ZdFZwb3RsMTU0VEhqRW82MXdiQnFicW5BUVNjNVYrdlExSUQ4ZlBwbE5vT1VwOFZ0TCt0V2lYeS9hNWltdnhkZmlIbjFUdXY4aG0xMnNON1JkWGFjRWxNS3UzM0FINW56SXBmZG1mcU9qcmNTQzZZTS91R2JQallKdCtONHZVSGkrWFBJa1RRV3hKdTVXMkFzdjhZQVVBZENOem1BZlFMaHRheVF5ajNRTVh4dW1aNjlkTFZRc2RJVkJaeENnQWx0N1Y1OWJacSt1L3NxdEJPTU9namNDNi9yRUwwd2VpdHE2UWpUSmVGeWtCMTlwV3lNdjJyYis2Ym1XN01xc0JwRFZoM2Nmb3pUMDc5cWhqNWpjUzhuZHBrSGRpTU94bUNMQ3MzRncyVVczYTFWZjVBcGpuOXNhMGYrR3NFaVBxTFlMSWN1QXNNd01rTERxclNyc2lXZVVHYkpmSUNJUFZMdTFKL3E4TFcweElWRUJpbE8wRmdnei9NWFdDYU9temJUckMrc3NSOG9NOG5HYk9LZ000ZHF3OFRaSEdRdi9YSkxuRm5PdHBJVU40WllWRnpvdFczTENkYzVhRkFjVEh6bHdId1ZnRXA1b3p0RUNWMG1lQmswbkJBWXJHdFlueTE2eHdtenhRVWFvckJaM0xlQU5wMzJsTGtpTWFDNm5SZEVkQWhvQ2dOa0w3dGV5ai9vMm0veml5RExJNU9teUNmSFBUdjZ3UTJ5RHM3RmZDSlFOZGZ0dk5pNzRyR1RzdzZOYkoyNzNhR3lpSDBxeTFkOGdvRWNpdGxDOGR6Z0sreTlreGVld2txQ3RCamNaZ1hvRFNuQ2NwSGlGT09PR1JiNFpseUI1UU9mMEQwVXRtbWhuWlFKT3IwbThBaml0dDVRRWcvTXE2ZXVISkNPc0V2cXVvaW9mT1RSVHNFd0g4a3Uxb0FCQWNnL1NzZFBOU1pqUjI3Y2twWVZZc0xuQ0Z6aE1NL1dicnQ2d3RrNm1LR1JRTUlrSUV5emVjenc0SHlNcytQWCsvQUE0b09BTUFlZmFMeUh3N2JZLzNhckM4RGNveUJqSFY3YlZsNlErMUd4QjB2aHFnSFM2b0d3Z0x3Yk1WcmMvSUpDR3ViY3h2bzczL25Ec0M5RWtjbmpFQ2tTdmorSnRBMjhMSjlXcjQ5bkJJV25mdTJpVUdOZ3ZrMTV5UGFlQUxaL24vbU53aEFrTGptTktjb0VLZ3l2ZkhpdFpSU2dBMVVBS3pkSjk2cmFwTXltZFhLd2lJK092QWpBWG02QUluM241TTNDWUQwc1pHQnJKYlVhZ0gxL3JoNmlSSEthT0dDQUxtUFdEZDl3bkVEbEQwbGozaWxGSUoxNHpSR3NHNlRlVzBTaVZnM2NkYVBBaEN1T211eXY4YlFEczVsMFJpV25uR0t6aDdHWlNkcXVoMG9BNksrZm5MUkJZQzFBM1RtMlNsV0F4NFRQdE44bVhVTndLanBIWU1IcjB6NCtjdmFjMlFoZjZ3OTZDanUvWTFoVmptQTRxb2c3eW1kUHE4QTJHdmJOeStzTWVRQ1BodmlhUkVYYS8rM2hPbHBnRmVnUGhOdEYwWWJwRW85SVAvOVFwOTQ3b3dSbkFkNFlpRi92WDVYVjlwMldtQTNITGtOSUl6TFZNMjhMNTRRRzVMZEJDTkwySFl2V2ZsOUloTDRIVzBBaUw0bnlqSGZKYVU0UU1TYlNpWkt6TTZuTVNPMXpMRHBuaUV0bW1YSVd2OUtaejhQejhEZVg5N2FHczBBSUR5OVlNWDFGemdBSGdlSlVpek9DL2Vob1hUWCszRUJIcDRCUGFjbm5udUNBeENjWnByZWMvT2hSeS9TaGI1ZTRWL2NlTm43YVBYakFKdEh5VDBIN3Q0ZmQ5N3d6NTJyMjEvU2pRS0FxZnpTTmVmcVhsN1JGSWduVmJrdXJJdGQ3czJNTjNnaTA2NUlCa0N4ajB4SHpEc1FrbzFFbERsV0NuaXNOQnUraFgrMWloSUVueU1pZlhiaXNlTlg4eTk5NEd1NVVTbVZDc2VKQWNCalA5R1BGa1BTLzRoQXhCZGVPWGI4U3Y2dGhSRU1BR1JyaEtxODR6MjQxNHNvNTJSYXlpdmlxSXliNFFENlp2STVCYnU3U0pidy9MRk8zZkxOVzBDUGw1dXVEMm5ZUFhUVzJoU1NGWDFjdFV6ekoxa2RCYStLVjJXdG5KMUpBTHhldS91UGhia0VBS1R0UzhjKzNHMENqR2RNYlVUYWpKMnpObGlkUDljbjVSczFCcEZjcHJ1ODVzdjlGZ05HTHpGK3NjVUVBS1o4NWNsNUZ0UFVtSlNwMGVpZ2tPbVN2NTIzeFh3ZkM1OGtWTy81SkkzU2tzVFE3cDF6bE84MTd2dzZFNUIvVFY2NGRsNEdmMVYwZnZhTjlvcWxTUUtBQW5IdWJBZW1jTk9nWHFaMWJWd1ZmMkR0MzdHMjhlRVcxMHNSZHk4Nko0cUs5Ykc4aUVONnhvWFl1NFNjTWpDOFk0ZGdsZlVmU2xSNzdKRkpyZTRGWlRLLzBLaklZSnQ3UGtVeWM1QlpxbEp5QUpzaHpESEhweTI3SkNJUklLbWhGMG51WTlxY2FvR3hjUW5kUS9vb0o4SlBEeGFLbmVVREdxZTZQL0JiVUkvZUV2ZzZNV2NoOGZIV2Q5ZG15UFZUOWQzSDV4UmNDVW9VZjNwbnRzMkdtQzdqN0hrdEFEMHY3Zk4wcUxVVm90djJXVU03Vmc4SklkN2ZQTUJqc2VMQlIycUROYnFrUmNORGExV01wUFBVWGJrMTJSQkMydnV0NlJRSkFEQi9CZVQvT3RKZy9zMTlielBvMHl3aUlxcmFOVHJJN2xJQlpjeXNhendSVWNueXpzMjQzN3BsNFAvait2ZVdwU1E4NE14bmNmeWFRdElmR2VVb3hZT0xXcGdqOEVlZWJuMy9jNENOcnliTjJaSE5qSVEyUWRUeTJPRjN0aGM3MWtpUzdpUFppcHpXcDYxWVdHK2YzUFA1clkyeEppVFV1ZUdHRzI2NDRZWWJicmpoaGh0dXVPR0dHMjY0NFlZYmJqeGMvRCswRTEvL2NiN1BuZ0FBQUFCSlJVNUVya0pnZ2c9PSIgaGVpZ2h0PSIxMjAiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIG1lZXQiLz48L2c+PC9nPjwvbWFzaz48L2RlZnM+PHJlY3QgeD0iLTM3LjUiIHdpZHRoPSI0NTAiIGZpbGw9IiNmZmZmZmYiIHk9Ii0zNy40OTk5OTkiIGhlaWdodD0iNDQ5Ljk5OTk4OSIgZmlsbC1vcGFjaXR5PSIxIi8+PHJlY3QgeD0iLTM3LjUiIHdpZHRoPSI0NTAiIGZpbGw9IiM4NDUyMjUiIHk9Ii0zNy40OTk5OTkiIGhlaWdodD0iNDQ5Ljk5OTk4OSIgZmlsbC1vcGFjaXR5PSIxIi8+PGcgY2xpcC1wYXRoPSJ1cmwoIzdkOThjNTVmYzYpIj48ZyBtYXNrPSJ1cmwoIzdhZDU5ZTY3ZDIpIj48ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLjIyNzUsIDAsIDAsIDEuMjMxMjUsIDMuMTk4NjQyLCAxMTMuNzc5NDQ1KSI+PGltYWdlIHg9IjAiIHk9IjAiIHdpZHRoPSIzMDAiIHhsaW5rOmhyZWY9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBU3dBQUFCNENBSUFBQURIZDFoM0FBQUFCbUpMUjBRQS93RC9BUCtndmFlVEFBQWdBRWxFUVZSNG5PMmRlWFJkVjMzdnYzdWYrYzZEcnViSnNpeVBHV3c1SVNGeDRqQzBFTUtqUE9LRVB0cXcrcnBLS2F3OENBUktvV2x2T2dCTlMwTmhkVXFuUjNnOHFBMGxESVdVUEdKUk1qbXhuY1N4WlZ1U0xkbWFkZWY1bm5HL1AzUXQzYXY1eXBaa2wvTlovc2RuMkh1Zm8vczd2NzEvMHdac2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeCtFU0FiUFlEVndCZ3dzUitGR2lSM2dBRWdZQUJoMHlmQkVSQ0FvMlJYZUVPSGFXT3pJdWhHRDZCcTJNRURPUEZMcU85QmFoY1lBNW1XUUpRK0tBU3dHRGdLeldRdmYyNkR4MnBqc3dLdU1VM0lUb2FSU0dKOEZCM2JBTExvOEJsZ21TQVVoQ043dytzNVFodWJhcm1XTkNGamdPc2svTDVsSkJBQUFTZ0Y0V0F3ZGppOGJpTzBzVmtGMTVJUVltSS8ycjROelFKWlVnS25JUVRVUW9GQVdvK2gyZGlzbW10S0NQTWh2QllHVy9IMURQQUFkT1UzMk5oc0FOZVVFQ1ozd0tqeUZzSWdyTWxZYkd5dUZQeEdENkFhTEFzY3dLb3lKckZyemZaazh3dkhHZ29oWThCWU56SU5pT3lFL3p5Y0ViVDNrTXNSaVZ3S3NndENsV05tbHpVZFpTeU1LU0FQSkV5b2dHVkJFOGhkNGN0cDA4YW1uRFVSUW5ZMERBYWNIY1RXcitIWWgyQW9pT3pFempENlA4aGUzUVFCcTNTanF5cW14dEc1clFwbGFGbndyM0xLelU2R29Wdm90N0NGNGhSZ2NSQUt5Q2h3V096Y0gwQm1hT1FJQ2ErdWNSdWJHYTc4WEkyZCtBd01BUllIQmxBVGhJQ3hVbEFMbzFBQWpjRWc1T1p3MVMwZlBJQzZKamg5SU5hS2JpQVV1NEV4aXpUOVVkVjk5VDhJMVFuSUtKaWdaVytKQUl5Q2FlZ1c4VVlLWjBiSWZZZXFiZHpHcHB3cmJKaGhESEQzZ2RjQkJtcVZaRzhtbG9Xem9Gb3dDUElwZHZCQXRZMlQrdzdCNlFNWUdBVlpjdVNFZ2pPeEcwZ0FqYXQ2UmxXQmxJTmFLWUVBR0FBTDRISGN3cGtSK0d0VzA3aU5UUmxYMmpwNmFnZmEvdzI2ZUNtU3M1THBZeHpEMUFnY29WVTBUL2FHUzI1NldzQWV1ckFtVnltWUJTK0hDUk4rckhMR2FISElCQmVkS1V3Zjd0Z08wZlpDMmx3dVYzcE5tUGJnMEFGc0psaktuY2NRMmdsUGFuVTlUSWVoc1RjK2hrUG5zWG5IQWxjNFRNZ1gwUDdrWlJtQmRHa0Y4UUNBMDNNWmZkallBRmRlRTQ2MExIOE5ZZGdQQkx5WDFWR1NZZHZtaGZXdFNiRDFTWXpzdjZ6MmZZQzUzRFdNZ2k1N2tZM05NcXlCczc2ckRWakNjTUpRNURBNmlQYlY5OEJPZkFZdUYzUmhFWFhMY0NTTWFNMHFscDJ6eU1EZXBlMVdCRUoyU1lWdlk3TWlyckFRa3ZzT29kYUJQUndZTFNVWnpjSGljR3NZOGl1ck51NnprMkZZQWpocmNVY0ZnV0NpbnlCd0dWYVRScUJQaFRVeHQyVUFoSUVDaFFJMEhweTIraTVzYkFDc2lTWnNvQmdER2dleCsxSElGR3BtOWhTN3BGdUtBZmJDUTZ0czM3VEFjOUNXWHJNUmRHNEg3MXhkQ2dWallZeFpNQUUwbGpYSnNPZFJ1SVlBd0RBaDhGQXRjc05mcktMOTlhZTd1M3YzZGRkMTc5alIzZFgxcHM3T2pSNk9UUVZyRmRQRkdEQzFIMWtma3J2QWFFVS9qRUpMUVZRZ2lPU0djSlhOaGpGZ0ljT1c5OWN6aGd3SEVlUzJLcnM0K2lINGZlaHc0S2dCeXMxT09BbmdIRUxYNWRsN3lnaUZRcXFxU3BJVWlVU3VUSXVMc0xXdHpTVFVHd3dZdVp4c0dBWWh4L3I3MTdSSG02cFlxd0J1UWtEcWVzam1wd0FPdExJWFlrSHlRQkJoR3V6bzcxYlhianlQVGdwckJYSkFDRnhWcDFDd2d3ZVFvMGdrY2R3RW9SVkxQZ3ZJdGxVbGdmWDE5WnMyYmRxOWUzZDNkM2Y1Y1kvSDQzYTZJcEZJYzNOekpCSUpCQUpWRGJKYTRxa1V4NnloYytkSEppYUxsUExXeWtJZGJOYUx0YytpV1BobnkyQXdXRHJBVmRlYXlHRWd0bUw5YllLdjBuRGlDV0V5QmxxM1FOSndOZkxjM3Q0ZThQc25KaWE4WGkrbFZGWFZtVk9CUUNDZFRudjl2dnBnYlNhVjZ1enMxTFExWEZpR1FxRklNcG5LWmhQcGxHa2FmazJMWjdOcjE1M05LbGlYVkthRlpZYUJpRlZQaHpVVG5jRVY5MHVSUzFmWFBwWFF2SFBodVc0MTJSdnBaTXJqOWRZRlE2UER3NWxNaHBSOWlXU2U3K3pzekdhemtXU3NtTThQREF5SW9samRJS3RCRUlRZE8zWVVOQU9BSUlvOVEwTjYyUmZCNW1wZ0hZU1FMV3JHSnhiOFZXckNnQU9uMlRJeGF6T2M3NFZlcFpLUnZWQVgrV3JNMUpKYWpsQW9GRThtOHVsc0pCSExGd29PaDBNUVpwTWFGWWRETkF5dFdBVEFDMEtOenhlUHg2c2JaRFU0RlVYVE5OM1FDU0d5SklVQ2dhRmtjdTI2czFrRmF5K0V6RnJZN1UwWWRndVFxMnVNa0RDU0JLa1ZKQ2h4RElFYUpLcTBlWmhBM1hsWUMrVU9yM2cyS25MY2poMDdDbXJCc2l4ZUVIdytYeVl6YXlJMmRUMWptcnBwVWtvVlVYUjcxamJtUmxOVnMxZzBEVjNnT0pubmZUN2Ztblpuc3dyV1lVM0l3QmJLckxVWStncG9xRklUQWxBQnBWakswbGlDdmpNZ3FEYkZnZHdWaG5jUTNaOWZPQlpuWlRnVXhjcm5kVjJubEVxQzBOUFRvK3Y2ek5sMFBtK29xbVdhZ2lDSUx0ZGFDMkUybHl0cW1tRlpnaUFvUGwrK1VGalQ3bXhXd2JwTVIrbUNhbVFLL01sVnVPekpYV0Z3ZWRDeEphdXRNVFMySWhhdHRuRUFhUHc1K2grQU1jK0VTTEJDYmFnV2l6bFZOVTJUSTBUZ3VKcGdjR2hvYVBwVVEwTkRQSkhRRGNPMExFRVE2dXZycy9uOGFnYTVNaG9hR21LSmhHNFlqREZCa2s2Y09HSFlwdEdyajNVUVFycncxTEg3Q2ZoUHI3SkpVZ1N3bEVoWUJMSmpkWmwraEFENWRqam14Y1JaSzVMQUF3Y095RTZucXVzbVl4d25pQTVIeU9HWU9jdHhYSGQzZDFGVlo1U2t0WlpTd2ZOOGQzZTNycHVFRUlFVEFqNy81T1RrMm5WbnN6cldYZ2d0QnN6N1FVOWJDNFhWOXU2Zlhrb3VvUW92cjdUTWd1TmFPalBrRXRGbzlJYmR1dzNEc0N4TGxvUTJ4Z3JGNHN4Wmg2SWtrMGxETndraG5DRFVCQUl6U25JdGNEa2NtVXhHTnpTZVVvY2tlTlo0Nm11ek90YSswQk1sMEZWd2xUWFBHTVBBZy9BY1oyeGdOUUVvdW9MdUFJNHZya1A0RmVSQUxBSjcvV0ZZSmt4cm5nMldyR1NobU10a290R29xbW1VMG1tWFFIdVpMYVNRenhQR1RHWnlIS2R3bk52cGpLN1lOQm9JQkJSSkNvVkNraUFvYm5kUFQ4K3l0eFR5QmNvczB6QjRRVkE4SHA1ZVU4WDFmbUZZKzc4S0Jad0x4WGttZzZoOUhzbnQxZFpoWWd4d1RLQUhTMmxDZzRJeGR1VDNxbXQ2dWpxT0lZR29zT1paak1nS1l1V0E0ZUhoYkR4dTZEckhjWklnMUFXRDVTNkJiRFpiMURUVE5IbWVEOGx5dVpKY0dwL0hFNC9IRmFmVFVsWEY3YzdsY2l1NUs1dk5GalhMc0N5UkYydHJheVZGV1dGM051dkoyZ3RoNEF5QUJXWnl4TUxybjRQdk5CTDNNaFplWVdPTUFZbnRhUGthUE1aU3MwUENZSnJ3anJEUi9Tc1Vjc2JDYk9JUDRMSEFCT2pLQW8yYjNMSlQzSWFHaHZISnlZS21HYVlwOElKUFVjcnZxSyt2VDZSU2htbGFsaVZMMHBHQkFjdGNrYjQrY09DQTN4OW9iMjZPVEUxRjRzbXBxYW1WdUJZRGdVQTBFZGVNSWdCSkVDOE9Eam1kenBWMFo3UE9yTDBRU2hIc0RDOFF2RVlBazhQeFIrRGZoVjZMbmJtWERTNGxNSXlCVGU3SHhKM3duOGF4MzEvZWI4NEx5RzVHWXc5R2IyTVhiMW1zWmNiQUJ2ZXpNL2VpMTBJZFJjRUNZUXVIMm5IbXNwcHcyaEJTMERUVHNoUkpQams0V0M1bWxOSWJiN3hSVlZWS3FjanpBWjl2ZEdWejBXZzB1dmZtbTlMcGJDYWJ0VXk5dDdjM25WNCtFa2dXaE03T1RrM1hLYVdLSXNJd1ZqS0R0VmwvMW41TldOdUQvZzh1cnJRSWpsdXdMR1IzWVg4WWZSOWtSOXNBWENvUFJVQXNNQXNFNkx1QXJxL2pWQmhqZDY3VTZFSk1ISDhFYWhhM1BvNitCMG90azFLM3BTandzMFBZK2lSNnduQVpPQTRzNGs0QkFKTmIxaktqeUVvbWs5RlVsZU00V1JKcUFzR3BlS3pzckp4SUpIVEQ0RGhPbGlSWlVlSXJDMTdKNVhMUmFGUTFOSTV3Z2lpR2dzR1ZKRjQ0WlZreVRVUFhCWTV6UzVMSlZlK1N0VmtYMWx3SUNRRjd1UVU4QlZ2Y2prSXBQQ2FPL3dFd1hUUENBRGhZQkJRQUJUSEFLSEtiOE9valN6V3lVT2NBSUxseC9CRXdEc1FFR0N3ZW9nRURvQnhNQzlsMkhQOURlS3psSndVTXkwYWlKdUp4Z1JNTlhSY0ZRWEc3dllJUUxSUENaRElwQzRKcG10Tm45UlhIYlVjakVZc3gzVEE0Z1pPY1RoZkhSV0t4WmU4eWRFTmpsbUdhVG9kRDhQblN0blBpYW1WZHl1RDdlekhaQ1llOHBDSzVwTjJvQlZBUUJtN21hdjZTZTJEVmJnY0NZczJxVm9PQ0FNeTZKSGNyV1RVeURKMkNiNmtLY1ExKy8zZ3NHZ29FVGNiY3N0emMzRncrYVd4b2FCZ2ZIdzhGZzh3MEpZZEQxL1ZjcFpzK0ZBb0pndUR6K2RMcHRLN3IwdzY5N3U3dVlyRll5T1gwWXRFMFRVV1NhbXRyVTZsVWMzT3pZUmdURXhQVDErajV2R2xadXE1YmxBSVlHQmdBa0MwV09VNWdnQ0FJeDQ0ZGEyaG9xUEtsMmF3VDYyS3pGaWR4MjJOTDFaMVpUNllGdVRxVExBSGxVTitFNUZLVFFNcHgzUjBkUmJWSUNKRkVaV1I0dU53dlYvS2JHNFlGY0R3L01EQXdrOS9rOC9tOEhrOGtFdkg1ZklaaEJBS0J5Y25KZW4vZ3h2YjJmQzRueXpMbGVkTXdHR095S0VZaUVVM1RhbXBxSmlZbS9INi8zK09aSEJzWEhBNm1xdE1TcUd0YVIwY0hnSHl4bU02bEFmQ1UxZ1lDNCtQalZUMnp6YnF4SHJ1bE1BYWN2eGVKWFN1dG5IMTF3Y0JaY0F3ajEwRjJoNWU0cnFHbVJwTGxzY2xKbmhPYVc1c3BvYkl5RzUrdWE1cXFhV09qWTZxbTFnYURtcWJGa2trQURrWEpGd3J0N2UybXJqTVFHSlp1cUlRSzlVNVoxVFJlY2FXMVFpNlhLeFNMaFdMUjUvWlFqZ0pRWkxtMm9hR3ZyeStUeVd4dWFkRTBBeHpSRFlOWmx0UGpNWFFqbTh2RzQzR1h3MkVZUm50akkrTzRzK2ZPcmZHTHNsa2w2ekVkSlFUczZDNVlEQWFGdEdaeXlFekQwSklaZFNwUm1JaG14NlBaOFZpMlVOUUJpQUlYOGprYlFzN0drTHMrNlBSN0pGR1FRRlptcUtEQURYK0tpWDJrNjhrbHJxcHpPc2VqMFpwQXdEVE5nTWZEOC95Y0xFRkJGSXZackdIb1BLV3lLRXFTRkVzbXB5V3dyYWtwazA1THZPaHpPY1NRSnpJeGtVZ21EZE94eGVGSXFLcGI4SW9lTGxjb2NCem44YmdwRXdCSWJ1bllzV01BbXBxYUVwbU1vaWlCWURBMkZVdG00end2VVk0cWd0RFoyVGsxT2NrVDRnd0dJeE1UQzQvYjVpcGduYlpHSTN2RDdJVXcvSVBJdFY5T2dzSUNNTE9vcW4wWDR6MUhML1ljdjlCN1BqWVp6K2J5aG03T2xYYU9Vb2ZNaHdLT3JhMkJ0OTNjZnNlZWxxNldnTnN0RXJKNEZXM0cwSDhHM0MvaHVwOHNQUW9paXRlN1hQMnBGT1c0Z21hTWo0N3lITWNxWFJvV013M1RsR1ZaY0Rnb0lVR1BKNVpPdHpVMVJSTUpRUkJFajZ3RCtYZzhXRnViemVYU21jeXdLQ29VdXBFQkxNTXdSRUZ3KzN6RVFqNVhLQ2FTamNHZ3grMmVTQ1FFbmhjazZZMDMzbWlvcWJFc0N3d2NnNklvTW1PbWFVcXliQzhJcjNMV2RmTStObm9uR24rRzQrRWxDNU91dkRrelZ5ZzgrOHJGZi96dWE4KzlOaExQckRUNlpCcTNROWplSHR5enZiNGg2Q0lFZ3NBMTFMaCs3WjA3T1g1bURzbGdHQkRQb3A5Yk9oWjgvLzc5NHhjdTVIUjlhbUxDNVhZcmdsQlFWWWNzeTdKczZyT3I3bXdoR1Vray9GNXZSMmRuY2JpbzV2T2MzeGlMeDNWTnE2K3Jzd2loSEpkSUpGS3BWTkRyVFdReVFiK2ZBQUxQTThZbVl6R3YyLzNXdDc4OUdvMGVQbnk0MmU5dmNUclA1bkw1UXFHbXBvWUFpc014T1Q1dVdWWmJiVzBrbFhFNlpJdXhxVmpDNC9Qb3FocExKS3ArdlRicnhmcHVFdHI0TS9RZFFCcTR6RUJpWnVxYWRuSXcrdWdUei8zSGkrZUxta2tCdDBOd08wV0I0M1hUeU9YMVRFRmJPajhoazlkZjdwMTR1WGQybnJabmU5MTliOSt1ekw0U2dwdS9nTkhieWU3bmxoNU9JcEZvYUdzN2RlSUU1WG1uN0JvZUgrNW9hVW5uY3JvRlNaR0lSV1JCRE5UWDlMNFJvWlJPMnlwMzFtemZuZDNiSXoyYkx4YTlMcmZENDlGVnRmL2NPYS9YQzRBUllsbVdhWnFtYVJhS3FpU0pBSGllZi8yMTEyNjQ4Y2E2dXJxUnlVbElVamFiY3p1VXVycTZRcUVRbjVyU1RkUG45cDBjSFBRNG5Ub3pSVWtpRkU1QjRBVEJGc0tybVhVVlFrTEFEdStFWkpWVklLMGVwcDBiU1h6K1gxNzYzcy82WThsOFhjRHhudTdXdTIvYmZQMlcyb0JIRmdXcUd5eVZLWjRlaWoxelpPajUxMFlHUnBPYXZueDBtTmNwUHZLYnR5bXpDemtHaWNQRW5XajYyZEkzdHJlMzU3TFpaREtaeStjVlNhcHRyRldONHZuaDRjMmJOK2VTeVVMZUROYlVHSm9XR3g1V05ZMGpST0NrMmtCUVZkWFhXbzlrcG5JVWNFbGlQcE54dU4wQVhBNUhXMXZiNExsemxGS2U1MlZLeCtKeDNaQTVTbVdIbzFBb0hEcDBxTEd4OGZycnJ4OGFIR1JnaXRzZGo4ZnpxWnhoV1RVK1gwZFhGeS95aFZnMGtrZ0VBZ0Ztb1VhU3hsT3IzUGJEWm4xWTcrMnl5VjFoZHZaZWpPMkNaelV6VXNzc1B2M2k0TU9QUDN0NktPWjBDQS9lMy8zaDkrM3Bhdlh4dkZodWFHbHB3SzR0RGZlK2JWczBXVGphTzM3by81MTU1dVdoc1VobU1kMG9pOXdmL3RidDc5N1hDWHJwaFRCZ1p4aFQrNWROOHNobU1pNjNPNU5LZ1ZLUHc2R3JLc2Z6ZnI4L0VZLzdBNEZVTkJHTFJCcWFtb2FHaGpUREVIbmVyUWltUTg3bnMxYVI2Ym91Q1lMaTl3dkY0c25lWGdCZ0xKOUk2THJPRVNJS2dnRHNiMjkvWVd5TUZ3UlJGQ1ZKd3NpSUlrbnBkTHFvcWdMSGNlQUt1UnduVXJjck1EQXdRSGkrWTNQSHhZSzZzN2IyMVZqTXNJd2pBd05OYTF4UzBlWXkyWUJRcHZBbmEzSGovOGJZSFl0VVExd1VReS84MDFNblB2cllUNFluTXgzTnZxOTg4bTBmZi85TjlTRS81WVFGU2o4UlNnanZWT1F0TFlGNzluVzg5NjZ0Vzl2ODJid2VUUlYwdlVJV1F6N0g1ejk2NTIrL2I3Y2dsaVVaY0J5eWJXajUzcU9QTGpVa3A2S2swbW0zdzVITjVieHU5NjM3OXFtRnd1a3paNHJGb3F3b1kyTmpOWFdoUXE1UUxLcXl3T2NLQlZtU2Fob2FNcG0wcnV1V1plV0xSVVdXdDRoaXRGaE01SExOSHM5b0xDWXJTanFYa3lTcHdlY3pUTFBvY3FWVEtWRVV0MjdkT2pJeW9paUthWmpNMERPNW5DQUlEa1VScWJ4NWEyY3NGbE1VaFJrc0ZvMEpISjhuU2p3VGR6a2NJQ1JlVnVIRzVpcGtJNFR3eTBQbyt5RE1RRlc3eVZ0bThaK2VPdkh3WHoyYnltcDM3Rzc1MnFQM3ZQV21EazZRQUlDWm1sN2tDRm00Q2h1aGxQSitqL09tSFkwSDN0TDFqbHM3UW41SFBGMUlaVFhUWXRkM2hwNTQ1SjMzdjNVN1h5NkJCQkFKbERIaTcxMWlTRTVGeVJVS201cWFVcm1jTEVrZGtwVE01Vm8yYis3dDdRVlFMQllkRGtjMEd2WDd2TGw4VGhTbGJEN25jamlITGx4UUhBN0dHR09za0M4NlpPWDA1RVRJNTR0bE1wSW8zbEJiTzU3UGE1cm05M3JQajQ0Nm5VNVRWYlA1dk5QaE9OWGJLMHRTTkJwdGJXc3Q1TlJjSWNmemZGTkxDNkhFMEl4QU1NQXNpeGQ1dCtnK096emdjRHB5eGJ6aWNMaWR6blFtQTZDbXBpYS9scVUwYkZiTnVscEhaMkN2aG1FQ3NGYmFQek9mZnFIL0E0OThQNWtwdnVmT0xWOTUrTzNOZGY2WitXYzBudnpFNHovOXZkKzRkWHRINDhKM1cyci94VVNkMytIMWVnQXdwa2JqaFJQOVV4T3gzQjE3V2xycVBTQ1ZsVDhKdys0L3h0VCt1KzdIZE9iN25QejNtcG9hVTljVHFWUkhTMHNpa3hGNDN1WHhjS3BhUThpTEl5UGxWd2JjN3RaZ2NEQ1JVQXNGM1RCQ3dhQ3E2NGxrc3JtKzNnQWlrWWpINWVybzdMeDQ4V0l4bDh2azh5Mk5qWlBScUVPV0c1dWJ4MFpIQlk0VGVENmFUQWE4WGwzWFk4bmtsbzRPeW1oUks0eE5UWEdFMURVMG1Kb0d5eUtpV0Z0Ykc1dWE0am11dWIzOTlPblRxVVNpSmhEbzNMWnQ3T0pGVHBLU3lhUWROSE4xc2tHcDFyNVRrS3Y0QWd4UEpEN3oxY1B4VlBGWDltLzkrOTk3WjdrRUFoaWV5anpWMDlkL2NlRzBJTk1vSG56bTlGcy84czN2L1dkcEF3WkNwRkRROTlaYnVqN3dydDB0RFRWekpSQUFJK2g3SVB3M1BlZlBuVzl2Yng4YUd2TDcvQzBOalp1YVd6YzF0ZFFHUXRGb3RLNmhvYm11THBQTFNiTHNEd1pOMHpRbGFZNEVBaEE1N3JXaElaY3NtNlpKT1k0VFJiZmJEVURWTko4c3k1S2txbm9xbFJJRklaUFBiMnR2eitSeWlxVFVCWU85dmIyQ0tEcWRUcDdud1ppbTZ6VmViMXR6YzdGWU5FMDR2VjVabERYRHlLVFRma0VZbVp4ME9wMlQ0NU9XYVhLbU9UZ3dBTUJrVE5YMTgzMTlSVjB2TC9kbWM3V3hRVUxvaUdCbmVJVlNxR241TDM3dHBUZjZJM2Z1YWZuS3A5NGVDcmpuQkx2a0NycXFXME5qYWJDNVZsRExMRDc1N3ljLy9JV25SeVl6NXNvcU5RR0FSWkhkOUxkL1czdHgrT0xBNmI2ZzN5L3lJdU1vUnhnbG9pVHhUYlVOaVdqVU1FMlgwOW5VMU1RWWsyWDUvUG56ODF1YVNDWURibmRJVVJ3T2h5Z0lya3MxRHBsbG5Sa2E4bms4aENQcGVCeUV0RFUxSlhJNWdlTnIvZDZ6ZzROdXB6TVNpUlJVMWVIeGlLS1l5ZVhHb3RGaW9TQUp3c0RGZ2Q3ZVhyL1BveWhLSnAwZWlzV0NnVUFzR2dVelplbzZPenljeldZOWtpUUtRaXFkemhkVUI4ZVZoNnJhWEcxc2tCRFc5cUR2Z1JYbEpUSHpSOCtmLzlvUDNtaHQ5SDdsVTI5dkNubm5oNXNWaXBwcHNUY0dJb3hWRnUyMWpPLy81OEFuSG44Mm1kR2NEdUc2enFWeUlDcmdBVEJCRUs2NzdycGNNWjlPcHhPcFJEd2FuWXpIRTltWXBtbmdvTWh5VTF2YjRQRHc1UGk0MiswK2UvYnNZbzFOSzhOUUlCQUtCQm9hR21SWkJoQk5KcmQwZHI1NTM3NjZRSUNLSW1HTUVDSUpTa056VTA1VkExNXZKcGNEWUZyV21UTm5hdjMrZ05mcmNMa1V0M3Znd2dWRmtpUlJ2RGc2R2d3R2ZUNmZJSW9jSU1seUM4Y1ZpOG1nSjZocVd2L0Zpd0d2MStmMStvTCtNME5EYm9kalRldDgyMXdPNisyaW1JWVFzR050SzFHRUU5SDBILzNEODZabC9mR0g3N2krczM3QmdNOWMwV0NtTlJySm1LYkZ6M3hWbUhsNmFPcFRYMzQybVNrQzZHb0piRzcycjNSOFRBY2hicmU3VUNqNFBXNkhJbHVXeFZIS1VTcnl2T0x6blRoeG9xbXhjV0o4dktHaFlXUnNiR1JzYktsSFNDWURYbTg2bTYydHJVM0c0NzVMRG9NYmQrOGVHeGtoZ2pBeFBEeDlwS21oc1pndjF0VFZuVGh4WXZwSU5CcjFlenlwYkZhU0pGQ2FUcWQ5UGw4eW1RVGc5WG96NmJRb2lvd3hjSnhrR0NtZWI1TEZGNk1qQUR3dVZ6YWZkN2xjaVhnOEVBallFbmcxc3pGQ0NLQzA3ZEhTTTBUTCtOb1BUNXpvajl6MzltM3Z1NnRyMW9sWFNhR2dXNEFnY0t6TTU1RXJGTUovLzl6QVNDbDEvYmJybS95dXhXTkVGNEFaaHNFTXd3SUlJZE03dWhDQThId3NFcW1ycXhzZEd3UEFYdjA0VEFLTHdBS0lBV0tDNm1UdkUzUGFpcWRTQUtZcU0zRVBIWm9iQ2pjNnZvQXdKeGFwWkpHcWRNRlBWWjVOWjdNQUVyYWIvbHBnNDRTUWtla2lFMHRja2t6bi8vV1pNODIxN3ZCdjNhNG9pMnhid2N6eFdCYUEzeTN5bE13Y2ZQckZ3ZThlN3B2K0g4ZlJYNzV0RTdpcWhMQ1VHcnZVRTB4TElNZGdFb0FDSEdnUjNvdHNrU0kxTmpZTHNuR0ZLQWxaTm9yN2FOL0U2Y0hvQisvWnRhWE52MWpta2FIckw1NGNveFJ2MmR0T1NPbWJrczhYL3ZtcDEyY1NLVUkrWmNlbUZTOElWNDVCd1RFVU9UQUNNREFLdzQzT3A5Ri84NVh2eSthL0xoc25oSXd0bzRZdDQ5a2pRMDZIZFA4djdTQjBVU1UyR2trZmVXTXM1SFBjZWtOelNWQ1orWit2amZRY3ZUQnpUVWVqdHk3Z1dLeUYxY01BbGE5WTJSTGd4dzlDWFFPQnQvbXZ5d1pxUW1ESnFwdTZyci9lTjdXMXhkZGU3MTcwSXN2NDNzOEdSaU9aUGR2cVcrdEtseFZWOVludnZKclhaaHZmdVRua2xJUkZtcmdNckhtTFdzYmdVVERjY3VYN3N2bXZ5NFpxd2lWejJ6WFRqS1dMb1lCVGtoYlJtTXk4T0pINHUrKzh5aEg2Z1hmdWxNU1N0bnoxN09TelpXb1F3UFZiYWhjejZsd1dSSjluV1NJWUd3UlpiUWwrbTE5SU5sUVRMcmxmQkdHRUk5QjAwMW9reExTb0ZoLzl4eGZPRHNYZWNuUHJ1MjdmUEMzU3BsSDgyZy9mU09WbXF3bHlITzFhZkVsNVdSQUxmSGJXQ0VNQXk4Sm1GUmw3SzF5Ykt0akFIVUtXaVYrUlphNnQwWGQrTkpsSXp3djFZS2FxNXYvbEJ5Zis3NDlQdGpaNkgvdGZiL0c1U3dYZWg4WlQvLzd6aW9wR0RwbHZETHFxSDk0SzdKdFVnOCtObTEyQUFaTkM1M0RyNHdoTnJXNUxOcHRmV0RiR1JjRVkwSGNCMmZZbHJxRlVlTWV0bTc1NytPeTMvcVAzdDk5M295UktJQndzSTFjc0hqODc5WGZmT2Y3VTRYNUs2Wi84VHBrVG41ay8vUG01c1VoRjVvN2JJWGpkMVRrblFJU1Y3T3BFOWo3QlRuNEV4eXc0QlJnY0FoZHg4VGEwUGwvNXBHRU1BZkVVeGxYa0kzUGtrekZnYWo4U1hnQ2c0OWp5OHJLK2pWS0RCUjBqS1ZnRnBOTzJ6Ri9yYkpDZk1INHp1cDdFc1Q5Y3F1Z1Q0ZDd4NXMxZGJZSFAvdlhQZW81ZjZON1dvRWo4YUNSenRIZmkxYk1UbWJ3dUN2VFREN3pwd051MnpxejNNdG44d1ovMHpuRjgxTmU0dk01RmZJeUxkbTJXaXVRdkRudjlZV2dXNGlvbVJoRGFpZjNBbVUyWTZDSnRKU0ZrUno4RVM4U1pOTFo1TU9SRi9oUkNJWGIwZDhuZVB3UEFUb2FocWVnYlF0YzNFUW5qWWd6di9CNU8zYzErdEpuYy9kVUZ1bU5oakJWUnNIQW1oMjFPOUFod0NSaVpSSDB0Ty9wSkNJVGM4QmZWUGFQTlZjTUdwVElOdlJ0Nk85SytaUVpnR2QvNnljbUgvdktuRTdHNU80RTFoOXdmdlgvUGcrL2Y2MVF1N1RURXpNTkh6OS96OFcvbml4VVpBeDk3Zi9lWFAvRzJhajMxY0E5aHk1TUw2aVhHZ0pIYmtHdUcyb0tjQ2NxVlZvTkZEN2dpdWVPTEFOamhqMENpRURXWXJ0bHRaSGdlbG9XYi9od2piMEp1RTR4dHlLVUJDZ2FBZ1FFSkRRcEg3dnJ5M0I1ZmVBaEJBVjBPSEV2Q3BLVlM0b3lWRWpJZEZGa1RLV05CNmJXNSt0a2dUWmpjZ1NJSFlibFBBT1h2Zjl2MkhSMDFmL0gxSXo5NWFUQ1JVWG1PMXRjNDMzWGI1by9ldTd1ck5VajRXZEV5RE8xZnZuOWlqZ1NLQW4zWDdadXJsa0FHYkhrU1kvdUJucmxuR0JEYmd1Ym5jZVRUZ0FsS1MvSkRDS1FVTEFIVEVzaHhVRTFRVDhYUzF6VGhHVVo4QzVxUDRNZ3RRQVlNczNNQkFnUkVhSE1qR05oem53Wk14SFM4bEM0ekx6SGcwb2JIQlNCbFFON0FDRVNieTJJRC9uS01BV2ZIWVhhc3BQQWg0YVhydHpUODArL2ZmV0VpUFI3TktSTGZYT2VzRFRncE4zZUdlV0VpL2ROWGh1WWNiQWk2ZDI2cXJYcUlCRGdXaHYva0FxY3UzSXkybC9IU3h4ZndRM0FFUkdkSFB3U05Raldoek52a2tESHdlUVQ2OGNwRElCem1oN2NSUUt3d2xiSERZYkFpTEVBZ2l4Y2lZUERMY0F6WjRYTFhLQnRoSFIzWmo2MVBWckcvRXVFRVNlbHNxOXZYM2JGM1YydDlLRGhmQXNITXAxODRQeEdaTzJ1OVlVc281Ri9kOXJRbURBZWJLMFJoa0E3OC9NR1NSaUtrWWpadE1oREFGQ0ZxVUJZSzBDRUVuVC9BSzUrRXhaVWtpbFhLYWVWQ2xER2cvblVZTW5pclFnS241N2NWa1RvbXJqOWtoOHRkbzJ5RUVLb2hIQWxmMmRWb05sYzQrTXpwK1dLOS82WldRWnlYT0w4U0NFSFhreGpaVjNGd1VrUHJOZ2lYSnJkTXI5ZzJsQWNzQWthaHVVcXlSZWZWZG56bFU2VVZJQ0dnRE1NWEsweFRjM2JrSHJzRjI3NExSMlpXVXQvMEpiaUhRUUNlcjlTeUZEOStFSnBkVmUyYVpMMkZrQjBOSTdFRHE1S0x4UnMxajUrZE9IcDY3djU3Ym9kNHgrNlcxYnZwajN3V3RMMWlLKzgweFlrc0NBTUlPQTRXclpoUmEwUWlHTndBQUFzUVNVUkJWQUpBd1daS3Z6SGM1QVlsWmRKaXdUSkxDOGlZaW5RUjlYV1ZNMGc2STdIc1J3OGkyb1NqSHdkakphRjkwNWNRNjhLT2crQTVXRWJsalF3QklObTF5aWUxMlZEV1ZRZ1pBL3luUUJaYTNqQXpuYzQ4ZStUczN4MDY4djJlazFPeCtQeGFGWXRobXZyLytWSHZISk1NZ09zMjEyNXR2UXpsSUhKbzNJenlGTCs0aGJpcnBNcjJPbUFZYzYyN2hvQ2dBRW9BQmwzRW1kR0taVzhwZXd1SXFSQXBXbytpWnFwU29iSFpOK1BnTU5vSTQ1SXRsT013K21ZRSt3Z0IyZnRuWUFUVW1MMllBUkpYdHFPanpiWEUrbXJDMFgzb09BU0t1UllMeXpqZU8vTGVULy9iT3ovMjdkLzU0bi84OTA4OTlhNlBmZnVsRXhmQlZyU1g3Zm14eEw4LzN6Ly8rTDF2N1hJNXE3U0xsc01JamdKcGc3M3dVT2xJUVFUVlVYU2o0TVpyZWN3SkN0Y2RxRGtMQjhYTlRoU0t1UDJMb09ZQ2psRExRdU00TkF0T0U5c1BWcDR5cDE4TU94bUd4S05HTEtrN0FuVC9HVXFweFpmR1ppa1ZFWE5Kelk1WnZVWlpQeUZrcnorTVhDdGUrZHhja3d3elQ1NmIvQitQL09EWlZ5NU0xNnMzTGV2bzZZbmYrcE1mWFJoYlBqR2NNZlZiVDU4ZW0yZVNhYWwzditldXJnVXFxVlVGWlVqa0VGS21KNlhrcnZDMEV3SUFDcWlzMnNxd1B3d2xqaVlSUXpuc0dNRzVBK2hxbmFmekdXNTlISUVSY3ZkWGtRL2kySWZLZENtREpjRGtBVURYNFhiTmFsRUxPSDBmR3N0aWNSakRuTnIrYmdPK0JiNUVObGMvNitTaVlBd1lHa0M2RXh3L1J3MFcxZUtqVHp4MzlzTGNJaWduejhlZTZqbjdzUThzazVzM1BwbjUrdE1MbE9oOXo3NHRteHE5bHpsc2dFRjBvNVBpMG5xVDNCWEc5T09jdmcrWnNwUWxSdEI3SDNZY0pLU25kT0RVcC9IakdQeGxYd0VDY0ZrTXZBT2RUd05BWWh1c2N2TW9nZTVBM1FrQU1FMFlaYk5yU3BGcXFWZ0RXaFo0RlROcmF3WjBQNEd4N3N0K1hwc05ZQjJubysxUHdYRE1qOXMrZlQ3NnpKSEJCZStZdDhYZy9DdlVmMzNtekxuaHVRSmNIM1IrOE4zWExaRUtYQVVFT0RHdDk4bzR0UVBiRDZLOGhpS2hTRmZLU2NKQXJXT3VEOE5Ra0dvdFhXWng0TXM4R1lSTTYxSjI4QUJ5V1JqRzdISFRtT2RSdEdCS1plK1M0TlQ5YUR5MitzZTAyVGpXMlZtL1FHbW53YkYwZWViUkRGdmJBcjl5MTVMbVBtYWV2aEI3L0p1dnpObm1SUlM0Uno5MGUvZjIrc3NkN0F3V2tLeWMrN0VHSE5xSjFncmRCTmNFTzNVM29sM0ltZVR1cjBLaXNIU1FNdXNvbzJER2JCa293a0hUUUM5OUJ5Mkd3UWNncDlCV2h3dVRhR3N0M2NnWUJHRmVBalFGTVV0bVdFSmdVUEFGMjFOL2piS09tdkRNcnkyWXZtVE8yeXFKQXJ1MzF2M0Q1OTdSMGJpVWJWTTN0TC84eGl2RGszTjNPN24zTFZzL2NQZk9LNk1HTWYzZFVPR3RuUEhHdDJKclcrVjFCblo5QTRYdHlKbG9sUmtMZ3pFUVdtRStsZElJOXMzK2wxbmd5bGFWSEpDdFE4TnV4QWlhbXl0ZWxXbVZhMEoyT0F6R3pXNjhZUUczUFFhbG9wU2J6VFhFT2draElRQ1hRNkc0OUNZd1ByZTRaM3ZkbjM1ay93KytmR0RmbmsxTHBjTXo4OVV6azA4ZG5sdHlkKytPK3M5LzlFNm5zcm9vbVFVN0FuWi9BWEtsRTlMaGdFcG1CWXdCdkI4OVllaEFVTUpPWitrZ0szTTVNSUx1SitDTWxQN0hBTTlJeFZmSkFBd0xMNmJoRnlHVTIxMFpZTTFZczBwaE5KcHpWcnFKanBGYjVxUlEyVnhEcktNbWxLWncyMlB6ZGFIYktYRWNCZkJyZCsvNitULzgray8vNWxjLzh4dHZicW9OTE9Wa1orYndST0tUano4YlRWVnNrYjJqUGZqRTU5N1oxcmprdmRXaVVvemVpWWJLelhwTkJzdWFGU0VDZEFOU3FwUk9VUnBrWld3c25iWndYbHEyRGUzSDlvTVZiNE9uU0JYQUVSQkExeXNNTmdBWTJBc1BNUWJFdTdEdHU1Q3pzeWZmOUZjQXMrZWkxeTdyS0lTdHoyUG9YaWpjSEFmMzlWMmh6bVlmcFhqdm5WdDJkZGI3UEo1bDZzRXc4K0o0L01OZmZQcTUxeXQyWDdsaFMranJmM1RQN3ExMVYxSUNMWXBidzdESTNKODRZeWlmUlJPQ0Y3S1hWbmNVSjFXZ0IrN2h5aStPaFhUemJEdTVFSHJDWldjSnFBV0hVdEtjb2xnUnY4YW13eHNvVHQyUFFCOWUrVVRKL1VnSVRBdjk5NkQ1eUJWNVhKc05ZZjJFa0JBZ3R3dnlJUGlLWDNSRGpldDM3dDNERWZyWDN6N2VmeUVDeTFpc0JRQXcxVmRPRGIvL3M5LzcwWE96dTY5d0ZMOThhOGZCTDd4M3o0N215M1VNbHNNWXlCak8zWU9XbmdYT2xvczZZeVdYSVdNb3VwQWtPRFdGSFpXTytEbFRnRmdYZ0FxYnB6bDlEUUVCdXBXNWxSUXBCYVZJdHVISUo4Qm82U0RId0JGRXQ5aHE4SnBtWFNObXlLNHdYQmR3ZmJqOEYwbUk5SnYvN2ZwZnYyZm56NDRQMy8zeGcwLzgyN0ZJTExtQUtGcEdKSjU4L0Z1di9NckQzM254amRsWXNocXYvUHYvODdadi9QRzd1OXBEVjFJSE1zQTA0RW9oMmJqQVQ1d0ExSnA3dy9RME1uQWFoZ2k5SG9jT1ZNaFkrVXdWQUYrQWxDcGJJYlBTT3lFQWw4SEpUSVVtTEdHQk4wdnB2QVJnSEV3Q2pwQTNQMzZaejJxenNhejNKNVF4NE95OUdOOEZkOWtPb2N4TVovSmYrc2JMZi8zdFY1T1o0czVOd1hmdjY5eC9jMXQ3bmRmaDRBM2Rtb2psbmoxNjRlQXpaMDcwUjJhc3FiTEkzWDE3NSs4KzhLYTlPK29YU0c2NlhDenMrUk9NM2s2YW41dC9qaDE1YURZUXRBU0JTZkRtUDhlRm0wbjd5K3laajhBcHpib2ZBR2dhYW1XeTdjOUxMZlQvTWxKdE1DcExxaExBNllhYUFUTWdDQ2hZaS95QkdIZ0NrNEJSY3N0amwvdWdOaHZOQnN4ajJPRXdSQTJrQU5sVGJpdzFqZUpyZlpOLy81M1hmdno4K2JGWWh1T296eWs3WkU0M3JXUkdtNG5QNWlpdEN5cjdibXg1NEo3cjd0clRxaWp5RlM1blNBQlE3QTRqc1IzKzB3dFh1T2gvRjVKYkxsV2FBQmdnbU9qK01xSmJVWE9XRUxEblB3bExnSEFwNm9VUTNPekNoVHhwTDhrTUcrMUc0ekc4L1BDc0RtUVV3ME9vcjBjZ0NETUxsVUVub0d6dW40Z0NEamZVQXBoQjluN3BTajY0elFheFFUVm1YbmdJZ2dKZXJJemJBcGhwbXZyd1JQcWxVMk12dkQ1NmRpZzJHYy9saWpvWW5JcFFYK1BjMVJHNjlZYm03bTExVGJWdWdSZXZmRFhSVWl6TEJQeGo2UGpoWW1zdE5ub0xHbC9DSzUrQ1pjRUVORGRDWitBZlF1TkwwN2V3NXg0R05RRUN4Y0tOWDhiSXI0SnNRcE5JU0xqVUFnTmVmeXY2QW1odUJzOUQ1WEQ3RjZlUFRGZFBZODgvREl1RG9VQktnZkJnSnNBZzVnQTNPQkdDUkhhRnIvQ3oyMndRRzdhaVo2K0dZVElZUkNONWtSUG1peE96Tk4wdzhrWERNQ3dBUEU4ZHNpRHl3cHJVMHA3R01nQUxpZ3c5RHpNNWY0ZXoyYkV4WVBUTktBUVI3WUxKdzZJd3BlbXcwdElGMDRrWEhCRHNnek9HK3BmbXl6TTdlQUFlRDBRUnNoUEJmc2d4dEQ1WGZoazdIQVpYQkdXZ09nQlFIY1FDdDhEV2F6YlhOQnRwVm1NdmhYT0ZYREtSYjJweGcxN1pQTjlWakFhd2loZ2FSRU1qL0g1Yno5aXNHeHRZZ1J2a2xuQXlrUThFblNEeWN2VzQ1ekZ0elovT3I1MzVWNm9jc1lyY1ZnSlEzUFFZdHNZeFBtWkxvTTE2c3ZFT0puWTBESjJoU09DYWIvZGZFQUlRbURwb0JBZ0FRdWtoWmt6ODBNQVNRQ05nZ2JLRmJQM2wzUU1FMENsOGczQmZRR09QN1hPeldXZXVpbDhjT3h4R3d5bHNQWVJqbndWWlpNbEhHQmpBVEhTTE9Hc2hVd0Iwa1B6OEJSSTcraUhBRGRjWXRuNFR4OEtYZHA1WjBNcEpBSUp1NEJ4RGxKQmJ3bGYydVd4c1ZzSlZJWVNZTm5XTTdVTnlFNlk2NERFdkZTcTdCQUh5UmR6MkdNWitIV2hISXpkalpseXl3ZjBvaG1Ec1FCZkJjWUJZY3l1VXBZRmFCaDlCSTVadDBNWm1qYmhhaEhBYWRqZ015UUlJVkFJUEFBc0VzQ2k2d3hqZEI5TkM2L1BWVGhjWkMyTWN5S2pJeElCR1VBWXdVQk0zL0NuNkRtQnNaN2xWMDhabS9ibTZoSEFhZGpnTUNhQU1BZ01BWHkvazZHV3Uxa3B6VlBjWXVyNEpBQk4zQUF6MVA3ZFhnRFliemkvV2I1QlZ4S3h1M0Roc2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeCtvZmovdXBwS1BqTzZGWGdBQUFBQVNVVk9SSzVDWUlJPSIgaGVpZ2h0PSIxMjAiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIG1lZXQiLz48L2c+PC9nPjwvZz48L3N2Zz4=" alt="Хотел Тино">
+      <div class="lsub">Хотел Тино Св. Стефан</div>
+      <div class="lsub2">Систем за нарачки</div>
+    </div>
+    <div class="fld"><label>Корисничко име</label><input class="inp" type="text" id="uname" placeholder="Внесете корисничко име" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('upin').focus()"></div>
+    <div class="fld"><label>PIN / Лозинка</label><input class="inp" type="password" id="upin" placeholder="Внесете PIN" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="lerr" id="lerr"></div>
+    <button class="lbtn" id="lbtn" onclick="doLogin()">ВЛЕЗ</button>
+    <div class="lhint">Системот автоматски ја препознава вашата улога</div>
+  </div></div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none">
+  <div class="tlogo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iNTAwIiB6b29tQW5kUGFuPSJtYWduaWZ5IiB2aWV3Qm94PSIwIDAgMzc1IDM3NC45OTk5OTEiIGhlaWdodD0iNTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCBtZWV0IiB2ZXJzaW9uPSIxLjAiPjxkZWZzPjxmaWx0ZXIgeD0iMCUiIHk9IjAlIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBpZD0iMDkxYzAxNGI2ZiI+PGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIDEgMCAwIDAgMCAxIDAgMCAwIDAgMSAwIDAgMCAxIDAiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiIvPjwvZmlsdGVyPjxmaWx0ZXIgeD0iMCUiIHk9IjAlIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBpZD0iZTczNWY4NTIwNCI+PGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIDEgMCAwIDAgMCAxIDAgMCAwIDAgMSAwLjIxMjYgMC43MTUyIDAuMDcyMiAwIDAiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiIvPjwvZmlsdGVyPjxjbGlwUGF0aCBpZD0iN2Q5OGM1NWZjNiI+PHBhdGggZD0iTSAzLjE5OTIxOSAxMTQgTCAzNzEgMTE0IEwgMzcxIDI2MS41MzEyNSBMIDMuMTk5MjE5IDI2MS41MzEyNSBaIE0gMy4xOTkyMTkgMTE0ICIgY2xpcC1ydWxlPSJub256ZXJvIi8+PC9jbGlwUGF0aD48bWFzayBpZD0iN2FkNTllNjdkMiI+PGcgZmlsdGVyPSJ1cmwoIzA5MWMwMTRiNmYpIj48ZyBmaWx0ZXI9InVybCgjZTczNWY4NTIwNCkiIHRyYW5zZm9ybT0ibWF0cml4KDEuMjI3NSwgMCwgMCwgMS4yMzEyNSwgMy4xOTg2NDIsIDExMy43Nzk0NDUpIj48aW1hZ2UgeD0iMCIgeT0iMCIgd2lkdGg9IjMwMCIgeGxpbms6aHJlZj0iZGF0YTppbWFnZS9wbmc7YmFzZTY0LGlWQk9SdzBLR2dvQUFBQU5TVWhFVWdBQUFTd0FBQUI0Q0FBQUFBQnRmcEQ4QUFBQUFtSkxSMFFBLzRlUHpMOEFBQlZmU1VSQlZIaWM3VjE1WEZSSDh2LzJtM3VBWVRnRUFRRUZGSTJLSUI0eGlsY1NjMmxNWXVMR1hDWW1HblZOL0ptc3V1c2FONGR1WE5kZFhZMHgzakV4NjZwSnZGYU54dnUrRVJVRWIrNzdocm5mcTk4Zk0rRE1NTUFNaUpMOXpQZXY5NmJyZFZjWDNkVlYxZFVONElZYmJyamhoaHR1dU9HR0cyNjQ0WVliYnJqaHhrTUdhOTdYM3NQaTFCeXFyNSs2WnJoUERQM1BRdFIzbTVhSWlQamNKYUVQbTVsV0R1bDdtVlFEZm92L3cyYW5WWU9OS3FGN01DNlVQMnlHV2pQVWg4a2FwVU1mTmtNdERxN3BuN2JyWXZPcWZyS1pyTFIrTkVOWUlydHZ2WnZIeVc4QXpSQldYbzdOcTNDdG1hejg5c0VrY25FOXRwaG90dEZhWjEyT2RFekdlZnA3aTF1T3dRZUpocnVoN1BaRXJGZDUwb0dVS2dlRi9EZGh3d05FbGhkOXlvdzdqbXFRZGgzVDExdWJ0dU5VdnRCTVRsczdmSllYQ1VRa0ZIL1gxbUc1OHBIMzd4SVJVZmxYejRjNG5OQ3lHVGxFUktSTkhDRnlWUDYvQXpiZVlKbGlwbm4xZEpWYlFVUkU1MzNycVdKZ3JTbVdOYVRGK0h4Z2FFakJjd01sbGlkUnZNUXhDVk1DQUlLRDZxa2l3S3ZtS2VRWjE1bHJiV2h3TmRUVVBCajIxZU1ucXpvQkFBSWVxMmNSdUhpajVxbjZwTXU4L2JhUWNNc3loN2JXTjgzaUM4d0VlMVdPeTdreFJXYUM2a1VlTGNibUEwT0RhamZyV0dseHRreUZnc20zSEJQNHpPMWpIbEpCMlpmSUVRR2xlU2F3MUExN0R5eGY2MmhCL2Q4Q2t5ckdteWl6cCtOWkp2MUNYNk8vc3g5M1hJRnlnV0FhMTd5ZzJXOEpRelFrbkg5QjRhaG9VTkU5bTNTTG82QURGNzJpbW9SM204bUJwRk05azd6MVlXQTFFWlV2RGFoYndpMnhNdUJ6dTlVbGtMeVJKaERSeC9WWHpqd2I5N2M2TEQwVTRnSy9MUWduZlVQVnBML1Y5Wk1sN2ExZXZPcVdpOFlzN3NRQTFCbVZURzIyUkZqSXBGbjEyQ1JXeEsvOHZxcllPUzViR28wTHl5UUFnR2hVVEowU1k2clZTMlptblhMdnlYNEFBTDNkNzIybnJEV1BVK244eFVLanNYdEpYM2JDdm9hSGhNYUZaVEFCQURJejZwUUltN05ybjJsdmRwM3lpbjBtUjIxd00vNFpVZzBBOE9tSml3NFhVV3Q0UjJrYkozb3dhRnhZUmhNQThHdnFqaHhjV2x3N0x1NnM0dXNVbTVaZkFGQm5HaXA3aW0rYTdZalFvTkliOWgvVlFWQnd3YzFHaVI0TW5CaFpQQUNrYjNjUU5UQnRTS2w1M0psYXR4aDVLeDFOTXY4d0pKb2xHNjNLem5GQVlJdEk3MXY1alJJOUdEaWhzM2dBT0ZkM0ZnSW9yakZXVGFmckRpeUFmcjBOQUZyYlg4UGFhQklKQUZpY0tLMjhzZVpaZDBtaXBqR2lCd1FuUnBZUkFGSk5EZ3RyekUyajR6OStmaG9BVk5yKzJNVWp6enl2Rk4xeDBaR01iU0NPTVoxckpTckxHWjJsQityZHVhN3BockdCUDc1UVlmTXE2c1ZTektMMWk5QmRka0svbDdhYWVIWGp3dEpyQUtDNzFGRVpYeU1IbldQUEw3d2JBSlB0VkZQRndHSUtoQWNVM1c2MCthRGdqS3hHaVI0UW5CQldKUUQwNitGb2JIRTFDNTNjeDlHbkh2L1hBWURKZG1TRmRhZzZaUjVQajNobTJNOWVwb3EyQzNSSHFwTXIwRXJnaE00cUJJQzJzNExyU290MTdHVjU4aHJuVi9kTDVRZHZjd0NNTmdxZXhmbmVOcStjWER5N2FqOGdCLzA4M1pZajFsMTB4ckc2YkpWZ0M4MlI1ZjN4OW9KbGtYdUVHdGZRc05iZlRwaGNoMlhWUkVSVTFNUDZaOGtQdE5oY2tmbzAvNDVkamFKMXdsVGJhbVRiUy9yY2oxNDhLTHpEbStWeGExcTAzS29uekhQRUtlR2VJMjNZbWFDNFY4cmswZE11Vzc3THQzR3hRNjVwaDV1ZnV1U1U5clZyeXVkTTVTRGJYd0t2WG5iZ3dqOGtPTEdqZDZYVVBNVWlGa3hMUEp1U1hWbHRNRUdpYXRkaldEL3J5SWxrZUwrakI2OFhhL1FrOS9BSjd0UWpKcmdtcmxoUVpGMWJsN0QwUythblNOODc5c1piWUdpZW5jb1BDZHBmNm54dldoaE9DQ3Z0b2lXTFFSd2ErcnhSbzlWcERaQ3J2QlgyT3N6dnhSZjBXcjJKcERLNTFHckdHcjR2dENKaWc1UW44OHhQUFdRM1MreXFpUFM5VkdUM2k5ZjUxcU95bkJCVzFhcCtuclV2RXU4R1VocVl2RzRFa04rdzB0cndWQTNTN3pMM1hoeUxKTE0zeENubFdnMEJTbzgrc2h1ZW5zWnlBaVIrNGtJOUFGOWpZbXN4U1owU0Z1MWFOYVhScUZPOU9EU256UHExYzlkYnA4MVA2azVtT2JEd04wS1ovOEVOWlhqMWxSZ2F1QjdudnpCeWo0eFQrOTMrdEJ3c3ROVjQwYzdDOXp1ZW1vZzd2VzFtSzVzamZPMnJWcXZWYW5YL29vSVlBRnkvdlg4SlU0OHRXS1JBWU4vVS9LYzZkZ3hpTFBib05KOFJSVU1BMmJaOXlvZlU2U1lqN0VRVFphWC8wSGI3eU9PQUlmWDBybTNidG0zYmRvWlA5QWRZditRMWNzQmpUK2tnb0Z2K0dSOEFhSC93U3prYlh6NFVDTGl5NERlMzI4R2VMbWxjTUhiUTZJam9nSjJ0MmoxNzA2U1VsWEhSMGRIUjYray9FaUQ0YUY1ZkFHdzV6UUplMEs4V0FWQ3N1QmtGLzBObkFvSFkzRmNlUm4vcmdYTXhlRHE4eldVMVc2MERxcjZ5WGUvRW8wWExWb3dOZmFrZ0xTMGpFQmRNRUwzVGIzY2lBQ1pGQU5CZGZKWUgyT0RSdjZaN2ZoQTZ0d0RvWkdvMVhyUUxpTTkxZFdRSkF0RjJUOXRhNHU3T2xZQ0ZybC90aDVBYlZVT0JpQnVWVHdLQXgwR2FEcmF5T0I2QXg0Nkt3ZUhmN0JzZ0J0amZqN1dtWFRCbk0vK1NUN2hhTTJNd2JLcTIrVWsrMmZTREVaUTVPK1FURDRXaThEWVFHNTZaREFCdEk3UlhJQXZKekFBUUdsOFN1YkJnM0FrVElPdDZzelZ0WkRzckxQMHZqWWJwNmlManBNM2taVTgvUGY4NkFHVE5mdnk5OXVvN2hVQ281RzRKQU5ZNzZGb2lmQ0pTU2dFRSt5Zzd6LzA4aXdENFJoUzBwaHc0WnhNWTZYeXA2NmNDRW0waTdDeG05b1lmZUFDZ3hLVi9QS1c4cWdWRXlEY0FrSS9DMmtJRUJTVHk0TVJTN3M2OE1nQ3lnT3hnLzJRd3RCcXIxT2tFM0t3bWhPQk9HNjFiNnJYNDZIeEx0RWJZZkcwMFhSU0FMSk5TQkxDRW9YczJDdkNWRlJBMzlNMXlYWEFRQU1tWU43aGdhWkg0bVNqWEcyNGhPQzJzQ29jcG93MUNsMHlBMk53Qzh4dTNhTTlmYW1PbTVjdjFsYWtBenFaMURRUUxuM1YxWmltZ0V3WjFlUEhkVTJsSndWTjlPTCtKL2RlYm1DUmg4b2l5K3VwdnZXQ0xYTGEwOHJzQjdOMmxZL3BFUmlWOHRQVzdnZFkray9yUTFXQUEzTXUzVno3NjNNOXJJeGdBdjMzYTZ6dmlHSHM4VFh0dzNaNS9oVEJFSkZkdGE5OTZyRkxuT2ZuRDMxMnRPMlBRWGZqODlKaFFVVkpTY1BIWEsxcHIzY1BpdkU2WUFJamludmN1UFg2cUdnQlkxS0Nxdy9rRXJzdklzSUtEWjdRQU42RFg1dXhXbzdKY0VOYmJhMTM5RTJjTVRJZXNlNkJNVjVhWHI2bTN5NHhSNnhGSHczQStuYitTYjBycXYvNThZeFFQUTFUTU15eUkwdSs2R2lselhnRFZUUktXTmRRRDJseEpNalpPVnkrWXdsc3BWSlE1WS9FeHFVcEZGYVdPU2JtNE9iRSs0dDFqVzA1WXV1YWFoK3JGbytVNTcreHY2a0JpNnJnbmVnY3JXTW5lUllXTmtjcTdEQmtRNGNXVkhGbDJ5MEZ6TEhhZGJrcWJqNCsyWUZiQVk1V3Vyb2JwNFRZVmpOUVMwU1paMDFwbm5tOGV5VHkrOEoxUmswNGIvK0Z3dy9jZWxNLyttSDVwMWFSUkU0N3crOW80S1BmZFhmMHk0M3EzNUVIbHZ1WE5GTllFSXFMalh2VlUzekM0dU0xM1Z3MVNNNEE5VloxYTN4RUZNMm5YNzNQKyszSmJFY0FTeXFzRzFTVmdiK2t1QlFETWRaUEUrV25vMGZUUXNobVhDd0pBcDVzMDlxVXZmVjQ2OFpCNTA5Ky9ZVDdFejgwemZMU3JpZ0RBUitwSVozbThKcnRRakpaMW90NTJPYlJzTjdJazd5Wmw3bWlTN3lLZGxQZERqVzBhY0pBMk56Q1Z4V096Zis1b0lmWGRTZGNjekxYWWZQNjlwbkRoQ21hNUtpdDdZWUVMalBScWlqbk9YaTc4cVViM2VQN1RXRG04Z1VwaTcrNnB5VE5RZnFFM3pYRndLT0k5dnFSM0U3aHdDWE5kRjFiNys5TnlXR0pPdkVVQTZ2a2FZV3NEbTNISzd3c0hXRWc5NWxUUmZnZmFUYlNHa2xwNms1c3RkMWxZK1YzdDJKVFh1dTJjdk9aUHpxUXkyNEhDeVJXMnc0Rk5OTzB5NzBleXFBMTY0VmpuQmdaV242TEQ1aFdFK2MzVjBOa1lCNlRxTTdTaGlSYWowNTlKZzEydVc5VXUyZXJObzllWThCM3JkQUFnZWVUMW1ITUx5d0ZJMnc4YkxOLzRZMjNxTmhjWVA2eWpLR1BIQWFzUXEyaUFTR3UyOGJ4bnZzRHZuWkhXZ0dxTzlkV2FMVTNSVysreGZkT3ZFQ0NTMlRpbENBNFRUalVoa09rU0FxKzRQTExvRTZ0TWtYWnJTb2lLK2dDQTU1K3lCZEk4QjdEQUw5Tk5SRVVEYXFnVWIxL1NFQkZWZm02bHc2VmJLV2N3QXdEVzVxVlgxUTFxdmFsVStDd0hBTXhyNkJ0K0RKQTgrdmZKdGwrTU5oVDNjdmp0ZmNTanBhNEw2NWZhRFZMVy9yODhFZW1IQS9CY29DRWltZ3pXZFkrSmlJZ21XcWk4NWxZYVN5cUppSXI2MzJ1Wi9VV2d5ME9kT3pYOFZCV2xQV3M5VzJMdUdsKzNvV0R6NldKTDN3VERQaGJxRjBwOXlPMWU4M21icmZvOUY0bXFCZ0dTUDJtU2YrSkplSmYxUG1lOCt1MVpJdnJRVENUK2svYnFoUGpCYTNSRTlGZXI0UkI5bFNocmlsUFdyUGNXZ2ZMK1lEWDZYalVXeGRsUUtQYlErcGErREVCMTBIVlpFVC9kd2pVM1UvL3Z3UFZtbGY5WWZscnZaM1JrZURIMll0bmNVTkU0Z2ZnM0FRRHNxZHprZUFaNGJ5R2lYVmJ6a0J1U0pKRDI2ekFuekE0V2ZVSWczYzg5YTVlUCtaUm9PNDdhWGVjbjNRZDVOSWduWEhaMmlJak9CWnEvOWppVUVxM1lTNVFhRE16VWpPTmVORkRWVzBmTHBzaUFzUUpwaHdFQUlpNVV2OFlBNERrTjBXbnIvVUxXWlpPVytEUERHL0VKQVlCRmZWdE5kUGNEaTNraDMyVy85UFd2S092WGJHazBET1hHcHNpS0RCUE54b0o0OWdTdVRSTFJNUzhnWWFVUHhndFVkVjQ3UndaZ0tsRmhEQURJbGdvSHpGMk1TQ2M2cTdZUmdXcnlIYUxpT2Q0QXdCUlNBQWhJY0t6R1BNZWxDYVQ5b1FNRGdPRFUycnhMVHNJQVlEeC8xZXJlQmFaV0E0QkV4UUR1UHNXdjJmTk5HbGhFVnlMTUZjamw2SlJOdEZFTWNKNE1ueEdSc04wWDVvelY2eUVBTUxDSVpwalo5VXNrT21hM2x5M3ErWXVKOUlzOUFlbVFEYjBBRnJJeHRSN1hpZXU2UVVQQ3ZuQWdiTmJYMWFhTm44Nk9CSlRQZmJOcGlwZm9kNThlcDF0elA1Mm9oQ1IreHRLcFBTZnVmUktROWwvMlBsT09XUDVadS9zaXJOQlRUWk1WOGN0cVR6a2xWTmFxYlc0MUVlVTh5Z0JJTmhNZDlRSWdYVWU4WmQzeU9rbTB4ZDVkWnNGTHFra3pua1BrOWVyQkFCdW5OYnhVSDd0ZVUzS0ovMHFDd1NleXFQckMyZjJkRWZoMTFyck5tbmVVS3hLMWRQUHMyV1Z5OVp5c3kxdXU1aG95T3dHeEdicVIva3RLamZ5Uys2SDVQWmFabWlnc3FoaGJZN1dQTVpGZ2NXQmxPNGxvaVFRQVZDZUovaTBHRUoxQmxRbm1ZdFZwb3RsMTU0VEhqRW82MXdiQnFicW5BUVNjNVYrdlExSUQ4ZlBwbE5vT1VwOFZ0TCt0V2lYeS9hNWltdnhkZmlIbjFUdXY4aG0xMnNON1JkWGFjRWxNS3UzM0FINW56SXBmZG1mcU9qcmNTQzZZTS91R2JQallKdCtONHZVSGkrWFBJa1RRV3hKdTVXMkFzdjhZQVVBZENOem1BZlFMaHRheVF5ajNRTVh4dW1aNjlkTFZRc2RJVkJaeENnQWx0N1Y1OWJacSt1L3NxdEJPTU9namNDNi9yRUwwd2VpdHE2UWpUSmVGeWtCMTlwV3lNdjJyYis2Ym1XN01xc0JwRFZoM2Nmb3pUMDc5cWhqNWpjUzhuZHBrSGRpTU94bUNMQ3MzRncyVVczYTFWZjVBcGpuOXNhMGYrR3NFaVBxTFlMSWN1QXNNd01rTERxclNyc2lXZVVHYkpmSUNJUFZMdTFKL3E4TFcweElWRUJpbE8wRmdnei9NWFdDYU9temJUckMrc3NSOG9NOG5HYk9LZ000ZHF3OFRaSEdRdi9YSkxuRm5PdHBJVU40WllWRnpvdFczTENkYzVhRkFjVEh6bHdId1ZnRXA1b3p0RUNWMG1lQmswbkJBWXJHdFlueTE2eHdtenhRVWFvckJaM0xlQU5wMzJsTGtpTWFDNm5SZEVkQWhvQ2dOa0w3dGV5ai9vMm0veml5RExJNU9teUNmSFBUdjZ3UTJ5RHM3RmZDSlFOZGZ0dk5pNzRyR1RzdzZOYkoyNzNhR3lpSDBxeTFkOGdvRWNpdGxDOGR6Z0sreTlreGVld2txQ3RCamNaZ1hvRFNuQ2NwSGlGT09PR1JiNFpseUI1UU9mMEQwVXRtbWhuWlFKT3IwbThBaml0dDVRRWcvTXE2ZXVISkNPc0V2cXVvaW9mT1RSVHNFd0g4a3Uxb0FCQWNnL1NzZFBOU1pqUjI3Y2twWVZZc0xuQ0Z6aE1NL1dicnQ2d3RrNm1LR1JRTUlrSUV5emVjenc0SHlNcytQWCsvQUE0b09BTUFlZmFMeUh3N2JZLzNhckM4RGNveUJqSFY3YlZsNlErMUd4QjB2aHFnSFM2b0d3Z0x3Yk1WcmMvSUpDR3ViY3h2bzczL25Ec0M5RWtjbmpFQ2tTdmorSnRBMjhMSjlXcjQ5bkJJV25mdTJpVUdOZ3ZrMTV5UGFlQUxaL24vbU53aEFrTGptTktjb0VLZ3l2ZkhpdFpSU2dBMVVBS3pkSjk2cmFwTXltZFhLd2lJK092QWpBWG02QUluM241TTNDWUQwc1pHQnJKYlVhZ0gxL3JoNmlSSEthT0dDQUxtUFdEZDl3bkVEbEQwbGozaWxGSUoxNHpSR3NHNlRlVzBTaVZnM2NkYVBBaEN1T211eXY4YlFEczVsMFJpV25uR0t6aDdHWlNkcXVoMG9BNksrZm5MUkJZQzFBM1RtMlNsV0F4NFRQdE44bVhVTndLanBIWU1IcjB6NCtjdmFjMlFoZjZ3OTZDanUvWTFoVmptQTRxb2c3eW1kUHE4QTJHdmJOeStzTWVRQ1BodmlhUkVYYS8rM2hPbHBnRmVnUGhOdEYwWWJwRW85SVAvOVFwOTQ3b3dSbkFkNFlpRi92WDVYVjlwMldtQTNITGtOSUl6TFZNMjhMNTRRRzVMZEJDTkwySFl2V2ZsOUloTDRIVzBBaUw0bnlqSGZKYVU0UU1TYlNpWkt6TTZuTVNPMXpMRHBuaUV0bW1YSVd2OUtaejhQejhEZVg5N2FHczBBSUR5OVlNWDFGemdBSGdlSlVpek9DL2Vob1hUWCszRUJIcDRCUGFjbm5udUNBeENjWnByZWMvT2hSeS9TaGI1ZTRWL2NlTm43YVBYakFKdEh5VDBIN3Q0ZmQ5N3d6NTJyMjEvU2pRS0FxZnpTTmVmcVhsN1JGSWduVmJrdXJJdGQ3czJNTjNnaTA2NUlCa0N4ajB4SHpEc1FrbzFFbERsV0NuaXNOQnUraFgrMWloSUVueU1pZlhiaXNlTlg4eTk5NEd1NVVTbVZDc2VKQWNCalA5R1BGa1BTLzRoQXhCZGVPWGI4U3Y2dGhSRU1BR1JyaEtxODR6MjQxNHNvNTJSYXlpdmlxSXliNFFENlp2STVCYnU3U0pidy9MRk8zZkxOVzBDUGw1dXVEMm5ZUFhUVzJoU1NGWDFjdFV6ekoxa2RCYStLVjJXdG5KMUpBTHhldS91UGhia0VBS1R0UzhjKzNHMENqR2RNYlVUYWpKMnpObGlkUDljbjVSczFCcEZjcHJ1ODVzdjlGZ05HTHpGK3NjVUVBS1o4NWNsNUZ0UFVtSlNwMGVpZ2tPbVN2NTIzeFh3ZkM1OGtWTy81SkkzU2tzVFE3cDF6bE84MTd2dzZFNUIvVFY2NGRsNEdmMVYwZnZhTjlvcWxTUUtBQW5IdWJBZW1jTk9nWHFaMWJWd1ZmMkR0MzdHMjhlRVcxMHNSZHk4Nko0cUs5Ykc4aUVONnhvWFl1NFNjTWpDOFk0ZGdsZlVmU2xSNzdKRkpyZTRGWlRLLzBLaklZSnQ3UGtVeWM1QlpxbEp5QUpzaHpESEhweTI3SkNJUklLbWhGMG51WTlxY2FvR3hjUW5kUS9vb0o4SlBEeGFLbmVVREdxZTZQL0JiVUkvZUV2ZzZNV2NoOGZIV2Q5ZG15UFZUOWQzSDV4UmNDVW9VZjNwbnRzMkdtQzdqN0hrdEFEMHY3Zk4wcUxVVm90djJXVU03Vmc4SklkN2ZQTUJqc2VMQlIycUROYnFrUmNORGExV01wUFBVWGJrMTJSQkMydnV0NlJRSkFEQi9CZVQvT3RKZy9zMTlielBvMHl3aUlxcmFOVHJJN2xJQlpjeXNhendSVWNueXpzMjQzN3BsNFAvait2ZVdwU1E4NE14bmNmeWFRdElmR2VVb3hZT0xXcGdqOEVlZWJuMy9jNENOcnliTjJaSE5qSVEyUWRUeTJPRjN0aGM3MWtpUzdpUFppcHpXcDYxWVdHK2YzUFA1clkyeEppVFV1ZUdHRzI2NDRZWWJicmpoaGh0dXVPR0dHMjY0NFlZYmJqeGMvRCswRTEvL2NiN1BuZ0FBQUFCSlJVNUVya0pnZ2c9PSIgaGVpZ2h0PSIxMjAiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIG1lZXQiLz48L2c+PC9nPjwvbWFzaz48L2RlZnM+PHJlY3QgeD0iLTM3LjUiIHdpZHRoPSI0NTAiIGZpbGw9IiNmZmZmZmYiIHk9Ii0zNy40OTk5OTkiIGhlaWdodD0iNDQ5Ljk5OTk4OSIgZmlsbC1vcGFjaXR5PSIxIi8+PHJlY3QgeD0iLTM3LjUiIHdpZHRoPSI0NTAiIGZpbGw9IiM4NDUyMjUiIHk9Ii0zNy40OTk5OTkiIGhlaWdodD0iNDQ5Ljk5OTk4OSIgZmlsbC1vcGFjaXR5PSIxIi8+PGcgY2xpcC1wYXRoPSJ1cmwoIzdkOThjNTVmYzYpIj48ZyBtYXNrPSJ1cmwoIzdhZDU5ZTY3ZDIpIj48ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLjIyNzUsIDAsIDAsIDEuMjMxMjUsIDMuMTk4NjQyLCAxMTMuNzc5NDQ1KSI+PGltYWdlIHg9IjAiIHk9IjAiIHdpZHRoPSIzMDAiIHhsaW5rOmhyZWY9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBU3dBQUFCNENBSUFBQURIZDFoM0FBQUFCbUpMUjBRQS93RC9BUCtndmFlVEFBQWdBRWxFUVZSNG5PMmRlWFJkVjMzdnYzdWYrYzZEcnViSnNpeVBHV3c1SVNGeDRqQzBFTUtqUE9LRVB0cXcrcnBLS2F3OENBUktvV2x2T2dCTlMwTmhkVXFuUjNnOHFBMGxESVdVUEdKUk1qbXhuY1N4WlZ1U0xkbWFkZWY1bm5HL1AzUXQzYXY1eXBaa2wvTlovc2RuMkh1Zm8vczd2NzEvMHdac2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeCtFU0FiUFlEVndCZ3dzUitGR2lSM2dBRWdZQUJoMHlmQkVSQ0FvMlJYZUVPSGFXT3pJdWhHRDZCcTJNRURPUEZMcU85QmFoY1lBNW1XUUpRK0tBU3dHRGdLeldRdmYyNkR4MnBqc3dLdU1VM0lUb2FSU0dKOEZCM2JBTExvOEJsZ21TQVVoQ043dytzNVFodWJhcm1XTkNGamdPc2svTDVsSkJBQUFTZ0Y0V0F3ZGppOGJpTzBzVmtGMTVJUVltSS8ycjROelFKWlVnS25JUVRVUW9GQVdvK2gyZGlzbW10S0NQTWh2QllHVy9IMURQQUFkT1UzMk5oc0FOZVVFQ1ozd0tqeUZzSWdyTWxZYkd5dUZQeEdENkFhTEFzY3dLb3lKckZyemZaazh3dkhHZ29oWThCWU56SU5pT3lFL3p5Y0ViVDNrTXNSaVZ3S3NndENsV05tbHpVZFpTeU1LU0FQSkV5b2dHVkJFOGhkNGN0cDA4YW1uRFVSUW5ZMERBYWNIY1RXcitIWWgyQW9pT3pFempENlA4aGUzUVFCcTNTanF5cW14dEc1clFwbGFGbndyM0xLelU2R29Wdm90N0NGNGhSZ2NSQUt5Q2h3V096Y0gwQm1hT1FJQ2ErdWNSdWJHYTc4WEkyZCtBd01BUllIQmxBVGhJQ3hVbEFMbzFBQWpjRWc1T1p3MVMwZlBJQzZKamg5SU5hS2JpQVV1NEV4aXpUOVVkVjk5VDhJMVFuSUtKaWdaVytKQUl5Q2FlZ1c4VVlLWjBiSWZZZXFiZHpHcHB3cmJKaGhESEQzZ2RjQkJtcVZaRzhtbG9Xem9Gb3dDUElwZHZCQXRZMlQrdzdCNlFNWUdBVlpjdVNFZ2pPeEcwZ0FqYXQ2UmxXQmxJTmFLWUVBR0FBTDRISGN3cGtSK0d0VzA3aU5UUmxYMmpwNmFnZmEvdzI2ZUNtU3M1THBZeHpEMUFnY29WVTBUL2FHUzI1NldzQWV1ckFtVnltWUJTK0hDUk4rckhMR2FISElCQmVkS1V3Zjd0Z08wZlpDMmx3dVYzcE5tUGJnMEFGc0psaktuY2NRMmdsUGFuVTlUSWVoc1RjK2hrUG5zWG5IQWxjNFRNZ1gwUDdrWlJtQmRHa0Y4UUNBMDNNWmZkallBRmRlRTQ2MExIOE5ZZGdQQkx5WDFWR1NZZHZtaGZXdFNiRDFTWXpzdjZ6MmZZQzUzRFdNZ2k1N2tZM05NcXlCczc2ckRWakNjTUpRNURBNmlQYlY5OEJPZkFZdUYzUmhFWFhMY0NTTWFNMHFscDJ6eU1EZXBlMVdCRUoyU1lWdlk3TWlyckFRa3ZzT29kYUJQUndZTFNVWnpjSGljR3NZOGl1ck51NnprMkZZQWpocmNVY0ZnV0NpbnlCd0dWYVRScUJQaFRVeHQyVUFoSUVDaFFJMEhweTIraTVzYkFDc2lTWnNvQmdER2dleCsxSElGR3BtOWhTN3BGdUtBZmJDUTZ0czM3VEFjOUNXWHJNUmRHNEg3MXhkQ2dWallZeFpNQUUwbGpYSnNPZFJ1SVlBd0RBaDhGQXRjc05mcktMOTlhZTd1M3YzZGRkMTc5alIzZFgxcHM3T2pSNk9UUVZyRmRQRkdEQzFIMWtma3J2QWFFVS9qRUpMUVZRZ2lPU0djSlhOaGpGZ0ljT1c5OWN6aGd3SEVlUzJLcnM0K2lINGZlaHc0S2dCeXMxT09BbmdIRUxYNWRsN3lnaUZRcXFxU3BJVWlVU3VUSXVMc0xXdHpTVFVHd3dZdVp4c0dBWWh4L3I3MTdSSG02cFlxd0J1UWtEcWVzam1wd0FPdExJWFlrSHlRQkJoR3V6bzcxYlhianlQVGdwckJYSkFDRnhWcDFDd2d3ZVFvMGdrY2R3RW9SVkxQZ3ZJdGxVbGdmWDE5WnMyYmRxOWUzZDNkM2Y1Y1kvSDQzYTZJcEZJYzNOekpCSUpCQUpWRGJKYTRxa1V4NnloYytkSEppYUxsUExXeWtJZGJOYUx0YytpV1BobnkyQXdXRHJBVmRlYXlHRWd0bUw5YllLdjBuRGlDV0V5QmxxM1FOSndOZkxjM3Q0ZThQc25KaWE4WGkrbFZGWFZtVk9CUUNDZFRudjl2dnBnYlNhVjZ1enMxTFExWEZpR1FxRklNcG5LWmhQcGxHa2FmazJMWjdOcjE1M05LbGlYVkthRlpZYUJpRlZQaHpVVG5jRVY5MHVSUzFmWFBwWFF2SFBodVc0MTJSdnBaTXJqOWRZRlE2UER3NWxNaHBSOWlXU2U3K3pzekdhemtXU3NtTThQREF5SW9samRJS3RCRUlRZE8zWVVOQU9BSUlvOVEwTjYyUmZCNW1wZ0hZU1FMV3JHSnhiOFZXckNnQU9uMlRJeGF6T2M3NFZlcFpLUnZWQVgrV3JNMUpKYWpsQW9GRThtOHVsc0pCSExGd29PaDBNUVpwTWFGWWRETkF5dFdBVEFDMEtOenhlUHg2c2JaRFU0RlVYVE5OM1FDU0d5SklVQ2dhRmtjdTI2czFrRmF5K0V6RnJZN1UwWWRndVFxMnVNa0RDU0JLa1ZKQ2h4RElFYUpLcTBlWmhBM1hsWUMrVU9yM2cyS25MY2poMDdDbXJCc2l4ZUVIdytYeVl6YXlJMmRUMWptcnBwVWtvVlVYUjcxamJtUmxOVnMxZzBEVjNnT0pubmZUN2Ztblpuc3dyV1lVM0l3QmJLckxVWStncG9xRklUQWxBQnBWakswbGlDdmpNZ3FEYkZnZHdWaG5jUTNaOWZPQlpuWlRnVXhjcm5kVjJubEVxQzBOUFRvK3Y2ek5sMFBtK29xbVdhZ2lDSUx0ZGFDMkUybHl0cW1tRlpnaUFvUGwrK1VGalQ3bXhXd2JwTVIrbUNhbVFLL01sVnVPekpYV0Z3ZWRDeEphdXRNVFMySWhhdHRuRUFhUHc1K2grQU1jK0VTTEJDYmFnV2l6bFZOVTJUSTBUZ3VKcGdjR2hvYVBwVVEwTkRQSkhRRGNPMExFRVE2dXZycy9uOGFnYTVNaG9hR21LSmhHNFlqREZCa2s2Y09HSFlwdEdyajNVUVFycncxTEg3Q2ZoUHI3SkpVZ1N3bEVoWUJMSmpkWmwraEFENWRqam14Y1JaSzVMQUF3Y095RTZucXVzbVl4d25pQTVIeU9HWU9jdHhYSGQzZDFGVlo1U2t0WlpTd2ZOOGQzZTNycHVFRUlFVEFqNy81T1RrMm5WbnN6cldYZ2d0QnN6N1FVOWJDNFhWOXU2Zlhrb3VvUW92cjdUTWd1TmFPalBrRXRGbzlJYmR1dzNEc0N4TGxvUTJ4Z3JGNHN4Wmg2SWtrMGxETndraG5DRFVCQUl6U25JdGNEa2NtVXhHTnpTZVVvY2tlTlo0Nm11ek90YSswQk1sMEZWd2xUWFBHTVBBZy9BY1oyeGdOUUVvdW9MdUFJNHZya1A0RmVSQUxBSjcvV0ZZSmt4cm5nMldyR1NobU10a290R29xbW1VMG1tWFFIdVpMYVNRenhQR1RHWnlIS2R3bk52cGpLN1lOQm9JQkJSSkNvVkNraUFvYm5kUFQ4K3l0eFR5QmNvczB6QjRRVkE4SHA1ZVU4WDFmbUZZKzc4S0Jad0x4WGttZzZoOUhzbnQxZFpoWWd4d1RLQUhTMmxDZzRJeGR1VDNxbXQ2dWpxT0lZR29zT1paak1nS1l1V0E0ZUhoYkR4dTZEckhjWklnMUFXRDVTNkJiRFpiMURUVE5IbWVEOGx5dVpKY0dwL0hFNC9IRmFmVFVsWEY3YzdsY2l1NUs1dk5GalhMc0N5UkYydHJheVZGV1dGM051dkoyZ3RoNEF5QUJXWnl4TUxybjRQdk5CTDNNaFplWVdPTUFZbnRhUGthUE1aU3MwUENZSnJ3anJEUi9Tc1Vjc2JDYk9JUDRMSEFCT2pLQW8yYjNMSlQzSWFHaHZISnlZS21HYVlwOElKUFVjcnZxSyt2VDZSU2htbGFsaVZMMHBHQkFjdGNrYjQrY09DQTN4OW9iMjZPVEUxRjRzbXBxYW1WdUJZRGdVQTBFZGVNSWdCSkVDOE9Eam1kenBWMFo3UE9yTDBRU2hIc0RDOFF2RVlBazhQeFIrRGZoVjZMbmJtWERTNGxNSXlCVGU3SHhKM3duOGF4MzEvZWI4NEx5RzVHWXc5R2IyTVhiMW1zWmNiQUJ2ZXpNL2VpMTBJZFJjRUNZUXVIMm5IbXNwcHcyaEJTMERUVHNoUkpQams0V0M1bWxOSWJiN3hSVlZWS3FjanpBWjl2ZEdWejBXZzB1dmZtbTlMcGJDYWJ0VXk5dDdjM25WNCtFa2dXaE03T1RrM1hLYVdLSXNJd1ZqS0R0VmwvMW41TldOdUQvZzh1cnJRSWpsdXdMR1IzWVg4WWZSOWtSOXNBWENvUFJVQXNNQXNFNkx1QXJxL2pWQmhqZDY3VTZFSk1ISDhFYWhhM1BvNitCMG90azFLM3BTandzMFBZK2lSNnduQVpPQTRzNGs0QkFKTmIxaktqeUVvbWs5RlVsZU00V1JKcUFzR3BlS3pzckp4SUpIVEQ0RGhPbGlSWlVlSXJDMTdKNVhMUmFGUTFOSTV3Z2lpR2dzR1ZKRjQ0WlZreVRVUFhCWTV6UzVMSlZlK1N0VmtYMWx3SUNRRjd1UVU4QlZ2Y2prSXBQQ2FPL3dFd1hUUENBRGhZQkJRQUJUSEFLSEtiOE9valN6V3lVT2NBSUxseC9CRXdEc1FFR0N3ZW9nRURvQnhNQzlsMkhQOURlS3psSndVTXkwYWlKdUp4Z1JNTlhSY0ZRWEc3dllJUUxSUENaRElwQzRKcG10Tm45UlhIYlVjakVZc3gzVEE0Z1pPY1RoZkhSV0t4WmU4eWRFTmpsbUdhVG9kRDhQblN0blBpYW1WZHl1RDdlekhaQ1llOHBDSzVwTjJvQlZBUUJtN21hdjZTZTJEVmJnY0NZczJxVm9PQ0FNeTZKSGNyV1RVeURKMkNiNmtLY1ExKy8zZ3NHZ29FVGNiY3N0emMzRncrYVd4b2FCZ2ZIdzhGZzh3MEpZZEQxL1ZjcFpzK0ZBb0pndUR6K2RMcHRLN3IwdzY5N3U3dVlyRll5T1gwWXRFMFRVV1NhbXRyVTZsVWMzT3pZUmdURXhQVDErajV2R2xadXE1YmxBSVlHQmdBa0MwV09VNWdnQ0FJeDQ0ZGEyaG9xUEtsMmF3VDYyS3pGaWR4MjJOTDFaMVpUNllGdVRxVExBSGxVTitFNUZLVFFNcHgzUjBkUmJWSUNKRkVaV1I0dU53dlYvS2JHNFlGY0R3L01EQXdrOS9rOC9tOEhrOGtFdkg1ZklaaEJBS0J5Y25KZW4vZ3h2YjJmQzRueXpMbGVkTXdHR095S0VZaUVVM1RhbXBxSmlZbS9INi8zK09aSEJzWEhBNm1xdE1TcUd0YVIwY0hnSHl4bU02bEFmQ1UxZ1lDNCtQalZUMnp6YnF4SHJ1bE1BYWN2eGVKWFN1dG5IMTF3Y0JaY0F3ajEwRjJoNWU0cnFHbVJwTGxzY2xKbmhPYVc1c3BvYkl5RzUrdWE1cXFhV09qWTZxbTFnYURtcWJGa2trQURrWEpGd3J0N2UybXJqTVFHSlp1cUlRSzlVNVoxVFJlY2FXMVFpNlhLeFNMaFdMUjUvWlFqZ0pRWkxtMm9hR3ZyeStUeVd4dWFkRTBBeHpSRFlOWmx0UGpNWFFqbTh2RzQzR1h3MkVZUm50akkrTzRzK2ZPcmZHTHNsa2w2ekVkSlFUczZDNVlEQWFGdEdaeXlFekQwSklaZFNwUm1JaG14NlBaOFZpMlVOUUJpQUlYOGprYlFzN0drTHMrNlBSN0pGR1FRRlptcUtEQURYK0tpWDJrNjhrbHJxcHpPc2VqMFpwQXdEVE5nTWZEOC95Y0xFRkJGSXZackdIb1BLV3lLRXFTRkVzbXB5V3dyYWtwazA1THZPaHpPY1NRSnpJeGtVZ21EZE94eGVGSXFLcGI4SW9lTGxjb2NCem44YmdwRXdCSWJ1bllzV01BbXBxYUVwbU1vaWlCWURBMkZVdG00end2VVk0cWd0RFoyVGsxT2NrVDRnd0dJeE1UQzQvYjVpcGduYlpHSTN2RDdJVXcvSVBJdFY5T2dzSUNNTE9vcW4wWDR6MUhML1ljdjlCN1BqWVp6K2J5aG03T2xYYU9Vb2ZNaHdLT3JhMkJ0OTNjZnNlZWxxNldnTnN0RXJKNEZXM0cwSDhHM0MvaHVwOHNQUW9paXRlN1hQMnBGT1c0Z21hTWo0N3lITWNxWFJvV013M1RsR1ZaY0Rnb0lVR1BKNVpPdHpVMVJSTUpRUkJFajZ3RCtYZzhXRnViemVYU21jeXdLQ29VdXBFQkxNTXdSRUZ3KzN6RVFqNVhLQ2FTamNHZ3grMmVTQ1FFbmhjazZZMDMzbWlvcWJFc0N3d2NnNklvTW1PbWFVcXliQzhJcjNMV2RmTStObm9uR24rRzQrRWxDNU91dkRrelZ5ZzgrOHJGZi96dWE4KzlOaExQckRUNlpCcTNROWplSHR5enZiNGg2Q0lFZ3NBMTFMaCs3WjA3T1g1bURzbGdHQkRQb3A5Yk9oWjgvLzc5NHhjdTVIUjlhbUxDNVhZcmdsQlFWWWNzeTdKczZyT3I3bXdoR1Vray9GNXZSMmRuY2JpbzV2T2MzeGlMeDNWTnE2K3Jzd2loSEpkSUpGS3BWTkRyVFdReVFiK2ZBQUxQTThZbVl6R3YyLzNXdDc4OUdvMGVQbnk0MmU5dmNUclA1bkw1UXFHbXBvWUFpc014T1Q1dVdWWmJiVzBrbFhFNlpJdXhxVmpDNC9Qb3FocExKS3ArdlRicnhmcHVFdHI0TS9RZFFCcTR6RUJpWnVxYWRuSXcrdWdUei8zSGkrZUxta2tCdDBOd08wV0I0M1hUeU9YMVRFRmJPajhoazlkZjdwMTR1WGQybnJabmU5MTliOSt1ekw0U2dwdS9nTkhieWU3bmxoNU9JcEZvYUdzN2RlSUU1WG1uN0JvZUgrNW9hVW5uY3JvRlNaR0lSV1JCRE5UWDlMNFJvWlJPMnlwMzFtemZuZDNiSXoyYkx4YTlMcmZENDlGVnRmL2NPYS9YQzRBUllsbVdhWnFtYVJhS3FpU0pBSGllZi8yMTEyNjQ4Y2E2dXJxUnlVbElVamFiY3p1VXVycTZRcUVRbjVyU1RkUG45cDBjSFBRNG5Ub3pSVWtpRkU1QjRBVEJGc0tybVhVVlFrTEFEdStFWkpWVklLMGVwcDBiU1h6K1gxNzYzcy82WThsOFhjRHhudTdXdTIvYmZQMlcyb0JIRmdXcUd5eVZLWjRlaWoxelpPajUxMFlHUnBPYXZueDBtTmNwUHZLYnR5bXpDemtHaWNQRW5XajYyZEkzdHJlMzU3TFpaREtaeStjVlNhcHRyRldONHZuaDRjMmJOK2VTeVVMZUROYlVHSm9XR3g1V05ZMGpST0NrMmtCUVZkWFhXbzlrcG5JVWNFbGlQcE54dU4wQVhBNUhXMXZiNExsemxGS2U1MlZLeCtKeDNaQTVTbVdIbzFBb0hEcDBxTEd4OGZycnJ4OGFIR1JnaXRzZGo4ZnpxWnhoV1RVK1gwZFhGeS95aFZnMGtrZ0VBZ0Ztb1VhU3hsT3IzUGJEWm4xWTcrMnl5VjFoZHZaZWpPMkNaelV6VXNzc1B2M2k0TU9QUDN0NktPWjBDQS9lMy8zaDkrM3Bhdlh4dkZodWFHbHB3SzR0RGZlK2JWczBXVGphTzM3by81MTU1dVdoc1VobU1kMG9pOXdmL3RidDc5N1hDWHJwaFRCZ1p4aFQrNWROOHNobU1pNjNPNU5LZ1ZLUHc2R3JLc2Z6ZnI4L0VZLzdBNEZVTkJHTFJCcWFtb2FHaGpUREVIbmVyUWltUTg3bnMxYVI2Ym91Q1lMaTl3dkY0c25lWGdCZ0xKOUk2THJPRVNJS2dnRHNiMjkvWVd5TUZ3UlJGQ1ZKd3NpSUlrbnBkTHFvcWdMSGNlQUt1UnduVXJjck1EQXdRSGkrWTNQSHhZSzZzN2IyMVZqTXNJd2pBd05OYTF4UzBlWXkyWUJRcHZBbmEzSGovOGJZSFl0VVExd1VReS84MDFNblB2cllUNFluTXgzTnZxOTg4bTBmZi85TjlTRS81WVFGU2o4UlNnanZWT1F0TFlGNzluVzg5NjZ0Vzl2ODJid2VUUlYwdlVJV1F6N0g1ejk2NTIrL2I3Y2dsaVVaY0J5eWJXajUzcU9QTGpVa3A2S2swbW0zdzVITjVieHU5NjM3OXFtRnd1a3paNHJGb3F3b1kyTmpOWFdoUXE1UUxLcXl3T2NLQlZtU2Fob2FNcG0wcnV1V1plV0xSVVdXdDRoaXRGaE01SExOSHM5b0xDWXJTanFYa3lTcHdlY3pUTFBvY3FWVEtWRVV0MjdkT2pJeW9paUthWmpNMERPNW5DQUlEa1VScWJ4NWEyY3NGbE1VaFJrc0ZvMEpISjhuU2p3VGR6a2NJQ1JlVnVIRzVpcGtJNFR3eTBQbyt5RE1RRlc3eVZ0bThaK2VPdkh3WHoyYnltcDM3Rzc1MnFQM3ZQV21EazZRQUlDWm1sN2tDRm00Q2h1aGxQSitqL09tSFkwSDN0TDFqbHM3UW41SFBGMUlaVFhUWXRkM2hwNTQ1SjMzdjNVN1h5NkJCQkFKbERIaTcxMWlTRTVGeVJVS201cWFVcm1jTEVrZGtwVE01Vm8yYis3dDdRVlFMQllkRGtjMEd2WDd2TGw4VGhTbGJEN25jamlITGx4UUhBN0dHR09za0M4NlpPWDA1RVRJNTR0bE1wSW8zbEJiTzU3UGE1cm05M3JQajQ0Nm5VNVRWYlA1dk5QaE9OWGJLMHRTTkJwdGJXc3Q1TlJjSWNmemZGTkxDNkhFMEl4QU1NQXNpeGQ1dCtnK096emdjRHB5eGJ6aWNMaWR6blFtQTZDbXBpYS9scVUwYkZiTnVscEhaMkN2aG1FQ3NGYmFQek9mZnFIL0E0OThQNWtwdnVmT0xWOTUrTzNOZGY2WitXYzBudnpFNHovOXZkKzRkWHRINDhKM1cyci94VVNkMytIMWVnQXdwa2JqaFJQOVV4T3gzQjE3V2xycVBTQ1ZsVDhKdys0L3h0VCt1KzdIZE9iN25QejNtcG9hVTljVHFWUkhTMHNpa3hGNDN1WHhjS3BhUThpTEl5UGxWd2JjN3RaZ2NEQ1JVQXNGM1RCQ3dhQ3E2NGxrc3JtKzNnQWlrWWpINWVybzdMeDQ4V0l4bDh2azh5Mk5qWlBScUVPV0c1dWJ4MFpIQlk0VGVENmFUQWE4WGwzWFk4bmtsbzRPeW1oUks0eE5UWEdFMURVMG1Kb0d5eUtpV0Z0Ykc1dWE0am11dWIzOTlPblRxVVNpSmhEbzNMWnQ3T0pGVHBLU3lhUWROSE4xc2tHcDFyNVRrS3Y0QWd4UEpEN3oxY1B4VlBGWDltLzkrOTk3WjdrRUFoaWV5anpWMDlkL2NlRzBJTk1vSG56bTlGcy84czN2L1dkcEF3WkNwRkRROTlaYnVqN3dydDB0RFRWekpSQUFJK2g3SVB3M1BlZlBuVzl2Yng4YUd2TDcvQzBOalp1YVd6YzF0ZFFHUXRGb3RLNmhvYm11THBQTFNiTHNEd1pOMHpRbGFZNEVBaEE1N3JXaElaY3NtNlpKT1k0VFJiZmJEVURWTko4c3k1S2txbm9xbFJJRklaUFBiMnR2eitSeWlxVFVCWU85dmIyQ0tEcWRUcDdud1ppbTZ6VmViMXR6YzdGWU5FMDR2VjVabERYRHlLVFRma0VZbVp4ME9wMlQ0NU9XYVhLbU9UZ3dBTUJrVE5YMTgzMTlSVjB2TC9kbWM3V3hRVUxvaUdCbmVJVlNxR241TDM3dHBUZjZJM2Z1YWZuS3A5NGVDcmpuQkx2a0NycXFXME5qYWJDNVZsRExMRDc1N3ljLy9JV25SeVl6NXNvcU5RR0FSWkhkOUxkL1czdHgrT0xBNmI2ZzN5L3lJdU1vUnhnbG9pVHhUYlVOaVdqVU1FMlgwOW5VMU1RWWsyWDUvUG56ODF1YVNDWURibmRJVVJ3T2h5Z0lya3MxRHBsbG5Sa2E4bms4aENQcGVCeUV0RFUxSlhJNWdlTnIvZDZ6ZzROdXB6TVNpUlJVMWVIeGlLS1l5ZVhHb3RGaW9TQUp3c0RGZ2Q3ZVhyL1BveWhLSnAwZWlzV0NnVUFzR2dVelplbzZPenljeldZOWtpUUtRaXFkemhkVUI4ZVZoNnJhWEcxc2tCRFc5cUR2Z1JYbEpUSHpSOCtmLzlvUDNtaHQ5SDdsVTI5dkNubm5oNXNWaXBwcHNUY0dJb3hWRnUyMWpPLy81OEFuSG44Mm1kR2NEdUc2enFWeUlDcmdBVEJCRUs2NzdycGNNWjlPcHhPcFJEd2FuWXpIRTltWXBtbmdvTWh5VTF2YjRQRHc1UGk0MiswK2UvYnNZbzFOSzhOUUlCQUtCQm9hR21SWkJoQk5KcmQwZHI1NTM3NjZRSUNLSW1HTUVDSUpTa056VTA1VkExNXZKcGNEWUZyV21UTm5hdjMrZ05mcmNMa1V0M3Znd2dWRmtpUlJ2RGc2R2d3R2ZUNmZJSW9jSU1seUM4Y1ZpOG1nSjZocVd2L0Zpd0d2MStmMStvTCtNME5EYm9kalRldDgyMXdPNisyaW1JWVFzR050SzFHRUU5SDBILzNEODZabC9mR0g3N2krczM3QmdNOWMwV0NtTlJySm1LYkZ6M3hWbUhsNmFPcFRYMzQybVNrQzZHb0piRzcycjNSOFRBY2hicmU3VUNqNFBXNkhJbHVXeFZIS1VTcnl2T0x6blRoeG9xbXhjV0o4dktHaFlXUnNiR1JzYktsSFNDWURYbTg2bTYydHJVM0c0NzVMRG9NYmQrOGVHeGtoZ2pBeFBEeDlwS21oc1pndjF0VFZuVGh4WXZwSU5CcjFlenlwYkZhU0pGQ2FUcWQ5UGw4eW1RVGc5WG96NmJRb2lvd3hjSnhrR0NtZWI1TEZGNk1qQUR3dVZ6YWZkN2xjaVhnOEVBallFbmcxc3pGQ0NLQzA3ZEhTTTBUTCtOb1BUNXpvajl6MzltM3Z1NnRyMW9sWFNhR2dXNEFnY0t6TTU1RXJGTUovLzl6QVNDbDEvYmJybS95dXhXTkVGNEFaaHNFTXd3SUlJZE03dWhDQThId3NFcW1ycXhzZEd3UEFYdjA0VEFLTHdBS0lBV0tDNm1UdkUzUGFpcWRTQUtZcU0zRVBIWm9iQ2pjNnZvQXdKeGFwWkpHcWRNRlBWWjVOWjdNQUVyYWIvbHBnNDRTUWtla2lFMHRja2t6bi8vV1pNODIxN3ZCdjNhNG9pMnhid2N6eFdCYUEzeTN5bE13Y2ZQckZ3ZThlN3B2K0g4ZlJYNzV0RTdpcWhMQ1VHcnZVRTB4TElNZGdFb0FDSEdnUjNvdHNrU0kxTmpZTHNuR0ZLQWxaTm9yN2FOL0U2Y0hvQisvWnRhWE52MWpta2FIckw1NGNveFJ2MmR0T1NPbWJrczhYL3ZtcDEyY1NLVUkrWmNlbUZTOElWNDVCd1RFVU9UQUNNREFLdzQzT3A5Ri84NVh2eSthL0xoc25oSXd0bzRZdDQ5a2pRMDZIZFA4djdTQjBVU1UyR2trZmVXTXM1SFBjZWtOelNWQ1orWit2amZRY3ZUQnpUVWVqdHk3Z1dLeUYxY01BbGE5WTJSTGd4dzlDWFFPQnQvbXZ5d1pxUW1ESnFwdTZyci9lTjdXMXhkZGU3MTcwSXN2NDNzOEdSaU9aUGR2cVcrdEtseFZWOVludnZKclhaaHZmdVRua2xJUkZtcmdNckhtTFdzYmdVVERjY3VYN3N2bXZ5NFpxd2lWejJ6WFRqS1dMb1lCVGtoYlJtTXk4T0pINHUrKzh5aEg2Z1hmdWxNU1N0bnoxN09TelpXb1F3UFZiYWhjejZsd1dSSjluV1NJWUd3UlpiUWwrbTE5SU5sUVRMcmxmQkdHRUk5QjAwMW9reExTb0ZoLzl4eGZPRHNYZWNuUHJ1MjdmUEMzU3BsSDgyZy9mU09WbXF3bHlITzFhZkVsNVdSQUxmSGJXQ0VNQXk4Sm1GUmw3SzF5Ykt0akFIVUtXaVYrUlphNnQwWGQrTkpsSXp3djFZS2FxNXYvbEJ5Zis3NDlQdGpaNkgvdGZiL0c1U3dYZWg4WlQvLzd6aW9wR0RwbHZETHFxSDk0SzdKdFVnOCtObTEyQUFaTkM1M0RyNHdoTnJXNUxOcHRmV0RiR1JjRVkwSGNCMmZZbHJxRlVlTWV0bTc1NytPeTMvcVAzdDk5M295UktJQndzSTFjc0hqODc5WGZmT2Y3VTRYNUs2Wi84VHBrVG41ay8vUG01c1VoRjVvN2JJWGpkMVRrblFJU1Y3T3BFOWo3QlRuNEV4eXc0QlJnY0FoZHg4VGEwUGwvNXBHRU1BZkVVeGxYa0kzUGtrekZnYWo4U1hnQ2c0OWp5OHJLK2pWS0RCUjBqS1ZnRnBOTzJ6Ri9yYkpDZk1INHp1cDdFc1Q5Y3F1Z1Q0ZDd4NXMxZGJZSFAvdlhQZW81ZjZON1dvRWo4YUNSenRIZmkxYk1UbWJ3dUN2VFREN3pwd051MnpxejNNdG44d1ovMHpuRjgxTmU0dk01RmZJeUxkbTJXaXVRdkRudjlZV2dXNGlvbVJoRGFpZjNBbVUyWTZDSnRKU0ZrUno4RVM4U1pOTFo1TU9SRi9oUkNJWGIwZDhuZVB3UEFUb2FocWVnYlF0YzNFUW5qWWd6di9CNU8zYzErdEpuYy9kVUZ1bU5oakJWUnNIQW1oMjFPOUFod0NSaVpSSDB0Ty9wSkNJVGM4QmZWUGFQTlZjTUdwVElOdlJ0Nk85SytaUVpnR2QvNnljbUgvdktuRTdHNU80RTFoOXdmdlgvUGcrL2Y2MVF1N1RURXpNTkh6OS96OFcvbml4VVpBeDk3Zi9lWFAvRzJhajMxY0E5aHk1TUw2aVhHZ0pIYmtHdUcyb0tjQ2NxVlZvTkZEN2dpdWVPTEFOamhqMENpRURXWXJ0bHRaSGdlbG9XYi9od2piMEp1RTR4dHlLVUJDZ2FBZ1FFSkRRcEg3dnJ5M0I1ZmVBaEJBVjBPSEV2Q3BLVlM0b3lWRWpJZEZGa1RLV05CNmJXNSt0a2dUWmpjZ1NJSFlibFBBT1h2Zjl2MkhSMDFmL0gxSXo5NWFUQ1JVWG1PMXRjNDMzWGI1by9ldTd1ck5VajRXZEV5RE8xZnZuOWlqZ1NLQW4zWDdadXJsa0FHYkhrU1kvdUJucmxuR0JEYmd1Ym5jZVRUZ0FsS1MvSkRDS1FVTEFIVEVzaHhVRTFRVDhYUzF6VGhHVVo4QzVxUDRNZ3RRQVlNczNNQkFnUkVhSE1qR05oem53Wk14SFM4bEM0ekx6SGcwb2JIQlNCbFFON0FDRVNieTJJRC9uS01BV2ZIWVhhc3BQQWg0YVhydHpUODArL2ZmV0VpUFI3TktSTGZYT2VzRFRncE4zZUdlV0VpL2ROWGh1WWNiQWk2ZDI2cXJYcUlCRGdXaHYva0FxY3UzSXkybC9IU3h4ZndRM0FFUkdkSFB3U05Raldoek52a2tESHdlUVQ2OGNwRElCem1oN2NSUUt3d2xiSERZYkFpTEVBZ2l4Y2lZUERMY0F6WjRYTFhLQnRoSFIzWmo2MVBWckcvRXVFRVNlbHNxOXZYM2JGM1YydDlLRGhmQXNITXAxODRQeEdaTzJ1OVlVc281Ri9kOXJRbURBZWJLMFJoa0E3OC9NR1NSaUtrWWpadE1oREFGQ0ZxVUJZSzBDRUVuVC9BSzUrRXhaVWtpbFhLYWVWQ2xER2cvblVZTW5pclFnS241N2NWa1RvbXJqOWtoOHRkbzJ5RUVLb2hIQWxmMmRWb05sYzQrTXpwK1dLOS82WldRWnlYT0w4U0NFSFhreGpaVjNGd1VrUHJOZ2lYSnJkTXI5ZzJsQWNzQWthaHVVcXlSZWZWZG56bFU2VVZJQ0dnRE1NWEsweFRjM2JrSHJzRjI3NExSMlpXVXQvMEpiaUhRUUNlcjlTeUZEOStFSnBkVmUyYVpMMkZrQjBOSTdFRHE1S0x4UnMxajUrZE9IcDY3djU3Ym9kNHgrNlcxYnZwajN3V3RMMWlLKzgweFlrc0NBTUlPQTRXclpoUmEwUWlHTndBQUFzUVNVUkJWQUpBd1daS3Z6SGM1QVlsWmRKaXdUSkxDOGlZaW5RUjlYV1ZNMGc2STdIc1J3OGkyb1NqSHdkakphRjkwNWNRNjhLT2crQTVXRWJsalF3QklObTF5aWUxMlZEV1ZRZ1pBL3luUUJaYTNqQXpuYzQ4ZStUczN4MDY4djJlazFPeCtQeGFGWXRobXZyLytWSHZISk1NZ09zMjEyNXR2UXpsSUhKbzNJenlGTCs0aGJpcnBNcjJPbUFZYzYyN2hvQ2dBRW9BQmwzRW1kR0taVzhwZXd1SXFSQXBXbytpWnFwU29iSFpOK1BnTU5vSTQ1SXRsT013K21ZRSt3Z0IyZnRuWUFUVW1MMllBUkpYdHFPanpiWEUrbXJDMFgzb09BU0t1UllMeXpqZU8vTGVULy9iT3ovMjdkLzU0bi84OTA4OTlhNlBmZnVsRXhmQlZyU1g3Zm14eEw4LzN6Ly8rTDF2N1hJNXE3U0xsc01JamdKcGc3M3dVT2xJUVFUVlVYU2o0TVpyZWN3SkN0Y2RxRGtMQjhYTlRoU0t1UDJMb09ZQ2psRExRdU00TkF0T0U5c1BWcDR5cDE4TU94bUd4S05HTEtrN0FuVC9HVXFweFpmR1ppa1ZFWE5Kelk1WnZVWlpQeUZrcnorTVhDdGUrZHhja3d3elQ1NmIvQitQL09EWlZ5NU0xNnMzTGV2bzZZbmYrcE1mWFJoYlBqR2NNZlZiVDU4ZW0yZVNhYWwzditldXJnVXFxVlVGWlVqa0VGS21KNlhrcnZDMEV3SUFDcWlzMnNxd1B3d2xqaVlSUXpuc0dNRzVBK2hxbmFmekdXNTlISUVSY3ZkWGtRL2kySWZLZENtREpjRGtBVURYNFhiTmFsRUxPSDBmR3N0aWNSakRuTnIrYmdPK0JiNUVObGMvNitTaVlBd1lHa0M2RXh3L1J3MFcxZUtqVHp4MzlzTGNJaWduejhlZTZqbjdzUThzazVzM1BwbjUrdE1MbE9oOXo3NHRteHE5bHpsc2dFRjBvNVBpMG5xVDNCWEc5T09jdmcrWnNwUWxSdEI3SDNZY0pLU25kT0RVcC9IakdQeGxYd0VDY0ZrTXZBT2RUd05BWWh1c2N2TW9nZTVBM1FrQU1FMFlaYk5yU3BGcXFWZ0RXaFo0RlROcmF3WjBQNEd4N3N0K1hwc05ZQjJubysxUHdYRE1qOXMrZlQ3NnpKSEJCZStZdDhYZy9DdlVmMzNtekxuaHVRSmNIM1IrOE4zWExaRUtYQVVFT0RHdDk4bzR0UVBiRDZLOGhpS2hTRmZLU2NKQXJXT3VEOE5Ra0dvdFhXWng0TXM4R1lSTTYxSjI4QUJ5V1JqRzdISFRtT2RSdEdCS1plK1M0TlQ5YUR5MitzZTAyVGpXMlZtL1FHbW53YkYwZWViUkRGdmJBcjl5MTVMbVBtYWV2aEI3L0p1dnpObm1SUlM0Uno5MGUvZjIrc3NkN0F3V2tLeWMrN0VHSE5xSjFncmRCTmNFTzNVM29sM0ltZVR1cjBLaXNIU1FNdXNvbzJER2JCa293a0hUUUM5OUJ5Mkd3UWNncDlCV2h3dVRhR3N0M2NnWUJHRmVBalFGTVV0bVdFSmdVUEFGMjFOL2piS09tdkRNcnkyWXZtVE8yeXFKQXJ1MzF2M0Q1OTdSMGJpVWJWTTN0TC84eGl2RGszTjNPN24zTFZzL2NQZk9LNk1HTWYzZFVPR3RuUEhHdDJKclcrVjFCblo5QTRYdHlKbG9sUmtMZ3pFUVdtRStsZElJOXMzK2wxbmd5bGFWSEpDdFE4TnV4QWlhbXl0ZWxXbVZhMEoyT0F6R3pXNjhZUUczUFFhbG9wU2J6VFhFT2draElRQ1hRNkc0OUNZd1ByZTRaM3ZkbjM1ay93KytmR0RmbmsxTHBjTXo4OVV6azA4ZG5sdHlkKytPK3M5LzlFNm5zcm9vbVFVN0FuWi9BWEtsRTlMaGdFcG1CWXdCdkI4OVllaEFVTUpPWitrZ0szTTVNSUx1SitDTWxQN0hBTTlJeFZmSkFBd0xMNmJoRnlHVTIxMFpZTTFZczBwaE5KcHpWcnFKanBGYjVxUlEyVnhEcktNbWxLWncyMlB6ZGFIYktYRWNCZkJyZCsvNitULzgray8vNWxjLzh4dHZicW9OTE9Wa1orYndST0tUano4YlRWVnNrYjJqUGZqRTU5N1oxcmprdmRXaVVvemVpWWJLelhwTkJzdWFGU0VDZEFOU3FwUk9VUnBrWld3c25iWndYbHEyRGUzSDlvTVZiNE9uU0JYQUVSQkExeXNNTmdBWTJBc1BNUWJFdTdEdHU1Q3pzeWZmOUZjQXMrZWkxeTdyS0lTdHoyUG9YaWpjSEFmMzlWMmh6bVlmcFhqdm5WdDJkZGI3UEo1bDZzRXc4K0o0L01OZmZQcTUxeXQyWDdsaFMranJmM1RQN3ExMVYxSUNMWXBidzdESTNKODRZeWlmUlJPQ0Y3S1hWbmNVSjFXZ0IrN2h5aStPaFhUemJEdTVFSHJDWldjSnFBV0hVdEtjb2xnUnY4YW13eHNvVHQyUFFCOWUrVVRKL1VnSVRBdjk5NkQ1eUJWNVhKc05ZZjJFa0JBZ3R3dnlJUGlLWDNSRGpldDM3dDNERWZyWDN6N2VmeUVDeTFpc0JRQXcxVmRPRGIvL3M5LzcwWE96dTY5d0ZMOThhOGZCTDd4M3o0N215M1VNbHNNWXlCak8zWU9XbmdYT2xvczZZeVdYSVdNb3VwQWtPRFdGSFpXTytEbFRnRmdYZ0FxYnB6bDlEUUVCdXBXNWxSUXBCYVZJdHVISUo4Qm82U0RId0JGRXQ5aHE4SnBtWFNObXlLNHdYQmR3ZmJqOEYwbUk5SnYvN2ZwZnYyZm56NDRQMy8zeGcwLzgyN0ZJTExtQUtGcEdKSjU4L0Z1di9NckQzM254amRsWXNocXYvUHYvODdadi9QRzd1OXBEVjFJSE1zQTA0RW9oMmJqQVQ1d0ExSnA3dy9RME1uQWFoZ2k5SG9jT1ZNaFkrVXdWQUYrQWxDcGJJYlBTT3lFQWw4SEpUSVVtTEdHQk4wdnB2QVJnSEV3Q2pwQTNQMzZaejJxenNhejNKNVF4NE95OUdOOEZkOWtPb2N4TVovSmYrc2JMZi8zdFY1T1o0czVOd1hmdjY5eC9jMXQ3bmRmaDRBM2Rtb2psbmoxNjRlQXpaMDcwUjJhc3FiTEkzWDE3NSs4KzhLYTlPK29YU0c2NlhDenMrUk9NM2s2YW41dC9qaDE1YURZUXRBU0JTZkRtUDhlRm0wbjd5K3laajhBcHpib2ZBR2dhYW1XeTdjOUxMZlQvTWxKdE1DcExxaExBNllhYUFUTWdDQ2hZaS95QkdIZ0NrNEJSY3N0amwvdWdOaHZOQnN4ajJPRXdSQTJrQU5sVGJpdzFqZUpyZlpOLy81M1hmdno4K2JGWWh1T296eWs3WkU0M3JXUkdtNG5QNWlpdEN5cjdibXg1NEo3cjd0clRxaWp5RlM1blNBQlE3QTRqc1IzKzB3dFh1T2gvRjVKYkxsV2FBQmdnbU9qK01xSmJVWE9XRUxEblB3bExnSEFwNm9VUTNPekNoVHhwTDhrTUcrMUc0ekc4L1BDc0RtUVV3ME9vcjBjZ0NETUxsVUVub0d6dW40Z0NEamZVQXBoQjluN3BTajY0elFheFFUVm1YbmdJZ2dKZXJJemJBcGhwbXZyd1JQcWxVMk12dkQ1NmRpZzJHYy9saWpvWW5JcFFYK1BjMVJHNjlZYm03bTExVGJWdWdSZXZmRFhSVWl6TEJQeGo2UGpoWW1zdE5ub0xHbC9DSzUrQ1pjRUVORGRDWitBZlF1TkwwN2V3NXg0R05RRUN4Y0tOWDhiSXI0SnNRcE5JU0xqVUFnTmVmeXY2QW1odUJzOUQ1WEQ3RjZlUFRGZFBZODgvREl1RG9VQktnZkJnSnNBZzVnQTNPQkdDUkhhRnIvQ3oyMndRRzdhaVo2K0dZVElZUkNONWtSUG1peE96Tk4wdzhrWERNQ3dBUEU4ZHNpRHl3cHJVMHA3R01nQUxpZ3c5RHpNNWY0ZXoyYkV4WVBUTktBUVI3WUxKdzZJd3BlbXcwdElGMDRrWEhCRHNnek9HK3BmbXl6TTdlQUFlRDBRUnNoUEJmc2d4dEQ1WGZoazdIQVpYQkdXZ09nQlFIY1FDdDhEV2F6YlhOQnRwVm1NdmhYT0ZYREtSYjJweGcxN1pQTjlWakFhd2loZ2FSRU1qL0g1Yno5aXNHeHRZZ1J2a2xuQXlrUThFblNEeWN2VzQ1ekZ0elovT3I1MzVWNm9jc1lyY1ZnSlEzUFFZdHNZeFBtWkxvTTE2c3ZFT0puWTBESjJoU09DYWIvZGZFQUlRbURwb0JBZ0FRdWtoWmt6ODBNQVNRQ05nZ2JLRmJQM2wzUU1FMENsOGczQmZRR09QN1hPeldXZXVpbDhjT3h4R3d5bHNQWVJqbndWWlpNbEhHQmpBVEhTTE9Hc2hVd0Iwa1B6OEJSSTcraUhBRGRjWXRuNFR4OEtYZHA1WjBNcEpBSUp1NEJ4RGxKQmJ3bGYydVd4c1ZzSlZJWVNZTm5XTTdVTnlFNlk2NERFdkZTcTdCQUh5UmR6MkdNWitIV2hISXpkalpseXl3ZjBvaG1Ec1FCZkJjWUJZY3l1VXBZRmFCaDlCSTVadDBNWm1qYmhhaEhBYWRqZ015UUlJVkFJUEFBc0VzQ2k2d3hqZEI5TkM2L1BWVGhjWkMyTWN5S2pJeElCR1VBWXdVQk0zL0NuNkRtQnNaN2xWMDhabS9ibTZoSEFhZGpnTUNhQU1BZ01BWHkvazZHV3Uxa3B6VlBjWXVyNEpBQk4zQUF6MVA3ZFhnRFliemkvV2I1QlZ4S3h1M0Roc2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeHNiR3hzYkd4c2JHeCtvZmovdXBwS1BqTzZGWGdBQUFBQVNVVk9SSzVDWUlJPSIgaGVpZ2h0PSIxMjAiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIG1lZXQiLz48L2c+PC9nPjwvZz48L3N2Zz4=" alt="Тино"><span class="tsub">Св. Стефан</span></div>
+  <div class="tright">
+    <button class="nbtn" onclick="reqNotif()" title="Известувања">🔔</button>
+    <div class="ubadge" id="ubadge">-</div>
+    <button class="tbtn" onclick="doLogout()">Излез</button>
+  </div>
+</div>
+
+<!-- KELNER -->
+<div id="kelnerScreen" class="screen">
+  <div class="opov" id="opov" onclick="toggleOP(false)"></div>
+  <button class="fbtn" id="fbtn" onclick="toggleOP(true)"><span>Нарачка</span><span class="fbdg" id="fbdg">0</span></button>
+  <div class="klyt">
+    <div class="kleft">
+      <div class="sbar"><div class="sinfo">Смена: <b id="stime">-</b> | Зона: <b id="szone">-</b></div><button class="esb" onclick="endShift()">Крај на смена</button></div>
+      <div class="sl">Зони</div><div class="ztabs" id="ztabs"></div>
+      <div class="sl">Маси</div><div class="tgrd" id="tgrd"></div>
+      <div class="sl">Мени</div><div class="ctabs" id="ctabs"></div>
+      <div class="mgrd" id="mgrd"></div>
+    </div>
+    <div class="opnl" id="opnl">
+      <div class="sl" id="optit">Нарачка</div>
+      <div class="osum" id="osum"><div class="semp">Одберете маса и артикли</div></div>
+      <div class="sl">Специјални забелешки</div>
+      <textarea class="ntxt" id="onotes" placeholder="пр. Без кромид, добро печено..."></textarea>
+      <button class="sbtn" id="sbtn" onclick="submitOrder()" disabled>ИСПРАТИ НАРАЧКА</button>
+      <div class="shnt">Јадење → Кујна &nbsp;·&nbsp; Пијалоци → Бар</div>
+      <button id="naplateno-btn" onclick="naplateno()" style="display:none;width:100%;margin-top:10px;background:transparent;border:2px solid var(--grn);color:var(--grn);font-size:13px;font-weight:700;font-family:'Cinzel',serif;letter-spacing:1px;padding:12px;border-radius:9px;cursor:pointer">💵 НАПЛАТЕНО — ЗАТВОРИ МАСА</button>
+    </div>
+  </div>
+</div>
+
+<!-- KUJNA -->
+<div id="kujnaScreen" class="screen">
+  <div class="ss">
+    <div class="sbar"><div class="sinfo">Готвач: <b id="kname">-</b> | Смена: <b id="ktime">-</b></div><button class="esb" onclick="endShift()">Крај</button></div>
+    <div class="sh"><div class="stit">КУЈНА</div><div class="liv"><div class="ld"></div><span id="kcnt">0 активни</span></div></div>
+    <div class="ogrd" id="kords"><div class="noo"><div class="bi">🍽</div>Нема активни нарачки</div></div>
+  </div>
+</div>
+
+<!-- BAR -->
+<div id="barScreen" class="screen">
+  <div class="ss">
+    <div class="sbar"><div class="sinfo">Бармен: <b id="bname">-</b> | Смена: <b id="btime">-</b></div><button class="esb" onclick="endShift()">Крај</button></div>
+    <div class="sh"><div class="stit bar">БАР</div><div class="liv"><div class="ld"></div><span id="bcnt">0 активни</span></div></div>
+    <div class="ogrd" id="bords"><div class="noo"><div class="bi">🍹</div>Нема активни нарачки</div></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminScreen" class="screen">
+  <div class="adm">
+    <div class="anav">
+      <button class="ab on" onclick="aTab(this,'dash')">Преглед</button>
+      <button class="ab" onclick="aTab(this,'menu')">Мени</button>
+      <button class="ab" onclick="aTab(this,'staff')">Вработени</button>
+      <button class="ab" onclick="aTab(this,'zones')">Зони</button>
+      <button class="ab" onclick="aTab(this,'rep')">Извештаи</button>
+    </div>
+    <div id="tab-dash">
+      <div class="sgrd"><div class="sc"><div class="scl">Приходи денес</div><div class="scv" id="stR">0</div><div class="scs">денари</div></div><div class="sc"><div class="scl">Нарачки денес</div><div class="scv" id="stO">0</div></div><div class="sc"><div class="scl">Активни маси</div><div class="scv" id="stT">0</div></div><div class="sc"><div class="scl">Просек</div><div class="scv" id="stA">0</div><div class="scs">денари</div></div></div>
+      <div class="chart"><div class="sl">Приходи последните 7 дена</div><div class="cbrs" id="rchart"></div></div>
+      <div class="asec"><div class="ash"><div class="ast">Зони — перформанси денес</div></div><div id="zStats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px"></div></div>
+      <div class="asec"><div class="ash"><div class="ast">Нарачки денес</div></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Маса</th><th>Келнер</th><th>Зона</th><th>Вкупно</th><th>Статус</th><th>Време</th></tr></thead><tbody id="todayT"></tbody></table></div></div>
+    </div>
+    <div id="tab-menu" style="display:none">
+      <div class="asec"><div class="ash"><div class="ast">Артикли</div><button class="aab" onclick="showAddItem()">+ Додај</button></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Назив</th><th>Кат.</th><th>Цена</th><th>Тип</th><th>Дост.</th><th>Акции</th></tr></thead><tbody id="menuT"></tbody></table></div></div>
+      <div class="asec"><div class="ash"><div class="ast">Категории</div><button class="aab" onclick="showAddCat()">+ Додај</button></div><table class="dt"><thead><tr><th>Назив</th><th>Тип</th><th>Акции</th></tr></thead><tbody id="catT"></tbody></table></div>
+    </div>
+    <div id="tab-staff" style="display:none">
+      <div class="asec"><div class="ash"><div class="ast">Вработени</div><button class="aab" onclick="showAddStaff()">+ Додај</button></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Ime</th><th>Username</th><th>Улога</th><th>PIN</th><th>Акт.</th><th>Акции</th></tr></thead><tbody id="staffT"></tbody></table></div></div>
+    </div>
+    <div id="tab-zones" style="display:none">
+      <div class="asec"><div class="ash"><div class="ast">Зони</div><button class="aab" onclick="showAddZone()">+ Додај</button></div><table class="dt"><thead><tr><th>Зона</th><th>Маси</th><th>Боја</th><th>Акции</th></tr></thead><tbody id="zonesT"></tbody></table></div>
+    </div>
+    <div id="tab-rep" style="display:none">
+      <div class="sgrd" id="repSt"></div>
+      <div class="asec"><div class="ash"><div class="ast">Историја</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="date" class="fi" id="rFrom" style="width:130px"><input type="date" class="fi" id="rTo" style="width:130px"><button class="svb" onclick="loadRep()">Прикажи</button></div></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Датум</th><th>Маса</th><th>Келнер</th><th>Зона</th><th>Вкупно</th><th>Статус</th></tr></thead><tbody id="repT"></tbody></table></div></div>
+      <div class="asec"><div class="ash"><div class="ast">Перформанси</div></div><table class="dt"><thead><tr><th>Вработен</th><th>Улога</th><th>Нарачки</th><th>Приход</th></tr></thead><tbody id="perfT"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- TABLE DETAIL MODAL -->
+<div class="mov" id="tdMod">
+  <div class="mdl" style="max-width:500px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="mtt" id="tdTit" style="margin:0">Маса</div>
+      <button class="cnc" onclick="closeM('tdMod')">Затвори</button>
+    </div>
+    <div style="background:rgba(201,168,76,.07);border:1px solid var(--bdr);border-radius:7px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div><div style="color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:1px">Келнер</div><div style="color:var(--gold);font-size:13px;font-weight:600" id="tdK">-</div></div>
+      <div><div style="color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:1px">Зона</div><div style="color:var(--text);font-size:13px" id="tdZ">-</div></div>
+      <div><div style="color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:1px">Вкупно</div><div style="color:var(--gold);font-size:16px;font-weight:700" id="tdTot">0 ден.</div></div>
+    </div>
+    <div class="sl">Нарачки на оваа маса</div>
+    <div id="tdList" style="max-height:300px;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="svb" style="flex:1;background:rgba(201,168,76,.15);color:var(--gold);border:1px solid var(--gold)" onclick="addMore()">+ Додај уште</button>
+      <button class="svb" id="cltBtn" style="flex:1;background:var(--red);color:#fff" onclick="closeTable()">Затвори маса / Наплати</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM MODAL -->
+<div class="mov" id="iMod"><div class="mdl">
+  <div class="mtt" id="iTit">Додај артикл</div>
+  <input type="hidden" id="eItemId">
+  <div class="fg2">
+    <div class="fg"><label class="fl">Назив</label><input class="fi" type="text" id="iNm" placeholder="Назив"></div>
+    <div class="fg"><label class="fl">Цена (ден.)</label><input class="fi" type="number" id="iPr" placeholder="0"></div>
+    <div class="fg"><label class="fl">Категорија</label><select class="fs" id="iCat"></select></div>
+    <div class="fg"><label class="fl">Тип</label><select class="fs" id="iTp"><option value="food">Јадење → Кујна</option><option value="drink">Пијалок → Бар</option></select></div>
+  </div>
+  <div class="mac"><button class="cnc" onclick="closeM('iMod')">Откажи</button><button class="svb" onclick="saveItem()">Зачувај</button></div>
+</div></div>
+
+<!-- STAFF MODAL -->
+<div class="mov" id="sMod"><div class="mdl">
+  <div class="mtt" id="sTit">Додај вработен</div>
+  <input type="hidden" id="eStId">
+  <div class="fg2">
+    <div class="fg"><label class="fl">Ime и презиме</label><input class="fi" type="text" id="sNm" placeholder="Пр. Марко Петров"></div>
+    <div class="fg"><label class="fl">Корисничко Име</label><input class="fi" type="text" id="sUn" placeholder="marko"></div>
+    <div class="fg"><label class="fl">PIN / Лозинка</label><input class="fi" type="text" id="sPin" placeholder="пр. 1234"></div>
+    <div class="fg"><label class="fl">Улога</label><select class="fs" id="sRol"><option value="kelner">Келнер</option><option value="kuvar">Готвач</option><option value="barmen">Бармен</option><option value="menager">Менаџер</option></select></div>
+  </div>
+  <div class="mac"><button class="cnc" onclick="closeM('sMod')">Откажи</button><button class="svb" onclick="saveStaff()">Зачувај</button></div>
+</div></div>
+
+<!-- ZONE MODAL -->
+<div class="mov" id="zMod"><div class="mdl">
+  <div class="mtt">Додај зона</div>
+  <div class="fg"><label class="fl">Назив</label><input class="fi" type="text" id="zNm" placeholder="пр. Зона А"></div>
+  <div class="fg"><label class="fl">Боја</label><input class="fi" type="color" id="zCol" value="#b8860b"></div>
+  <div class="mac"><button class="cnc" onclick="closeM('zMod')">Откажи</button><button class="svb" onclick="saveZone()">Зачувај</button></div>
+</div></div>
+
+<!-- CAT MODAL -->
+<div class="mov" id="cMod"><div class="mdl">
+  <div class="mtt">Додај категорија</div>
+  <div class="fg"><label class="fl">Назив</label><input class="fi" type="text" id="cNm" placeholder="пр. Предјадења"></div>
+  <div class="fg"><label class="fl">Тип</label><select class="fs" id="cTp"><option value="food">Јадење</option><option value="drink">Пијалок</option></select></div>
+  <div class="mac"><button class="cnc" onclick="closeM('cMod')">Откажи</button><button class="svb" onclick="saveCat()">Зачувај</button></div>
+</div></div>
+
+<script>
+const SU="https://jpxqaylidaboqtprqccb.supabase.co";
+const SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpweHFheWxpZGFib3F0cHJxY2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODE1OTAsImV4cCI6MjA5Mjg1NzU5MH0.EZ0Syhw4aaHJuxAjlsHU8SkDlF5f-X3U4YXprkXiJOw";
+
+let sb;
+function initSb(){
+  if(typeof supabase !== "undefined"){
+    sb = supabase.createClient(SU, SK);
+    return true;
+  }
+  return false;
+}
+
+if(!initSb()){
+  window.addEventListener("load", initSb);
+}
+
+let U=null,SH=null,selT=null,zF="all",cF="all";
+let oI={},TBL=[],ZON=[],ITM=[],CAT=[],STF=[];
+let RT=null,notif=false,tAmt={},vTN=null,vTI=null;
+
+function toast(m,t=""){
+  const el=document.getElementById("toast");
+  el.textContent=m;el.className="toast on "+t;
+  setTimeout(()=>el.className="toast",3000);
+}
+
+async function doLogin(){
+  if(!sb){if(!initSb()){const e=document.getElementById("lerr");e.textContent="Грешка: нема интернет конекција";e.style.display="block";return;}}
+  const u=document.getElementById("uname").value.trim();
+  const p=document.getElementById("upin").value.trim();
+  const e=document.getElementById("lerr");
+  const b=document.getElementById("lbtn");
+  e.style.display="none";
+  if(!u||!p){e.textContent="Внесете корисничко ime и PIN";e.style.display="block";return;}
+  b.textContent="Се вчитува...";b.disabled=true;
+  try{
+    const{data,error}=await sb.from("staff").select("*").eq("username",u).eq("pin",p).eq("active",true).single();
+    if(error||!data){e.textContent="Погрешно корисничко ime или PIN";e.style.display="block";b.textContent="ВЛЕЗ";b.disabled=false;return;}
+    U=data;
+    const{data:sh}=await sb.from("shifts").insert({staff_id:U.id,staff_name:U.name,role:U.role,zone_name:"Сите зони"}).select().single();
+    SH=sh;
+    await loadAll();
+    showApp();
+  }catch(err){
+    e.textContent="Грешка: "+err.message;e.style.display="block";b.textContent="ВЛЕЗ";b.disabled=false;
+  }
+}
+
+async function loadAll(){
+  const[z,t,c,i,s]=await Promise.all([
+    sb.from("zones").select("*").order("name"),
+    sb.from("tables").select("*,zones(name,color)").order("number"),
+    sb.from("menu_categories").select("*").order("sort_order"),
+    sb.from("menu_items").select("*,menu_categories(name,type)").eq("available",true).order("sort_order"),
+    sb.from("staff").select("*").order("name")
+  ]);
+  ZON=z.data||[];TBL=t.data||[];CAT=c.data||[];ITM=i.data||[];STF=s.data||[];
+}
+
+function showApp(){
+  document.getElementById("loginScreen").classList.remove("active");
+  document.getElementById("topbar").style.display="flex";
+  const rn={kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен",menager:"Менаџер",admin:"Администратор"};
+  document.getElementById("ubadge").textContent=U.name+" · "+(rn[U.role]||"");
+  const now=new Date();
+  const ts=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");
+  if(U.role==="kelner"){
+    document.getElementById("kelnerScreen").classList.add("active");
+    document.getElementById("stime").textContent=ts;
+    renderK();RT=subRT();keepScreenOn();
+  }else if(U.role==="kuvar"){
+    document.getElementById("kujnaScreen").classList.add("active");
+    document.getElementById("kname").textContent=U.name;
+    document.getElementById("ktime").textContent=ts;
+    loadK();RT=subRT();keepScreenOn();
+  }else if(U.role==="barmen"){
+    document.getElementById("barScreen").classList.add("active");
+    document.getElementById("bname").textContent=U.name;
+    document.getElementById("btime").textContent=ts;
+    loadB();RT=subRT();keepScreenOn();
+  }else{
+    document.getElementById("adminScreen").classList.add("active");
+    loadAdmin();
+  }
+}
+
+function toggleOP(show){
+  document.getElementById("opnl").classList.toggle("on",show);
+  document.getElementById("opov").classList.toggle("on",show);
+}
+
+// KELNER
+function renderK(){loadAmt();renderZ();renderT();menuGroup=null;menuCat=null;renderMenuNav();}
+
+async function loadAmt(){
+  const{data}=await sb.from("orders").select("table_number,total_amount").in("status",["pending","preparing","ready"]);
+  tAmt={};(data||[]).forEach(o=>{if(!tAmt[o.table_number])tAmt[o.table_number]=0;tAmt[o.table_number]+=o.total_amount||0;});
+  renderT();
+}
+
+function renderZ(){
+  let h=`<div class="ztab on" onclick="fZ('all',this)">Сите</div>`;
+  ZON.forEach(z=>h+=`<div class="ztab ${zF===z.id?"on":""}" onclick="fZ('${z.id}',this)">${z.name}</div>`);
+  document.getElementById("ztabs").innerHTML=h;
+  document.getElementById("szone").textContent=zF==="all"?"Сите":(ZON.find(z=>z.id===zF)?.name||"-");
+}
+function fZ(id,el){zF=id;document.querySelectorAll(".ztab").forEach(b=>b.classList.remove("on"));el.classList.add("on");renderT();}
+
+function renderT(){
+  const cont=document.getElementById("tgrd");
+  const list=zF==="all"?TBL:TBL.filter(t=>t.zone_id===zF);
+  let h="";
+  list.forEach(t=>{
+    const isSel=selT?.id===t.id,isOcc=t.status==="occupied";
+    const cls="tbl"+(isSel?" sel":isOcc?" occ":"");
+    const zone=t.zones?.name||"";
+    const amt=tAmt[t.number]?(tAmt[t.number].toLocaleString()+" ден."):"";
+    if(isOcc){
+      h+=`<div class="${cls}" onclick="viewT(${t.number},'${t.id}')">М${t.number}<div class="ts">Зафатена</div>${amt?`<div class="ta">${amt}</div>`:""}</div>`;
+    }else{
+      h+=`<div class="${cls}" onclick="pickT('${t.id}',${t.number})">М${t.number}<div class="ts">${zone}</div></div>`;
+    }
+  });
+  cont.innerHTML=h||"<div style='color:var(--dim);font-size:11px;grid-column:span 8'>Нема маси</div>";
+}
+
+function pickT(id,num){
+  selT=TBL.find(t=>t.id===id);renderT();
+  document.getElementById("optit").textContent="Нарачка — Маса "+num;
+  updSum();chkBtn();updNaplateno();
+  if(window.innerWidth<=768){toggleOP(true);}
+  document.getElementById("mgrd").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+async function naplateno(){
+  if(!selT)return;
+  if(!confirm("Маса "+selT.number+" — Наплатено?\nМасата ќе биде слободна."))return;
+  try{
+    await sb.from("orders").update({status:"served",updated_at:new Date().toISOString()}).eq("table_number",selT.number).in("status",["pending","preparing","ready"]);
+    await sb.from("tables").update({status:"free"}).eq("id",selT.id);
+    TBL=TBL.map(t=>t.id===selT.id?{...t,status:"free"}:t);
+    delete tAmt[selT.number];
+    toast("Маса "+selT.number+" наплатена — Благодарам! 💵","ok");
+    oI={};document.getElementById("onotes").value="";
+    const prev=selT.number;
+    selT=null;
+    toggleOP(false);
+    document.getElementById("optit").textContent="Нарачка";
+    updSum();chkBtn();
+    renderT();
+  }catch(err){toast("Грешка: "+err.message,"err");}
+}
+
+// ===== 2-LEVEL MENU SYSTEM =====
+// Group categories into main sections
+const MENU_GROUPS = [
+  { id:"food", label:"🍽 Јадење", icon:"🍽", cats:["Доручек","Чорби","Сирења","Салати","Ладно предјадење","Топло предјадење","Тестенини и ризото","Скара","Свински специјалитети","Телешки специјалитети","Риба","Морски специјалитети"] },
+  { id:"drinks_hot", label:"☕ Топли", icon:"☕", cats:["Топли напитоци"] },
+  { id:"drinks_soft", label:"🥤 Безалк.", icon:"🥤", cats:["Безалкохолни"] },
+  { id:"drinks_beer", label:"🍺 Пиво", icon:"🍺", cats:["Пива"] },
+  { id:"drinks_spirits", label:"🥃 Жестоки", icon:"🥃", cats:["Ракии","Виски и бурбон","Вотка и џин","Ликери"] }
+];
+
+let menuGroup = null; // null = top level, string = group id
+let menuCat = null;   // null = all in group, string = category id
+
+function renderMenuNav(){
+  const el = document.getElementById("ctabs");
+  const mg = document.getElementById("mgrd");
+
+  if(!menuGroup){
+    // TOP LEVEL — show 5 big group buttons
+    let h = "";
+    MENU_GROUPS.forEach(g => {
+      const count = ITM.filter(i => {
+        const cat = CAT.find(c=>c.id===i.category_id);
+        return cat && g.cats.includes(cat.name);
+      }).length;
+      const inOrder = Object.values(oI).filter(oi => {
+        const it = ITM.find(x=>x.id===oi.id);
+        const cat = it ? CAT.find(c=>c.id===it.category_id) : null;
+        return cat && g.cats.includes(cat.name) && oi.qty > 0;
+      }).reduce((s,x)=>s+x.qty,0);
+      h += `<div class="mgrp-btn" onclick="openGroup('${g.id}')">
+        <span class="mgrp-icon">${g.icon}</span>
+        <span class="mgrp-label">${g.label}</span>
+        ${inOrder>0?`<span class="mgrp-badge">${inOrder}</span>`:""}
+      </div>`;
+    });
+    el.innerHTML = "";
+    mg.innerHTML = `<div class="mgrp-grid">${h}</div>`;
+    return;
+  }
+
+  const grp = MENU_GROUPS.find(g=>g.id===menuGroup);
+  const grpCats = CAT.filter(c => grp.cats.includes(c.name));
+
+  if(!menuCat && grpCats.length > 1){
+    // SUB-LEVEL — show categories within group
+    let h = `<div class="mback-btn" onclick="backToGroups()">← Назад</div>`;
+    h += `<div class="mcat-grid">`;
+    grpCats.forEach(c => {
+      const items = ITM.filter(i=>i.category_id===c.id);
+      const inOrder = Object.values(oI).filter(oi=>oI[oi.id||oi]?.qty>0&&ITM.find(x=>x.id==(oi.id||oi))?.category_id===c.id);
+      const badge = Object.entries(oI).filter(([id])=>ITM.find(x=>x.id===id)?.category_id===c.id).reduce((s,[,v])=>s+(v.qty||0),0);
+      h += `<div class="mcat-btn" onclick="openCat('${c.id}')">
+        <span class="mcat-name">${c.name}</span>
+        <span class="mcat-count">${items.length} артикли</span>
+        ${badge>0?`<span class="mgrp-badge">${badge}</span>`:""}
+      </div>`;
+    });
+    h += `</div>`;
+    el.innerHTML = "";
+    mg.innerHTML = h;
+    return;
+  }
+
+  // ITEM LEVEL — show items
+  const catIds = menuCat ? [menuCat] : grpCats.map(c=>c.id);
+  const list = ITM.filter(i => catIds.includes(i.category_id));
+
+  // Back button
+  let backLabel = grpCats.length > 1 ? `← ${grp.label}` : "← Назад";
+  let bh = `<div class="mback-bar">
+    <div class="mback-btn" onclick="${grpCats.length>1?`backToCats()`:`backToGroups()`}">${backLabel}</div>
+    <span style="color:var(--mut);font-size:11px">${menuCat ? CAT.find(c=>c.id===menuCat)?.name : grp.label}</span>
+  </div>`;
+  el.innerHTML = "";
+
+  let ih = "";
+  list.forEach(it=>{
+    const q=oI[it.id]?.qty||0;
+    const sc=q>0?" sel":"";
+    ih += `<div class="mi${sc}">
+      <div><div class="mn">${it.name}</div><div class="mp">${it.price.toLocaleString()} ден.</div></div>
+      <div class="qc">
+        <div class="qb" onclick="chQ('${it.id}',-1)">&#8722;</div>
+        <div class="qn" id="q${it.id}">${q}</div>
+        <div class="qb" onclick="chQ('${it.id}',1)">&#43;</div>
+      </div>
+    </div>`;
+  });
+  mg.innerHTML = bh + `<div class="mgrd-inner">${ih||"<div style='color:var(--dim);padding:20px;text-align:center'>Нема артикли</div>"}</div>`;
+}
+
+function openGroup(gid){
+  menuGroup=gid; menuCat=null;
+  const grp = MENU_GROUPS.find(g=>g.id===gid);
+  const grpCats = CAT.filter(c => grp.cats.includes(c.name));
+  if(grpCats.length===1){ menuCat=grpCats[0].id; }
+  renderMenuNav();
+}
+
+function openCat(cid){ menuCat=cid; renderMenuNav(); }
+function backToGroups(){ menuGroup=null; menuCat=null; renderMenuNav(); }
+function backToCats(){ menuCat=null; renderMenuNav(); }
+
+function renderCt(){ menuGroup=null; menuCat=null; renderMenuNav(); }
+function fC(id,el){ menuCat=id; renderMenuNav(); }
+
+function renderM(){ renderMenuNav(); }
+
+function chQ(id,d){
+  const it=ITM.find(i=>i.id===id);if(!it)return;
+  if(!oI[id])oI[id]={...it,qty:0};
+  oI[id].qty=Math.max(0,oI[id].qty+d);
+  if(oI[id].qty===0)delete oI[id];
+  const el=document.getElementById("q"+id);
+  if(el)el.textContent=oI[id]?.qty||0;
+  el?.closest(".mi")?.classList.toggle("sel",(oI[id]?.qty||0)>0);
+  updSum();chkBtn();
+}
+
+function updSum(){
+  const list=Object.values(oI).filter(i=>i.qty>0);
+  if(!list.length){document.getElementById("osum").innerHTML="<div class='semp'>Одберете маса и артикли</div>";updNaplateno();return;}
+  let tot=0,h="";
+  list.forEach(it=>{
+    const s=it.price*it.qty;tot+=s;
+    h+=`<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(201,168,76,.08)">`;
+    h+=`<div style="flex:1;min-width:0">`;
+    h+=`<div style="color:var(--text);font-size:12px;font-weight:500">${it.qty}x ${it.name}</div>`;
+    h+=`<div style="color:var(--gold);font-size:11px">${s.toLocaleString()} ден.</div>`;
+    h+=`</div>`;
+    h+=`<button onclick="removeItem('${it.id}')" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(204,51,0,.15);border:1px solid rgba(204,51,0,.4);color:#ff5555;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:8px;-webkit-tap-highlight-color:transparent">×</button>`;
+    h+=`</div>`;
+  });
+  h+=`<div class="sr tot" style="margin-top:8px"><span>Вкупно</span><span>${tot.toLocaleString()} ден.</span></div>`;
+  document.getElementById("osum").innerHTML=h;
+  updNaplateno();
+}
+
+function removeItem(id){
+  delete oI[id];
+  const el=document.getElementById("q"+id);
+  if(el)el.textContent="0";
+  el?.closest(".mi")?.classList.remove("sel");
+  updSum();chkBtn();
+}
+
+function updNaplateno(){
+  // Show/hide Наплатено button based on whether a table is selected
+  const nb=document.getElementById("naplateno-btn");
+  if(nb) nb.style.display=selT?"block":"none";
+}
+
+function chkBtn(){
+  const ok=!!(selT&&Object.values(oI).some(i=>i.qty>0));
+  document.getElementById("sbtn").disabled=!ok;
+  const cnt=Object.values(oI).reduce((s,i)=>s+i.qty,0);
+  const bd=document.getElementById("fbdg");if(bd)bd.textContent=cnt;
+  document.getElementById("fbtn")?.classList.toggle("pulse",cnt>0);
+}
+
+async function submitOrder(){
+  const list=Object.values(oI).filter(i=>i.qty>0);
+  if(!selT||!list.length)return;
+  const btn=document.getElementById("sbtn");btn.disabled=true;btn.textContent="Се испраќа...";
+  const notes=document.getElementById("onotes").value;
+  const tot=list.reduce((s,i)=>s+i.price*i.qty,0);
+  const zone=ZON.find(z=>z.id===selT.zone_id)?.name||"";
+  try{
+    // Check if there's already an open bill for this table
+    const{data:existing}=await sb.from("orders")
+      .select("id,total_amount,order_items(type)")
+      .eq("table_number",selT.number)
+      .eq("status","pending")
+      .order("created_at",{ascending:false})
+      .limit(2);
+
+    const foodItems=list.filter(i=>i.type==="food");
+    const drinkItems=list.filter(i=>i.type==="drink");
+
+    // Find existing pending food/drink orders to add to
+    const existingFood=existing?.find(o=>o.order_items.some(x=>x.type==="food"));
+    const existingDrink=existing?.find(o=>o.order_items.some(x=>x.type==="drink"));
+
+    const addToOrCreate=async(ois,existingOrd)=>{
+      if(!ois.length)return;
+      const t=ois.reduce((s,i)=>s+i.price*i.qty,0);
+      if(existingOrd){
+        // Add items to existing order
+        await sb.from("order_items").insert(ois.map(i=>({order_id:existingOrd.id,menu_item_id:i.id,menu_item_name:i.name,quantity:i.qty,price:i.price,type:i.type,notes})));
+        await sb.from("orders").update({total_amount:(existingOrd.total_amount||0)+t,updated_at:new Date().toISOString()}).eq("id",existingOrd.id);
+      }else{
+        // Create new order
+        const{data:ord}=await sb.from("orders").insert({table_id:selT.id,table_number:selT.number,kelner_id:U.id,kelner_name:U.name,zone_name:zone,notes,total_amount:t,status:"pending"}).select().single();
+        if(ord)await sb.from("order_items").insert(ois.map(i=>({order_id:ord.id,menu_item_id:i.id,menu_item_name:i.name,quantity:i.qty,price:i.price,type:i.type,notes})));
+      }
+    };
+
+    await Promise.all([addToOrCreate(foodItems,existingFood),addToOrCreate(drinkItems,existingDrink)]);
+    await sb.from("tables").update({status:"occupied"}).eq("id",selT.id);
+    if(SH)await sb.from("shifts").update({total_orders:(SH.total_orders||0)+1,total_revenue:(SH.total_revenue||0)+tot}).eq("id",SH.id);
+    toast("Нарачката е испратена!","ok");
+    oI={};document.getElementById("onotes").value="";selT=null;
+    toggleOP(false);await loadAll();renderK();updSum();
+    document.getElementById("optit").textContent="Нарачка";
+  }catch(err){toast("Грешка: "+err.message,"err");}
+  btn.disabled=false;btn.textContent="ИСПРАТИ НАРАЧКА";chkBtn();
+}
+
+// TABLE DETAIL - flat list, active first, served last
+async function viewT(num,id){
+  vTN=num;vTI=id;
+  document.getElementById("tdTit").textContent="Маса "+num;
+
+  // Load ALL orders (active + served) for this table
+  const{data:ords}=await sb.from("orders")
+    .select("*,order_items(*)")
+    .eq("table_number",num)
+    .order("created_at");
+
+  if(!ords||!ords.length){
+    document.getElementById("tdList").innerHTML="<div style='color:var(--dim);text-align:center;padding:20px'>Нема нарачки на оваа маса</div>";
+    document.getElementById("tdK").textContent="-";
+    document.getElementById("tdZ").textContent="-";
+    document.getElementById("tdTot").textContent="0 ден.";
+    document.getElementById("tdMod").classList.add("on");
+    return;
+  }
+
+  // Sort: active first (pending/ready), served last
+  const active=ords.filter(o=>o.status!=="served"&&o.status!=="cancelled");
+  const served=ords.filter(o=>o.status==="served"||o.status==="cancelled");
+  const sorted=[...active,...served];
+
+  const f=sorted[0];
+  document.getElementById("tdK").textContent=f.kelner_name||"-";
+  document.getElementById("tdZ").textContent=f.zone_name||"-";
+
+  // Total = only active orders
+  const gt=active.reduce((s,o)=>s+(o.total_amount||0),0);
+  document.getElementById("tdTot").textContent=gt.toLocaleString()+" ден.";
+
+  // Build flat item list grouped by active/served
+  let h="";
+
+  // ACTIVE ORDERS — show as one flat list
+  if(active.length){
+    // Collect all items from all active orders into one list
+    const allActiveItems=[];
+    active.forEach(o=>{
+      o.order_items.forEach(x=>{
+        const existing=allActiveItems.find(a=>a.menu_item_name===x.menu_item_name&&a.type===x.type);
+        if(existing) existing.quantity+=x.quantity;
+        else allActiveItems.push({...x});
+      });
+    });
+
+    h+=`<div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:12px;margin-bottom:10px">`;
+    h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">`;
+    h+=`<div style="color:var(--gold);font-size:13px;font-weight:700">📋 Тековна сметка</div>`;
+    h+=`<div style="color:var(--grn);font-size:11px;font-weight:600;background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3);padding:2px 8px;border-radius:10px">Отворена</div>`;
+    h+=`</div>`;
+
+    // Group: food first, then drinks
+    const foodItems=allActiveItems.filter(x=>x.type==="food");
+    const drinkItems=allActiveItems.filter(x=>x.type==="drink");
+
+    if(foodItems.length){
+      h+=`<div style="color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">🍽 Јадење</div>`;
+      foodItems.forEach(x=>{
+        h+=`<div class="tir"><span>${x.quantity}x ${x.menu_item_name}</span><span style="color:var(--gold)">${(x.price*x.quantity).toLocaleString()} ден.</span></div>`;
+      });
+    }
+    if(drinkItems.length){
+      h+=`<div style="color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin:8px 0 5px">🍹 Пијалоци</div>`;
+      drinkItems.forEach(x=>{
+        h+=`<div class="tir"><span>${x.quantity}x ${x.menu_item_name}</span><span style="color:var(--gold)">${(x.price*x.quantity).toLocaleString()} ден.</span></div>`;
+      });
+    }
+    h+=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid rgba(201,168,76,.2)">`;
+    h+=`<span style="color:var(--text);font-size:12px">${allActiveItems.reduce((s,x)=>s+x.quantity,0)} артикли вкупно</span>`;
+    h+=`<span style="color:var(--gold);font-size:14px;font-weight:700">${gt.toLocaleString()} ден.</span>`;
+    h+=`</div></div>`;
+  }
+
+  // SERVED ORDERS — collapsed at bottom
+  if(served.length){
+    const servedTot=served.reduce((s,o)=>s+(o.total_amount||0),0);
+    h+=`<div style="background:var(--d2);border:1px solid var(--border);border-radius:8px;padding:10px;opacity:.6">`;
+    h+=`<div style="color:var(--mut);font-size:11px">✓ Претходно наплатено: ${servedTot.toLocaleString()} ден.</div>`;
+    h+=`</div>`;
+  }
+
+  document.getElementById("tdList").innerHTML=h;
+  document.getElementById("tdMod").classList.add("on");
+}
+
+function addMore(){
+  closeM("tdMod");
+  const t=TBL.find(x=>x.number===vTN);
+  if(t){
+    selT=t;
+    renderT();
+    menuGroup=null;menuCat=null;renderMenuNav();
+    document.getElementById("optit").textContent="Нарачка — Маса "+vTN;
+    updSum();chkBtn();updNaplateno();
+    if(window.innerWidth<=768){toggleOP(false);}
+    toast("Додајте артикли за Маса "+vTN+" потоа притиснете ИСПРАТИ","ok");
+    // Scroll to menu
+    setTimeout(()=>document.getElementById("mgrd").scrollIntoView({behavior:"smooth",block:"start"}),200);
+  }
+}
+
+async function closeTable(){
+  if(!confirm("Затвори Маса "+vTN+"?\nМасата ќе биде слободна."))return;
+  const btn=document.getElementById("cltBtn");btn.disabled=true;btn.textContent="Се затвора...";
+  try{
+    await sb.from("orders").update({status:"served",updated_at:new Date().toISOString()}).eq("table_number",vTN).in("status",["pending","preparing","ready"]);
+    await sb.from("tables").update({status:"free"}).eq("number",vTN);
+    TBL=TBL.map(t=>t.number===vTN?{...t,status:"free"}:t);
+    delete tAmt[vTN];closeM("tdMod");toast("Маса "+vTN+" затворена — Благодарам!","ok");renderT();
+  }catch(err){toast("Грешка: "+err.message,"err");}
+  btn.disabled=false;btn.textContent="Затвори маса / Наплати";
+}
+
+// KITCHEN
+async function loadK(){
+  const{data}=await sb.from("orders").select("*,order_items(*)").eq("status","pending").order("created_at");
+  const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="food"));
+  renderSt("kords",ords,"food","kitchen");
+  document.getElementById("kcnt").textContent=ords.length+" активни";
+}
+
+// BAR
+async function loadB(){
+  const{data}=await sb.from("orders").select("*,order_items(*)").eq("status","pending").order("created_at");
+  const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="drink"));
+  renderSt("bords",ords,"drink","bar");
+  document.getElementById("bcnt").textContent=ords.length+" активни";
+}
+
+function renderSt(cid,ords,type,stn){
+  const c=document.getElementById(cid);
+  if(!ords||!ords.length){c.innerHTML=`<div class="noo"><div class="bi">${type==="food"?"🍽":"🍹"}</div>Нема активни нарачки</div>`;return;}
+  let h="";
+  ords.forEach(o=>{
+    const its=o.order_items.filter(i=>i.type===type);if(!its.length)return;
+    const mins=Math.floor((Date.now()-new Date(o.created_at))/60000);
+    const urg=mins>10,isB=stn==="bar";
+    h+=`<div class="oc${urg?" urg":""}${isB?" bc":""}" data-created="${o.created_at}">`;
+    h+=`<div class="och"><div><div class="otn${isB?" bar":""}">Маса ${o.table_number}</div><div class="okl">${o.kelner_name||""} ${o.zone_name?"· "+o.zone_name:""}</div></div>`;
+    h+=`<div class="tc${urg?" urg":""}${isB?" bar":""}">${mins} мин</div></div>`;
+    // Note shown ONCE at top only
+    if(o.notes)h+=`<div class="cn">📝 ${o.notes}</div>`;
+    h+=`<div class="ois" style="max-height:none;overflow:visible">`;
+    its.forEach(it=>h+=`<div class="oi"><div class="oqb${isB?" bar":""}">${it.quantity}</div><div><div class="oit">${it.menu_item_name}</div></div></div>`);
+    h+=`</div>`;
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid var(--bdr)">`;
+    h+=`<span style="color:var(--mut);font-size:11px">${its.reduce((s,i)=>s+i.quantity,0)} артикли</span>`;
+    h+=`<span style="color:var(--gold);font-size:12px;font-weight:600">${its.reduce((s,i)=>s+i.price*i.quantity,0).toLocaleString()} ден.</span>`;
+    h+=`</div>`;
+    h+=`<button class="rb${isB?" bar":""}" onclick="markR('${o.id}','${stn}')" style="margin-top:8px">✓ Готово за сервирање</button></div>`;
+  });
+  c.innerHTML=h||`<div class="noo"><div class="bi">${type==="food"?"🍽":"🍹"}</div>Нема активни нарачки</div>`;
+}
+
+async function markR(oid,stn){
+  await sb.from("orders").update({status:"ready",updated_at:new Date().toISOString()}).eq("id",oid);
+  if(U.role==="kuvar")await sb.from("order_items").update({status:"ready",prepared_by:U.id,prepared_by_name:U.name}).eq("order_id",oid);
+  toast("Нарачката е готова!","ok");
+  if(stn==="kitchen")loadK();else loadB();
+}
+
+// KELNER READY BANNERS
+function showBanner(tableNum,type){
+  const eid="bnr-"+type;
+  const old=document.getElementById(eid);if(old)old.remove();
+  const isF=type==="food";
+  const icon=isF?"🍽":"🍹";
+  const msg=isF?"Јадењето е готово!":"Пијалоците се готови!";
+  const col=isF?"var(--gold)":"var(--tel)";
+  const brd=isF?"rgba(201,168,76,.6)":"rgba(0,153,170,.6)";
+  const el=document.createElement("div");
+  el.id=eid;
+  el.style.cssText="position:fixed;top:70px;right:16px;z-index:500;background:var(--dark);border:2px solid "+brd+";border-radius:12px;padding:14px 18px;min-width:240px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.5)";
+  const dismiss=function(){var x=document.getElementById(eid);if(x)x.remove();};
+  const inner=document.createElement("div");
+  inner.innerHTML="<div style='display:flex;align-items:flex-start;gap:10px'>"
+    +"<div style='font-size:24px;line-height:1'>"+icon+"</div>"
+    +"<div style='flex:1'>"
+    +"<div style='color:"+col+";font-size:13px;font-weight:700;letter-spacing:1px'>МАСА "+tableNum+"</div>"
+    +"<div style='color:var(--text);font-size:12px;margin-top:2px'>"+msg+"</div>"
+    +"<div style='color:var(--mut);font-size:10px;margin-top:3px'>Подигни и сервирај</div>"
+    +"</div>"
+    +"<div style='cursor:pointer;color:var(--mut);font-size:18px;padding:2px' id='x-"+eid+"'>&#215;</div>"
+    +"</div>"
+    +"<button id='b-"+eid+"' style='width:100%;margin-top:10px;background:"+col+";border:none;border-radius:6px;color:var(--black);font-size:11px;font-weight:700;padding:8px;cursor:pointer;letter-spacing:1px'>ПОТВРДИ</button>";
+  el.appendChild(inner);
+  document.body.appendChild(el);
+  document.getElementById("x-"+eid).onclick=dismiss;
+  document.getElementById("b-"+eid).onclick=dismiss;
+  setTimeout(dismiss,30000);
+  beep();notify("Маса "+tableNum+" — "+msg,isF?"Кујна":"Бар");
+}
+
+// REALTIME
+function subRT(){
+  return sb.channel("roms-"+Date.now())
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"orders"},p=>{
+      if(U.role==="kuvar"){loadK();beep();notify("Нова нарачка","Маса "+p.new.table_number);}
+      if(U.role==="barmen"){loadB();beep();notify("Нова нарачка","Маса "+p.new.table_number);}
+      if(U.role==="kelner")loadAmt();
+    })
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders"},async p=>{
+      if(U.role==="kuvar")loadK();
+      if(U.role==="barmen")loadB();
+      if(U.role==="kelner"&&p.new.status==="ready"&&p.old&&p.old.status!=="ready"){
+        const{data:ord}=await sb.from("orders").select("order_items(type)").eq("id",p.new.id).single();
+        const hasF=ord?.order_items?.some(i=>i.type==="food");
+        const hasD=ord?.order_items?.some(i=>i.type==="drink");
+        if(hasF)showBanner(p.new.table_number,"food");
+        if(hasD)showBanner(p.new.table_number,"drink");
+      }
+    })
+    .subscribe();
+}
+
+// ===== BULLETPROOF SCREEN ALWAYS ON =====
+let wakeLock=null;
+let heartbeatInterval=null;
+let timerInterval=null;
+let audioCtx=null;
+
+async function keepScreenOn(){
+  // 1. Wake Lock API (Chrome/Android)
+  if("wakeLock"in navigator){
+    try{
+      wakeLock=await navigator.wakeLock.request("screen");
+    }catch(e){}
+  }
+
+  // 2. Silent audio heartbeat — keeps browser active on ALL devices including iOS
+  // Plays inaudible sound every 25 seconds — browser cannot sleep while audio is playing
+  function startAudioHeartbeat(){
+    try{
+      if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+      const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.1,audioCtx.sampleRate);
+      const src=audioCtx.createBufferSource();
+      src.buffer=buf;
+      const gain=audioCtx.createGain();
+      gain.gain.value=0.001; // Nearly silent
+      src.connect(gain);gain.connect(audioCtx.destination);
+      src.start();
+    }catch(e){}
+  }
+
+  // 3. Heartbeat every 25 seconds — refreshes orders + audio + wake lock
+  if(heartbeatInterval)clearInterval(heartbeatInterval);
+  heartbeatInterval=setInterval(async()=>{
+    startAudioHeartbeat();
+    // Re-acquire wake lock if released
+    if(wakeLock&&wakeLock.released){
+      try{wakeLock=await navigator.wakeLock.request("screen");}catch(e){}
+    }
+    // Reload orders to stay fresh
+    if(U&&U.role==="kuvar")loadK();
+    if(U&&U.role==="barmen")loadB();
+  },25000);
+
+  // 4. Live minute counter — updates every 60 seconds
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    if(U&&(U.role==="kuvar"||U.role==="barmen")){
+      // Update all time chips without full reload
+      document.querySelectorAll(".tc").forEach(el=>{
+        const card=el.closest(".oc");
+        if(!card)return;
+        const created=card.dataset.created;
+        if(created){
+          const mins=Math.floor((Date.now()-new Date(created))/60000);
+          el.textContent=mins+" мин";
+          el.className="tc"+(mins>10?" urg":el.classList.contains("bar")?" bar":"");
+          card.className=card.className.replace(" urg","")+(mins>10?" urg":"");
+        }
+      });
+    }
+  },60000);
+
+  startAudioHeartbeat();
+}
+
+// Re-acquire everything when screen wakes up
+document.addEventListener("visibilitychange",async()=>{
+  if(!U)return;
+  if(document.visibilityState==="visible"){
+    // Instant order refresh
+    if(U.role==="kuvar")loadK();
+    if(U.role==="barmen")loadB();
+    if(U.role==="kelner")loadAmt();
+    // Re-acquire wake lock
+    if("wakeLock"in navigator&&(!wakeLock||wakeLock.released)){
+      try{wakeLock=await navigator.wakeLock.request("screen");}catch(e){}
+    }
+    // Re-subscribe realtime if dropped
+    if(RT&&RT.state==="closed"){
+      if(RT)try{sb.removeChannel(RT);}catch(e){}
+      RT=subRT();
+      toast("Конекцијата е обновена ✓","ok");
+    }
+  }
+});
+
+// Safety net — check connection every 20 seconds
+setInterval(async()=>{
+  if(!U)return;
+  if(RT&&RT.state==="closed"){
+    try{sb.removeChannel(RT);}catch(e){}
+    RT=subRT();
+    if(U.role==="kuvar")loadK();
+    if(U.role==="barmen")loadB();
+  }
+},20000);
+
+function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.setValueAtTime(.3,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.5);o.start();o.stop(a.currentTime+.5);}catch(e){}}
+function notify(t,b){if(notif&&Notification.permission==="granted")new Notification(t,{body:b});}
+async function reqNotif(){if(!("Notification"in window))return;const p=await Notification.requestPermission();notif=p==="granted";toast(notif?"Известувањата се вклучени!":"Одбиени","ok");}
+
+// ADMIN
+async function loadAdmin(){
+  await loadAll();
+  const today=new Date().toISOString().split("T")[0];
+  const{data:ords}=await sb.from("orders").select("*,order_items(*)").gte("created_at",today+"T00:00:00").order("created_at",{ascending:false});
+  const os=ords||[];
+  const rev=os.reduce((s,o)=>s+(o.total_amount||0),0);
+  const occ=TBL.filter(t=>t.status==="occupied").length;
+  document.getElementById("stR").textContent=rev.toLocaleString();
+  document.getElementById("stO").textContent=os.length;
+  document.getElementById("stT").textContent=occ+" / "+TBL.length;
+  document.getElementById("stA").textContent=os.length?Math.round(rev/os.length).toLocaleString():"0";
+  const sm={pending:"Во тек",preparing:"Во тек",ready:"Готово",served:"Сервирано",cancelled:"Откажано"};
+  let h="";
+  os.forEach(o=>{const tm=new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"});h+=`<tr><td>М${o.table_number}</td><td>${o.kelner_name||"-"}</td><td>${o.zone_name||"-"}</td><td>${(o.total_amount||0).toLocaleString()} ден.</td><td>${sm[o.status]||o.status}</td><td>${tm}</td></tr>`;});
+  document.getElementById("todayT").innerHTML=h||"<tr><td colspan='6' style='color:var(--dim);text-align:center;padding:14px'>Нема нарачки денес</td></tr>";
+  await loadChart();
+  loadZoneSt(os);
+  loadMenuT();loadStaffT();loadZonesT();
+}
+
+async function loadChart(){
+  const days=[],now=new Date();
+  for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);days.push(d.toISOString().split("T")[0]);}
+  const{data}=await sb.from("orders").select("created_at,total_amount").gte("created_at",days[0]+"T00:00:00");
+  const rev={};days.forEach(d=>rev[d]=0);
+  (data||[]).forEach(o=>{const d=o.created_at.split("T")[0];if(rev[d]!==undefined)rev[d]+=o.total_amount||0;});
+  const mx=Math.max(...Object.values(rev),1);
+  const today=now.toISOString().split("T")[0];
+  const dn=["Нед","Пон","Вто","Сре","Чет","Пет","Саб"];
+  let h="";
+  days.forEach(d=>{const pct=Math.round(rev[d]/mx*100);const dw=new Date(d).getDay();h+=`<div class="cbw"><div class="cb${d===today?" td":""}" style="height:${pct}px"></div><div class="cdy">${dn[dw]}</div></div>`;});
+  document.getElementById("rchart").innerHTML=h;
+}
+
+function loadZoneSt(orders){
+  const zs={};
+  ZON.forEach(z=>zs[z.name]={orders:0,revenue:0,color:z.color});
+  orders.forEach(o=>{
+    const zn=o.zone_name||"Непознато";
+    if(!zs[zn])zs[zn]={orders:0,revenue:0,color:"#888"};
+    zs[zn].orders++;zs[zn].revenue+=o.total_amount||0;
+  });
+  const sorted=Object.entries(zs).filter(([,v])=>v.orders>0).sort((a,b)=>b[1].revenue-a[1].revenue);
+  if(!sorted.length){document.getElementById("zStats").innerHTML="<div style='color:var(--dim);font-size:12px;padding:10px'>Нема податоци</div>";return;}
+  const mx=sorted[0][1].revenue||1;
+  const medals=["🥇","🥈","🥉"];
+  let h="";
+  sorted.forEach(([name,v],i)=>{
+    const pct=Math.round(v.revenue/mx*100);
+    h+="<div style='background:var(--d2);border:1px solid var(--bdr);border-radius:9px;padding:12px'>"
+      +"<div style='display:flex;align-items:center;gap:6px;margin-bottom:6px'>"
+      +"<div style='width:10px;height:10px;background:"+v.color+";border-radius:50%'></div>"
+      +"<div style='color:var(--text);font-size:12px;font-weight:600;flex:1'>"+name+"</div>"
+      +(i<3?"<span style='font-size:14px'>"+medals[i]+"</span>":"")
+      +"</div>"
+      +"<div style='color:var(--gold);font-size:18px;font-weight:700'>"+v.revenue.toLocaleString()+"</div>"
+      +"<div style='color:var(--mut);font-size:10px;margin-top:1px'>"+v.orders+" нарачки</div>"
+      +"<div style='background:var(--d4);border-radius:4px;height:4px;margin-top:8px;overflow:hidden'>"
+      +"<div style='background:"+v.color+";height:100%;width:"+pct+"%'></div>"
+      +"</div></div>";
+  });
+  document.getElementById("zStats").innerHTML=h;
+}
+
+function aTab(el,tab){
+  document.querySelectorAll(".ab").forEach(b=>b.classList.remove("on"));el.classList.add("on");
+  ["dash","menu","staff","zones","rep"].forEach(t=>document.getElementById("tab-"+t).style.display=t===tab?"block":"none");
+  if(tab==="rep")loadRep();
+}
+
+// MENU MGMT
+function loadMenuT(){
+  let h="";
+  ITM.forEach(it=>{const cn=it.menu_categories?.name||"-";h+=`<tr><td>${it.name}</td><td>${cn}</td><td>${it.price.toLocaleString()}</td><td><span class="tag ${it.type==="food"?"tf":"tdr"}">${it.type==="food"?"Јадење":"Пијалок"}</span></td><td><div class="sw${it.available?" on":""}" onclick="togItem('${it.id}',${it.available},this)"></div></td><td><button class="act" onclick="editItem('${it.id}')">Уреди</button><button class="act del" onclick="delItem('${it.id}')">Избриши</button></td></tr>`;});
+  document.getElementById("menuT").innerHTML=h||"<tr><td colspan='6' style='color:var(--dim);text-align:center;padding:14px'>Нема артикли</td></tr>";
+  let ch="";CAT.forEach(c=>ch+=`<tr><td>${c.name}</td><td><span class="tag ${c.type==="food"?"tf":"tdr"}">${c.type==="food"?"Јадење":"Пијалок"}</span></td><td><button class="act del" onclick="delCat('${c.id}')">Избриши</button></td></tr>`);
+  document.getElementById("catT").innerHTML=ch;
+}
+async function togItem(id,cur,el){await sb.from("menu_items").update({available:!cur}).eq("id",id);el.classList.toggle("on",!cur);const it=ITM.find(i=>i.id===id);if(it)it.available=!cur;}
+function showAddItem(){document.getElementById("iTit").textContent="Додај артикл";document.getElementById("eItemId").value="";document.getElementById("iNm").value="";document.getElementById("iPr").value="";document.getElementById("iCat").innerHTML=CAT.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");document.getElementById("iMod").classList.add("on");}
+function editItem(id){const it=ITM.find(i=>i.id===id);if(!it)return;document.getElementById("iTit").textContent="Уреди артикл";document.getElementById("eItemId").value=id;document.getElementById("iNm").value=it.name;document.getElementById("iPr").value=it.price;document.getElementById("iTp").value=it.type;document.getElementById("iCat").innerHTML=CAT.map(c=>`<option value="${c.id}"${c.id===it.category_id?" selected":""}>${c.name}</option>`).join("");document.getElementById("iMod").classList.add("on");}
+async function saveItem(){
+  const eid=document.getElementById("eItemId").value;
+  const name=document.getElementById("iNm").value.trim(),price=parseFloat(document.getElementById("iPr").value),catId=document.getElementById("iCat").value,type=document.getElementById("iTp").value;
+  if(!name||!price)return toast("Пополнете ги сите полиња","err");
+  if(eid)await sb.from("menu_items").update({name,price,category_id:catId,type}).eq("id",eid);
+  else await sb.from("menu_items").insert({name,price,category_id:catId,type,available:true});
+  toast(eid?"Ажурирано":"Додадено","ok");closeM("iMod");await loadAll();loadMenuT();
+}
+async function delItem(id){if(!confirm("Избриши?"))return;await sb.from("menu_items").delete().eq("id",id);await loadAll();loadMenuT();}
+function showAddCat(){document.getElementById("cNm").value="";document.getElementById("cMod").classList.add("on");}
+async function saveCat(){const name=document.getElementById("cNm").value.trim(),type=document.getElementById("cTp").value;if(!name)return toast("Внесете назив","err");await sb.from("menu_categories").insert({name,type});toast("Додадено","ok");closeM("cMod");await loadAll();loadMenuT();}
+async function delCat(id){if(!confirm("Сигурно?"))return;await sb.from("menu_categories").delete().eq("id",id);await loadAll();loadMenuT();}
+
+// STAFF MGMT
+function loadStaffT(){
+  const rn={kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен",menager:"Менаџер",admin:"Администратор"};
+  const rc={kelner:"tkl",kuvar:"tku",barmen:"tbr",menager:"tmg",admin:"tad"};
+  let h="";
+  STF.forEach(s=>h+=`<tr><td>${s.name}</td><td>${s.username}</td><td><span class="tag ${rc[s.role]||""}">${rn[s.role]||s.role}</span></td><td style="font-family:monospace">${s.pin}</td><td><div class="sw${s.active?" on":""}" onclick="togStaff('${s.id}',${s.active},this)"></div></td><td><button class="act" onclick="editStaff('${s.id}')">Уреди</button><button class="act del" onclick="delStaff('${s.id}')">Избриши</button></td></tr>`);
+  document.getElementById("staffT").innerHTML=h;
+}
+async function togStaff(id,cur,el){await sb.from("staff").update({active:!cur}).eq("id",id);el.classList.toggle("on",!cur);}
+function showAddStaff(){document.getElementById("sTit").textContent="Додај вработен";document.getElementById("eStId").value="";document.getElementById("sNm").value="";document.getElementById("sUn").value="";document.getElementById("sPin").value="";document.getElementById("sMod").classList.add("on");}
+function editStaff(id){const s=STF.find(x=>x.id===id);if(!s)return;document.getElementById("sTit").textContent="Уреди вработен";document.getElementById("eStId").value=id;document.getElementById("sNm").value=s.name;document.getElementById("sUn").value=s.username;document.getElementById("sPin").value=s.pin;document.getElementById("sRol").value=s.role;document.getElementById("sMod").classList.add("on");}
+async function saveStaff(){
+  const eid=document.getElementById("eStId").value;
+  const name=document.getElementById("sNm").value.trim(),un=document.getElementById("sUn").value.trim(),pin=document.getElementById("sPin").value.trim(),role=document.getElementById("sRol").value;
+  if(!name||!un||!pin)return toast("Пополнете ги сите полиња","err");
+  if(eid)await sb.from("staff").update({name,username:un,pin,role}).eq("id",eid);
+  else await sb.from("staff").insert({name,username:un,pin,role,active:true});
+  toast(eid?"Ажурирано":"Додадено","ok");closeM("sMod");await loadAll();loadStaffT();
+}
+async function delStaff(id){if(!confirm("Избриши?"))return;await sb.from("staff").delete().eq("id",id);await loadAll();loadStaffT();}
+
+// ZONES MGMT
+function loadZonesT(){
+  let h="";
+  ZON.forEach(z=>{const tc=TBL.filter(t=>t.zone_id===z.id).length;h+=`<tr><td>${z.name}</td><td>${tc} маси</td><td><div style="width:18px;height:18px;background:${z.color};border-radius:3px;display:inline-block"></div></td><td><button class="act del" onclick="delZone('${z.id}')">Избриши</button></td></tr>`;});
+  document.getElementById("zonesT").innerHTML=h;
+}
+function showAddZone(){document.getElementById("zNm").value="";document.getElementById("zMod").classList.add("on");}
+async function saveZone(){const name=document.getElementById("zNm").value.trim(),color=document.getElementById("zCol").value;if(!name)return toast("Внесете назив","err");await sb.from("zones").insert({name,color});toast("Додадено","ok");closeM("zMod");await loadAll();loadZonesT();}
+async function delZone(id){if(!confirm("Сигурно?"))return;await sb.from("zones").delete().eq("id",id);await loadAll();loadZonesT();}
+
+// REPORTS
+async function loadRep(){
+  const from=document.getElementById("rFrom").value||new Date(Date.now()-30*864e5).toISOString().split("T")[0];
+  const to=document.getElementById("rTo").value||new Date().toISOString().split("T")[0];
+  const{data}=await sb.from("orders").select("*").gte("created_at",from+"T00:00:00").lte("created_at",to+"T23:59:59").order("created_at",{ascending:false});
+  const os=data||[];
+  const tot=os.reduce((s,o)=>s+(o.total_amount||0),0);
+  document.getElementById("repSt").innerHTML=`<div class="sc"><div class="scl">Вкупен приход</div><div class="scv">${tot.toLocaleString()}</div><div class="scs">денари</div></div><div class="sc"><div class="scl">Вкупно нарачки</div><div class="scv">${os.length}</div></div><div class="sc"><div class="scl">Просек</div><div class="scv">${os.length?Math.round(tot/os.length).toLocaleString():"0"}</div><div class="scs">денари</div></div>`;
+  const sm={pending:"Во тек",preparing:"Во тек",ready:"Готово",served:"Сервирано",cancelled:"Откажано"};
+  let h="";
+  os.forEach(o=>{const dt=new Date(o.created_at);h+=`<tr><td>${dt.toLocaleDateString("mk-MK")} ${dt.toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td><td>М${o.table_number}</td><td>${o.kelner_name||"-"}</td><td>${o.zone_name||"-"}</td><td>${(o.total_amount||0).toLocaleString()} ден.</td><td>${sm[o.status]||o.status}</td></tr>`;});
+  document.getElementById("repT").innerHTML=h||"<tr><td colspan='6' style='color:var(--dim);text-align:center;padding:14px'>Нема нарачки</td></tr>";
+  const sp={};os.forEach(o=>{const k=o.kelner_name||"?";if(!sp[k])sp[k]={n:0,r:0};sp[k].n++;sp[k].r+=o.total_amount||0;});
+  let ph="";Object.entries(sp).sort((a,b)=>b[1].r-a[1].r).forEach(([n,v])=>ph+=`<tr><td>${n}</td><td><span class="tag tkl">Келнер</span></td><td>${v.n}</td><td>${v.r.toLocaleString()} ден.</td></tr>`);
+  document.getElementById("perfT").innerHTML=ph||"<tr><td colspan='4' style='color:var(--dim);text-align:center;padding:14px'>Нема податоци</td></tr>";
+}
+
+// SHIFT / LOGOUT
+async function endShift(){if(!confirm("Крај на смена?"))return;if(SH)await sb.from("shifts").update({clock_out:new Date().toISOString()}).eq("id",SH.id);doLogout();}
+function doLogout(){
+  if(RT)sb.removeChannel(RT);
+  U=null;SH=null;selT=null;oI={};
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("loginScreen").classList.add("active");
+  document.getElementById("topbar").style.display="none";
+  document.getElementById("uname").value="";document.getElementById("upin").value="";
+  document.getElementById("lbtn").textContent="ВЛЕЗ";document.getElementById("lbtn").disabled=false;
+  document.getElementById("lerr").style.display="none";
+  const op=document.getElementById("opnl");if(op)op.classList.remove("on");
+  const ov=document.getElementById("opov");if(ov)ov.classList.remove("on");
+}
+
+// MODALS
+function closeM(id){document.getElementById(id).classList.remove("on");}
+window.addEventListener("click",e=>{if(e.target.classList.contains("mov"))e.target.classList.remove("on");});
+
+window.addEventListener("load",()=>{
+  const now=new Date();
+  const from=new Date(now);from.setDate(from.getDate()-30);
+  const rF=document.getElementById("rFrom");const rT=document.getElementById("rTo");
+  if(rF)rF.value=from.toISOString().split("T")[0];
+  if(rT)rT.value=now.toISOString().split("T")[0];
+});
+</script>
+</body>
+</html>
