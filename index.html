@@ -512,6 +512,8 @@ async function doLogin(){
     const{data,error}=await sb.from("staff").select("*").eq("username",u).eq("pin",p).eq("active",true).single();
     if(error||!data){e.textContent="Погрешно корисничко ime или PIN";e.style.display="block";b.textContent="ВЛЕЗ";b.disabled=false;return;}
     U=data;
+    // Save session to localStorage for auto-restore on refresh
+    localStorage.setItem("roms_user",JSON.stringify({username:u,pin:p}));
     const{data:sh}=await sb.from("shifts").insert({staff_id:U.id,staff_name:U.name,role:U.role,zone_name:"Сите зони"}).select().single();
     SH=sh;
     await loadAll();
@@ -519,6 +521,34 @@ async function doLogin(){
   }catch(err){
     e.textContent="Грешка: "+err.message;e.style.display="block";b.textContent="ВЛЕЗ";b.disabled=false;
   }
+}
+
+// Auto-restore session on page load/refresh
+async function tryAutoLogin(){
+  if(!initSb())return;
+  const saved=localStorage.getItem("roms_user");
+  if(!saved)return;
+  try{
+    const{username,pin}=JSON.parse(saved);
+    const{data,error}=await sb.from("staff").select("*").eq("username",username).eq("pin",pin).eq("active",true).single();
+    if(error||!data){localStorage.removeItem("roms_user");return;}
+    U=data;
+    // Restore existing shift if from today
+    const today=new Date().toISOString().split("T")[0];
+    const{data:existingShift}=await sb.from("shifts")
+      .select("*").eq("staff_id",U.id)
+      .gte("clock_in",today+"T00:00:00")
+      .is("clock_out",null)
+      .order("clock_in",{ascending:false})
+      .limit(1).single();
+    if(existingShift){SH=existingShift;}
+    else{
+      const{data:sh}=await sb.from("shifts").insert({staff_id:U.id,staff_name:U.name,role:U.role,zone_name:"Сите зони"}).select().single();
+      SH=sh;
+    }
+    await loadAll();
+    showApp();
+  }catch(err){localStorage.removeItem("roms_user");}
 }
 
 async function loadAll(){
@@ -603,11 +633,14 @@ function pickT(id,num){
   selT=TBL.find(t=>t.id===id);renderT();
   document.getElementById("optit").textContent="Нарачка — Маса "+num;
   updSum();chkBtn();updNaplateno();
-  if(window.innerWidth<=768){
-    // Auto open panel briefly to confirm selection, then close
-    toggleOP(true);
-  }
-  setTimeout(()=>document.getElementById("mgrd").scrollIntoView({behavior:"smooth",block:"start"}),300);
+  // DON'T open order panel - let kelner browse menu first
+  // Just show a brief toast so they know the table is selected
+  toast("Маса "+num+" избрана — додајте артикли","ok");
+  // Scroll to menu section
+  setTimeout(()=>{
+    const mgrd=document.getElementById("mgrd");
+    if(mgrd)mgrd.scrollIntoView({behavior:"smooth",block:"start"});
+  },200);
 }
 
 async function naplateno(){
@@ -1308,7 +1341,10 @@ async function loadRep(){
 // SHIFT / LOGOUT
 async function endShift(){if(!confirm("Крај на смена?"))return;if(SH)await sb.from("shifts").update({clock_out:new Date().toISOString()}).eq("id",SH.id);doLogout();}
 function doLogout(){
-  if(RT)sb.removeChannel(RT);
+  localStorage.removeItem("roms_user");
+  if(RT)try{sb.removeChannel(RT);}catch(e){}
+  if(heartbeatInterval)clearInterval(heartbeatInterval);
+  if(timerInterval)clearInterval(timerInterval);
   U=null;SH=null;selT=null;oI={};
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById("loginScreen").classList.add("active");
@@ -1333,6 +1369,8 @@ window.addEventListener("load",()=>{
   const rF=document.getElementById("rFrom");const rT=document.getElementById("rTo");
   if(rF)rF.value=from.toISOString().split("T")[0];
   if(rT)rT.value=now.toISOString().split("T")[0];
+  // Try to restore session after refresh
+  tryAutoLogin();
 });
 </script>
 </body>
