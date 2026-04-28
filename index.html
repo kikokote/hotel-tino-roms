@@ -406,7 +406,7 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
 <div id="kujnaScreen" class="screen">
   <div class="ss">
     <div class="sbar"><div class="sinfo">Готвач: <b id="kname">-</b> | Смена: <b id="ktime">-</b></div><button class="esb" onclick="endShift()">Крај</button></div>
-    <div class="sh"><div class="stit">КУЈНА</div><div class="liv"><div class="ld"></div><span id="kcnt">0 активни</span></div></div>
+    <div class="sh"><div class="stit">КУЈНА</div><div style="display:flex;align-items:center;gap:10px"><div class="liv"><div class="ld"></div><span id="kcnt">0 активни</span></div><button onclick="openTransferModal(null,'kuvar')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли смена</button></div></div>
     <div class="ogrd" id="kords"><div class="noo"><div class="bi">🍽</div>Нема активни нарачки</div></div>
   </div>
 </div>
@@ -415,7 +415,7 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
 <div id="barScreen" class="screen">
   <div class="ss">
     <div class="sbar"><div class="sinfo">Бармен: <b id="bname">-</b> | Смена: <b id="btime">-</b></div><button class="esb" onclick="endShift()">Крај</button></div>
-    <div class="sh"><div class="stit bar">БАР</div><div class="liv"><div class="ld"></div><span id="bcnt">0 активни</span></div></div>
+    <div class="sh"><div class="stit bar">БАР</div><div style="display:flex;align-items:center;gap:10px"><div class="liv"><div class="ld"></div><span id="bcnt">0 активни</span></div><button onclick="openTransferModal(null,'barmen')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли смена</button></div></div>
     <div class="ogrd" id="bords"><div class="noo"><div class="bi">🍹</div>Нема активни нарачки</div></div>
   </div>
 </div>
@@ -451,6 +451,19 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
       <div class="asec"><div class="ash"><div class="ast">Историја</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="date" class="fi" id="rFrom" style="width:130px"><input type="date" class="fi" id="rTo" style="width:130px"><button class="svb" onclick="loadRep()">Прикажи</button></div></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Датум</th><th>Маса</th><th>Келнер</th><th>Зона</th><th>Вкупно</th><th>Статус</th></tr></thead><tbody id="repT"></tbody></table></div></div>
       <div class="asec"><div class="ash"><div class="ast">Перформанси</div></div><table class="dt"><thead><tr><th>Вработен</th><th>Улога</th><th>Нарачки</th><th>Приход</th></tr></thead><tbody id="perfT"></tbody></table></div>
     </div>
+  </div>
+</div>
+
+<!-- TRANSFER MODAL -->
+<div class="mov" id="transferMod">
+  <div class="mdl" style="max-width:420px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="mtt" id="transferTitle" style="margin:0;color:var(--tel)">🔄 Префрли на колега</div>
+      <button class="cnc" onclick="closeM('transferMod')">Затвори</button>
+    </div>
+    <div id="transferInfo" style="background:rgba(0,153,170,.08);border:1px solid rgba(0,153,170,.3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--tel)"></div>
+    <div class="sl" style="margin-bottom:8px">Одбери колега</div>
+    <div id="transferColleagues"></div>
   </div>
 </div>
 
@@ -1026,8 +1039,11 @@ async function viewT(num,id){
         h+=`<div class="tir"><span>${x.quantity}x ${x.menu_item_name}</span><span style="color:var(--gold)">${(x.price*x.quantity).toLocaleString()} ден.</span></div>`;
       });
     }
-    h+=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid rgba(201,168,76,.2)">`;
-    h+=`<button onclick="editActiveOrders(${num})" style="background:transparent;border:1px solid var(--org);color:var(--org);font-size:11px;font-weight:600;padding:6px 14px;border-radius:7px;cursor:pointer;font-family:'Raleway',sans-serif">✏️ Уреди / Отстрани</button>`;
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid rgba(201,168,76,.2)">`;
+    h+=`<div style="display:flex;gap:6px">`;
+    h+=`<button onclick="editActiveOrders(${num})" style="background:transparent;border:1px solid var(--org);color:var(--org);font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Raleway',sans-serif">✏️ Уреди</button>`;
+    h+=`<button onclick="openTransferModal(${num},'kelner')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли</button>`;
+    h+=`</div>`;
     h+=`<span style="color:var(--gold);font-size:14px;font-weight:700">${gt.toLocaleString()} ден.</span>`;
     h+=`</div></div>`;
   }
@@ -1337,7 +1353,83 @@ async function confirmServed(tableNum,type,btn){
   }
 }
 
-// KITCHEN
+// ===== ORDER / SHIFT TRANSFER =====
+async function openTransferModal(tableNum, role){
+  const roleLabel={kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен"};
+
+  // Load colleagues of same role (excluding self)
+  const{data:staff}=await sb.from("staff").select("id,name,username").eq("role",role).eq("active",true).neq("id",U.id);
+
+  document.getElementById("transferTitle").textContent="🔄 Префрли на "+roleLabel[role];
+
+  if(tableNum){
+    document.getElementById("transferInfo").textContent=
+      "Маса "+tableNum+" — нарачката ќе биде префрлена на избраниот колега. Тој ќе ја продолжи сметката.";
+  }else{
+    document.getElementById("transferInfo").textContent=
+      "Сите активни нарачки на твојата смена ќе бидат префрлени на избраниот колега.";
+  }
+
+  let h="";
+  if(!staff||!staff.length){
+    h=`<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Нема достапни колеги онлајн</div>`;
+  }else{
+    staff.forEach(s=>{
+      h+=`<div onclick="doTransfer(${tableNum?`'${tableNum}'`:'null'},'${role}','${s.id}','${s.name}',this)" `;
+      h+=`style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--d2);border:1px solid var(--bdr);border-radius:9px;margin-bottom:7px;cursor:pointer;transition:all .15s" `;
+      h+=`onmouseover="this.style.borderColor='var(--tel)'" onmouseout="this.style.borderColor='var(--bdr)'">`;
+      h+=`<div style="width:36px;height:36px;border-radius:50%;background:var(--tel);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${s.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>`;
+      h+=`<div><div style="font-size:13px;font-weight:600;color:var(--text)">${s.name}</div><div style="font-size:10px;color:var(--mut)">${s.username}</div></div>`;
+      h+=`<div style="margin-left:auto;color:var(--tel);font-size:11px;font-weight:600">Одбери →</div>`;
+      h+=`</div>`;
+    });
+  }
+  document.getElementById("transferColleagues").innerHTML=h;
+  document.getElementById("transferMod").classList.add("on");
+}
+
+async function doTransfer(tableNum, role, toStaffId, toStaffName, el){
+  el.style.background="rgba(0,153,170,.1)";
+  el.style.borderColor="var(--tel)";
+
+  try{
+    if(tableNum){
+      // Transfer specific table orders to colleague
+      const{data:orders}=await sb.from("orders")
+        .select("id").eq("table_number",tableNum).eq("kelner_id",U.id).in("status",["pending","preparing","ready"]);
+
+      for(const o of (orders||[])){
+        await sb.from("orders").update({
+          kelner_id:toStaffId,
+          kelner_name:toStaffName
+        }).eq("id",o.id);
+      }
+      toast(`Маса ${tableNum} префрлена на ${toStaffName} ✓`,"ok");
+    }else{
+      // Transfer ALL active orders of this shift to colleague
+      const field=role==="kelner"?"kelner_id":role==="kuvar"?"assigned_kuvar_id":"assigned_barmen_id";
+
+      if(role==="kelner"){
+        // Transfer all this kelner's pending orders
+        await sb.from("orders").update({
+          kelner_id:toStaffId,
+          kelner_name:toStaffName
+        }).eq("kelner_id",U.id).in("status",["pending","preparing","ready"]);
+      }
+      // For kuvar/barmen — just notify, orders show to all of that role anyway
+      toast(`Смената префрлена на ${toStaffName} ✓`,"ok");
+    }
+    closeM("transferMod");
+    closeM("tdMod");
+    if(role==="kelner"){loadAmt();renderK();}
+    else if(role==="kuvar")loadK();
+    else loadB();
+  }catch(err){
+    toast("Грешка: "+err.message,"err");
+    el.style.background="";el.style.borderColor="var(--bdr)";
+  }
+}
+
 async function loadK(){
   const{data}=await sb.from("orders").select("*,order_items(*)").eq("status","pending").order("created_at");
   const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="food"));
@@ -1457,16 +1549,35 @@ async function markItemReady(itemId, orderId, stn, btn){
 }
 
 async function markR(oid,stn){
-  const{data:ord}=await sb.from("orders").select("table_number,order_items(type)").eq("id",oid).single();
+  const{data:ord}=await sb.from("orders")
+    .select("table_number,order_items(id,type,status,menu_item_name,quantity)")
+    .eq("id",oid).single();
+
   await sb.from("orders").update({status:"ready",updated_at:new Date().toISOString()}).eq("id",oid);
-  if(U.role==="kuvar")await sb.from("order_items").update({status:"ready"}).eq("order_id",oid);
-  toast("Нарачката е готова!","ok");
-  // Send push notification to all kelners (works on locked phones)
+
+  // Only mark items that are still pending/preparing as ready — not already served ones
+  const type=stn==="kitchen"?"food":"drink";
   if(ord){
-    const hasFood=ord.order_items?.some(i=>i.type==="food");
-    const hasDrink=ord.order_items?.some(i=>i.type==="drink");
-    if(hasFood&&stn==="kitchen")sendPushToKelners(ord.table_number,"food");
-    if(hasDrink&&stn==="bar")sendPushToKelners(ord.table_number,"drink");
+    const unservedIds=(ord.order_items||[])
+      .filter(i=>i.type===type&&i.status!=="served"&&i.status!=="ready")
+      .map(i=>i.id);
+    if(unservedIds.length){
+      await sb.from("order_items").update({status:"ready"}).in("id",unservedIds);
+    }
+  }
+
+  toast("Нарачката е готова!","ok");
+
+  // Only push notification for items NOT yet served
+  if(ord){
+    const unservedItems=(ord.order_items||[])
+      .filter(i=>i.type===type&&i.status!=="served");
+    if(unservedItems.length){
+      const names=unservedItems.map(i=>`${i.quantity}x ${i.menu_item_name}`).join(", ");
+      const title=`${stn==="kitchen"?"🍽":"🍹"} Маса ${ord.table_number} — Готово!`;
+      const body=names+" · "+(stn==="kitchen"?"Кујна":"Бар");
+      sendPushToKelners(ord.table_number,type,title,body);
+    }
   }
   if(stn==="kitchen")loadK();else loadB();
 }
