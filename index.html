@@ -1495,17 +1495,39 @@ function showBanner(tableNum,type,itemName,qty){
 // REALTIME
 function subRT(){
   return sb.channel("roms-"+Date.now())
+    // New order → kitchen/bar see it immediately
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"orders"},p=>{
       if(U.role==="kuvar"){loadK();beep();notify("Нова нарачка","Маса "+p.new.table_number);}
       if(U.role==="barmen"){loadB();beep();notify("Нова нарачка","Маса "+p.new.table_number);}
-      if(U.role==="kelner")loadAmt();
+      if(U.role==="kelner"){loadAmt();}
     })
-    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"order_items"},async p=>{
-      // Kitchen/Bar reload when items change
+    // Order updated (status change)
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders"},async p=>{
       if(U.role==="kuvar")loadK();
       if(U.role==="barmen")loadB();
-      // Kelner: when item marked ready → update ready boxes + show banner
-      if(U.role==="kelner"&&p.new.status==="ready"&&p.old&&p.old.status!=="ready"){
+      if(U.role==="kelner"){
+        loadAmt();
+        loadReadyCenter();
+        // If order went to ready → show banner
+        if(p.new&&p.new.status==="ready"){
+          const{data:ord}=await sb.from("orders").select("table_number,order_items(type)").eq("id",p.new.id).single();
+          if(ord){
+            const hasF=ord.order_items?.some(i=>i.type==="food");
+            const hasD=ord.order_items?.some(i=>i.type==="drink");
+            if(hasF)showBanner(ord.table_number,"food");
+            if(hasD)showBanner(ord.table_number,"drink");
+          }
+        }
+      }
+    })
+    // Order item updated → THIS is the key one for per-item ready
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"order_items"},async p=>{
+      if(!p.new)return;
+      // Kitchen reloads to show updated item state
+      if(U.role==="kuvar"){loadK();return;}
+      if(U.role==="barmen"){loadB();return;}
+      // Kelner: item became ready → update boxes + show banner
+      if(U.role==="kelner"&&p.new.status==="ready"){
         loadReadyCenter();
         beep();
         const{data:ord}=await sb.from("orders").select("table_number").eq("id",p.new.order_id).single();
@@ -1515,12 +1537,9 @@ function subRT(){
         }
       }
     })
-    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders"},p=>{
-      if(U.role==="kuvar")loadK();
-      if(U.role==="barmen")loadB();
-      if(U.role==="kelner")loadAmt();
-    })
-    .subscribe();
+    .subscribe(status=>{
+      console.log("RT status:",status);
+    });
 }
 
 // ===== BULLETPROOF SCREEN ALWAYS ON =====
@@ -1563,6 +1582,7 @@ async function keepScreenOn(){
     // Reload orders to stay fresh
     if(U&&U.role==="kuvar")loadK();
     if(U&&U.role==="barmen")loadB();
+    if(U&&U.role==="kelner"){loadReadyCenter();} // keep ready boxes fresh
   },25000);
 
   // 4. Live minute counter — updates every 60 seconds
@@ -1618,6 +1638,11 @@ setInterval(async()=>{
     if(U.role==="barmen")loadB();
   }
 },20000);
+
+// Poll ready center every 5 seconds for kelner — catches any missed realtime events
+setInterval(()=>{
+  if(U&&U.role==="kelner")loadReadyCenter();
+},5000);
 
 function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.setValueAtTime(.3,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.5);o.start();o.stop(a.currentTime+.5);}catch(e){}}
 function notify(t,b){if(notif&&Notification.permission==="granted")new Notification(t,{body:b});}
