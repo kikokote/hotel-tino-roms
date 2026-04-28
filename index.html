@@ -1307,28 +1307,27 @@ function openReadyModal(type){
 async function confirmServed(tableNum,type,btn){
   btn.disabled=true;btn.textContent="Се ажурира...";
   try{
-    // Get the item IDs to mark as served
     const itemsToServe=readyItems[type].filter(i=>i.table_number==tableNum);
-    if(!itemsToServe.length){
-      closeM("readyMod");
+    if(!itemsToServe.length){closeM("readyMod");return;}
+
+    // Update ALL matching items in ONE query using array of IDs
+    const ids=itemsToServe.map(i=>i.item_id);
+    const{error}=await sb.from("order_items")
+      .update({status:"served"})
+      .in("id",ids);
+
+    if(error){
+      toast("DB Грешка: "+error.message,"err");
+      btn.disabled=false;
+      btn.textContent=`✓ СЕРВИРАНО — Маса ${tableNum}`;
       return;
     }
 
-    // Mark each ready item as served — NO updated_at (column doesn't exist)
-    for(const it of itemsToServe){
-      const{error}=await sb.from("order_items")
-        .update({status:"served"})
-        .eq("id",it.item_id);
-      if(error)console.error("confirmServed error:",error.message);
-    }
-
-    // Remove from local cache immediately
+    // Confirmed in DB — clear from cache
     readyItems[type]=readyItems[type].filter(i=>i.table_number!=tableNum);
     updateReadyCenterUI();
     toast(`Маса ${tableNum} — однесено ✓`,"ok");
     closeM("readyMod");
-
-    // Re-fetch from DB to confirm sync
     await loadReadyCenter();
 
   }catch(err){
@@ -1427,9 +1426,7 @@ async function markItemReady(itemId, orderId, stn, btn){
 
     // 2. Update the item status in DB — await fully
     const{error}=await sb.from("order_items").update({
-      status:"ready",
-      prepared_by:U.id,
-      prepared_by_name:U.name
+      status:"ready"
     }).eq("id",itemId);
 
     if(error){
@@ -1462,7 +1459,7 @@ async function markItemReady(itemId, orderId, stn, btn){
 async function markR(oid,stn){
   const{data:ord}=await sb.from("orders").select("table_number,order_items(type)").eq("id",oid).single();
   await sb.from("orders").update({status:"ready",updated_at:new Date().toISOString()}).eq("id",oid);
-  if(U.role==="kuvar")await sb.from("order_items").update({status:"ready",prepared_by:U.id,prepared_by_name:U.name}).eq("order_id",oid);
+  if(U.role==="kuvar")await sb.from("order_items").update({status:"ready"}).eq("order_id",oid);
   toast("Нарачката е готова!","ok");
   // Send push notification to all kelners (works on locked phones)
   if(ord){
