@@ -979,7 +979,6 @@ async function viewT(num,id){
     .select("*,order_items(*)")
     .eq("table_number",num)
     .order("created_at");
-
   if(!ords||!ords.length){
     document.getElementById("tdList").innerHTML="<div style='color:var(--dim);text-align:center;padding:20px'>Нема нарачки на оваа маса</div>";
     document.getElementById("tdK").textContent="-";
@@ -1040,10 +1039,18 @@ async function viewT(num,id){
       });
     }
     h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid rgba(201,168,76,.2)">`;
-    h+=`<div style="display:flex;gap:6px">`;
-    h+=`<button onclick="editActiveOrders(${num})" style="background:transparent;border:1px solid var(--org);color:var(--org);font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Raleway',sans-serif">✏️ Уреди</button>`;
-    h+=`<button onclick="openTransferModal(${num},'kelner')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли</button>`;
-    h+=`</div>`;
+    // Only show edit/transfer if this kelner owns these orders
+    const isOwner=active.length>0&&active[0].kelner_id===U.id;
+    if(isOwner){
+      h+=`<div style="display:flex;gap:6px">`;
+      h+=`<button onclick="editActiveOrders(${num})" style="background:transparent;border:1px solid var(--org);color:var(--org);font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Raleway',sans-serif">✏️ Уреди</button>`;
+      h+=`<button onclick="openTransferModal(${num},'kelner')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли</button>`;
+      h+=`</div>`;
+    }else if(active.length>0){
+      h+=`<div style="color:var(--dim);font-size:11px">🔒 ${active[0].kelner_name||"Друг келнер"}</div>`;
+    }else{
+      h+=`<div></div>`;
+    }
     h+=`<span style="color:var(--gold);font-size:14px;font-weight:700">${gt.toLocaleString()} ден.</span>`;
     h+=`</div></div>`;
   }
@@ -1098,8 +1105,11 @@ async function editActiveOrders(tableNum){
     .eq("table_number",tableNum)
     .eq("status","pending");
 
-  if(!ords||!ords.length){
-    toast("Нема активни нарачки за уредување","err");
+  if(!ords||!ords.length){toast("Нема активни нарачки за уредување","err");return;}
+
+  // Ownership check — only own orders
+  if(ords[0].kelner_id!==U.id){
+    toast("Не можеш да ги уредуваш туѓите нарачки","err");
     return;
   }
 
@@ -1355,33 +1365,37 @@ async function confirmServed(tableNum,type,btn){
 
 // ===== ORDER / SHIFT TRANSFER =====
 async function openTransferModal(tableNum, role){
+  // Always close any open modal first
+  closeM("tdMod");
+  closeM("editOrdMod");
+
   const roleLabel={kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен"};
 
   // Load colleagues of same role (excluding self)
-  const{data:staff}=await sb.from("staff").select("id,name,username").eq("role",role).eq("active",true).neq("id",U.id);
+  const{data:staff}=await sb.from("staff")
+    .select("id,name,username")
+    .eq("role",role)
+    .eq("active",true)
+    .neq("id",U.id);
 
   document.getElementById("transferTitle").textContent="🔄 Префрли на "+roleLabel[role];
-
-  if(tableNum){
-    document.getElementById("transferInfo").textContent=
-      "Маса "+tableNum+" — нарачката ќе биде префрлена на избраниот колега. Тој ќе ја продолжи сметката.";
-  }else{
-    document.getElementById("transferInfo").textContent=
-      "Сите активни нарачки на твојата смена ќе бидат префрлени на избраниот колега.";
-  }
+  document.getElementById("transferInfo").textContent=tableNum
+    ?"Маса "+tableNum+" — нарачката ќе биде префрлена на избраниот колега."
+    :"Сите твои активни нарачки ќе бидат префрлени на избраниот колега.";
 
   let h="";
   if(!staff||!staff.length){
-    h=`<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Нема достапни колеги онлајн</div>`;
+    h=`<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Нема достапни колеги</div>`;
   }else{
     staff.forEach(s=>{
-      h+=`<div onclick="doTransfer(${tableNum?`'${tableNum}'`:'null'},'${role}','${s.id}','${s.name}',this)" `;
-      h+=`style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--d2);border:1px solid var(--bdr);border-radius:9px;margin-bottom:7px;cursor:pointer;transition:all .15s" `;
-      h+=`onmouseover="this.style.borderColor='var(--tel)'" onmouseout="this.style.borderColor='var(--bdr)'">`;
-      h+=`<div style="width:36px;height:36px;border-radius:50%;background:var(--tel);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${s.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>`;
-      h+=`<div><div style="font-size:13px;font-weight:600;color:var(--text)">${s.name}</div><div style="font-size:10px;color:var(--mut)">${s.username}</div></div>`;
-      h+=`<div style="margin-left:auto;color:var(--tel);font-size:11px;font-weight:600">Одбери →</div>`;
-      h+=`</div>`;
+      const initials=s.name.split(" ").map(w=>w[0]||"").join("").slice(0,2).toUpperCase();
+      h+=`<div onclick="doTransfer(${tableNum?`'${tableNum}'`:"null"},'${role}','${s.id}','${s.name}',this)"
+        style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--d2);border:1px solid var(--bdr);border-radius:9px;margin-bottom:7px;cursor:pointer;transition:border-color .15s"
+        onmouseover="this.style.borderColor='var(--tel)'" onmouseout="this.style.borderColor='var(--bdr)'">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--tel);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${s.name}</div><div style="font-size:10px;color:var(--mut)">${s.username}</div></div>
+        <div style="color:var(--tel);font-size:13px">→</div>
+      </div>`;
     });
   }
   document.getElementById("transferColleagues").innerHTML=h;
@@ -1394,39 +1408,46 @@ async function doTransfer(tableNum, role, toStaffId, toStaffName, el){
 
   try{
     if(tableNum){
-      // Transfer specific table orders to colleague
-      const{data:orders}=await sb.from("orders")
-        .select("id").eq("table_number",tableNum).eq("kelner_id",U.id).in("status",["pending","preparing","ready"]);
+      // Transfer all orders for this specific table
+      const{data:orders,error}=await sb.from("orders")
+        .select("id")
+        .eq("table_number",tableNum)
+        .eq("kelner_id",U.id)
+        .in("status",["pending","preparing","ready"]);
 
-      for(const o of (orders||[])){
-        await sb.from("orders").update({
-          kelner_id:toStaffId,
-          kelner_name:toStaffName
-        }).eq("id",o.id);
-      }
+      if(error){toast("DB Грешка: "+error.message,"err");return;}
+      if(!orders||!orders.length){toast("Нема активни нарачки за оваа маса","err");return;}
+
+      const ids=orders.map(o=>o.id);
+      const{error:upErr}=await sb.from("orders")
+        .update({kelner_id:toStaffId,kelner_name:toStaffName})
+        .in("id",ids);
+
+      if(upErr){toast("DB Грешка: "+upErr.message,"err");return;}
       toast(`Маса ${tableNum} префрлена на ${toStaffName} ✓`,"ok");
-    }else{
-      // Transfer ALL active orders of this shift to colleague
-      const field=role==="kelner"?"kelner_id":role==="kuvar"?"assigned_kuvar_id":"assigned_barmen_id";
 
-      if(role==="kelner"){
-        // Transfer all this kelner's pending orders
-        await sb.from("orders").update({
-          kelner_id:toStaffId,
-          kelner_name:toStaffName
-        }).eq("kelner_id",U.id).in("status",["pending","preparing","ready"]);
-      }
-      // For kuvar/barmen — just notify, orders show to all of that role anyway
-      toast(`Смената префрлена на ${toStaffName} ✓`,"ok");
+    }else{
+      // Transfer ALL active orders of current user
+      const{error:upErr}=await sb.from("orders")
+        .update({kelner_id:toStaffId,kelner_name:toStaffName})
+        .eq("kelner_id",U.id)
+        .in("status",["pending","preparing","ready"]);
+
+      if(upErr){toast("DB Грешка: "+upErr.message,"err");return;}
+      toast(`Сите нарачки префрлени на ${toStaffName} ✓`,"ok");
     }
+
     closeM("transferMod");
-    closeM("tdMod");
-    if(role==="kelner"){loadAmt();renderK();}
+    // Reload everything so transferred tables disappear from current user
+    await loadAll();
+    if(role==="kelner"){renderK();}
     else if(role==="kuvar")loadK();
     else loadB();
+
   }catch(err){
     toast("Грешка: "+err.message,"err");
-    el.style.background="";el.style.borderColor="var(--bdr)";
+    el.style.background="";
+    el.style.borderColor="var(--bdr)";
   }
 }
 
