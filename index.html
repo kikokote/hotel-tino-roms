@@ -1171,7 +1171,7 @@ async function loadReadyCenter(){
   try{
     // Query ALL orders for this kelner (any status) and find ready items
     const{data:orders,error}=await sb.from("orders")
-      .select("id,table_number,kelner_id,order_items(id,menu_item_name,quantity,type,status,updated_at)")
+      .select("id,table_number,kelner_id,order_items(id,menu_item_name,quantity,type,status)")
       .eq("kelner_id",U.id)
       .not("status","in","(served,cancelled)");
 
@@ -1188,7 +1188,7 @@ async function loadReadyCenter(){
             name:it.menu_item_name,
             quantity:it.quantity,
             type:it.type,
-            ready_at:it.updated_at||new Date().toISOString()
+            ready_at:new Date().toISOString()
           };
           if(it.type==="food")food.push(entry);
           else drink.push(entry);
@@ -1426,8 +1426,7 @@ async function markItemReady(itemId, orderId, stn, btn){
     const{error}=await sb.from("order_items").update({
       status:"ready",
       prepared_by:U.id,
-      prepared_by_name:U.name,
-      updated_at:new Date().toISOString()
+      prepared_by_name:U.name
     }).eq("id",itemId);
 
     if(error){
