@@ -1169,11 +1169,13 @@ let readyItems = {food:[], drink:[]}; // cache of ready items
 async function loadReadyCenter(){
   if(!U||U.role!=="kelner")return;
   try{
-    // Get all orders for this kelner that have ready items
-    const{data:orders}=await sb.from("orders")
-      .select("id,table_number,order_items(*)")
+    // Query ALL orders for this kelner (any status) and find ready items
+    const{data:orders,error}=await sb.from("orders")
+      .select("id,table_number,kelner_id,order_items(id,menu_item_name,quantity,type,status,updated_at)")
       .eq("kelner_id",U.id)
-      .in("status",["pending","preparing","ready"]);
+      .not("status","in","(served,cancelled)");
+
+    if(error){console.error("loadReadyCenter DB error:",error.message);return;}
 
     const food=[];const drink=[];
     (orders||[]).forEach(o=>{
@@ -1198,7 +1200,7 @@ async function loadReadyCenter(){
     drink.sort((a,b)=>new Date(a.ready_at)-new Date(b.ready_at));
     readyItems={food,drink};
     updateReadyCenterUI();
-  }catch(e){console.error("loadReadyCenter:",e);}
+  }catch(e){console.error("loadReadyCenter exception:",e);}
 }
 
 function updateReadyCenterUI(){
@@ -1405,39 +1407,53 @@ function renderSt(cid,ords,type,stn){
 }
 
 async function markItemReady(itemId, orderId, stn, btn){
-  btn.disabled=true;btn.textContent="...";
+  // Immediately disable button so chef knows it registered
+  btn.disabled=true;
+  btn.style.background="var(--grn)";
+  btn.style.color="#fff";
+  btn.style.border="none";
+  btn.textContent="✓";
 
-  // Get item details for notification
-  const{data:item}=await sb.from("order_items").select("menu_item_name,quantity").eq("id",itemId).single();
-  const{data:ord}=await sb.from("orders").select("table_number").eq("id",orderId).single();
+  try{
+    // 1. Get item details FIRST for notification
+    const{data:item}=await sb.from("order_items")
+      .select("menu_item_name,quantity,type")
+      .eq("id",itemId).single();
+    const{data:ord}=await sb.from("orders")
+      .select("table_number").eq("id",orderId).single();
 
-  await sb.from("order_items").update({
-    status:"ready",
-    prepared_by:U.id,
-    prepared_by_name:U.name,
-    updated_at:new Date().toISOString()
-  }).eq("id",itemId);
+    // 2. Update the item status in DB — await fully
+    const{error}=await sb.from("order_items").update({
+      status:"ready",
+      prepared_by:U.id,
+      prepared_by_name:U.name,
+      updated_at:new Date().toISOString()
+    }).eq("id",itemId);
 
-  // Send per-item push notification to kelner immediately
-  if(item&&ord){
-    const isB=stn==="bar";
-    sendPushToKelners(ord.table_number,isB?"drink":"food",
-      `${isB?"🍹":"🍽"} Маса ${ord.table_number} — ${item.quantity}x ${item.menu_item_name} готово!`,
-      isB?"Бар":"Кујна"
-    );
-  }
+    if(error){
+      toast("DB Грешка: "+error.message,"err");
+      btn.disabled=false;btn.style.background="transparent";
+      btn.style.color=stn==="bar"?"var(--tel)":"var(--grn)";
+      btn.style.border="1px solid "+(stn==="bar"?"var(--tel)":"var(--grn)");
+      btn.textContent="Готово";
+      return;
+    }
 
-  // Check if ALL items in this order are now ready
-  const{data:items}=await sb.from("order_items").select("status,type").eq("order_id",orderId);
-  const type=stn==="kitchen"?"food":"drink";
-  const relevant=items.filter(i=>i.type===type);
-  const allDone=relevant.every(i=>i.status==="ready");
+    // 3. Send push notification to kelner immediately
+    if(item&&ord){
+      const isB=stn==="bar";
+      const pushTitle=`${isB?"🍹":"🍽"} Маса ${ord.table_number} — ${item.quantity}x ${item.menu_item_name} готово!`;
+      const pushBody=(isB?"Бар":"Кујна")+" · Хотел Тино";
+      sendPushToKelners(ord.table_number,isB?"drink":"food",pushTitle,pushBody);
+    }
 
-  if(allDone){
-    await markR(orderId,stn);
-  }else{
-    if(stn==="kitchen")loadK();else loadB();
-    toast(`${item?.menu_item_name||"Артикл"} — готово ✓`,"ok");
+    // 4. Reload kitchen/bar fully — now DB has the updated status
+    toast((item?.menu_item_name||"Артикл")+" — готово ✓","ok");
+    if(stn==="kitchen")await loadK();else await loadB();
+
+  }catch(err){
+    toast("Грешка: "+err.message,"err");
+    btn.disabled=false;btn.textContent="Готово";
   }
 }
 
@@ -1520,20 +1536,27 @@ function subRT(){
         }
       }
     })
-    // Order item updated → THIS is the key one for per-item ready
+    // Order item updated → refresh kitchen/bar AND kelner ready boxes
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"order_items"},async p=>{
       if(!p.new)return;
-      // Kitchen reloads to show updated item state
+      // Kitchen/bar: reload to show new item state
       if(U.role==="kuvar"){loadK();return;}
       if(U.role==="barmen"){loadB();return;}
-      // Kelner: item became ready → update boxes + show banner
-      if(U.role==="kelner"&&p.new.status==="ready"){
-        loadReadyCenter();
-        beep();
-        const{data:ord}=await sb.from("orders").select("table_number").eq("id",p.new.order_id).single();
-        if(ord){
-          const isFood=p.new.type==="food";
-          showBanner(ord.table_number,isFood?"food":"drink",p.new.menu_item_name,p.new.quantity);
+      // Kelner: ALWAYS reload ready center on any item change
+      if(U.role==="kelner"){
+        await loadReadyCenter();
+        // If this specific item just became ready → show banner
+        if(p.new.status==="ready"){
+          beep();
+          const{data:ord}=await sb.from("orders").select("table_number").eq("id",p.new.order_id).single();
+          if(ord){
+            showBanner(
+              ord.table_number,
+              p.new.type==="food"?"food":"drink",
+              p.new.menu_item_name,
+              p.new.quantity
+            );
+          }
         }
       }
     })
