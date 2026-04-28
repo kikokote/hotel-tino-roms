@@ -1307,27 +1307,30 @@ function openReadyModal(type){
 async function confirmServed(tableNum,type,btn){
   btn.disabled=true;btn.textContent="Се ажурира...";
   try{
-    // Mark all ready items of this type for this table as "served"
-    // Find the order items that are ready for this table
+    // Get the item IDs to mark as served
     const itemsToServe=readyItems[type].filter(i=>i.table_number==tableNum);
-    for(const it of itemsToServe){
-      await sb.from("order_items")
-        .update({status:"served",updated_at:new Date().toISOString()})
-        .eq("id",it.item_id);
+    if(!itemsToServe.length){
+      closeM("readyMod");
+      return;
     }
 
-    // Remove from local cache
+    // Mark each ready item as served — NO updated_at (column doesn't exist)
+    for(const it of itemsToServe){
+      const{error}=await sb.from("order_items")
+        .update({status:"served"})
+        .eq("id",it.item_id);
+      if(error)console.error("confirmServed error:",error.message);
+    }
+
+    // Remove from local cache immediately
     readyItems[type]=readyItems[type].filter(i=>i.table_number!=tableNum);
     updateReadyCenterUI();
     toast(`Маса ${tableNum} — однесено ✓`,"ok");
+    closeM("readyMod");
 
-    // Refresh modal
-    if(!readyItems[type].length){
-      closeM("readyMod");
-    }else{
-      openReadyModal(type);
-    }
-    loadAmt();
+    // Re-fetch from DB to confirm sync
+    await loadReadyCenter();
+
   }catch(err){
     toast("Грешка: "+err.message,"err");
     btn.disabled=false;
