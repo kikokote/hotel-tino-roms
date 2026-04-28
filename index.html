@@ -757,13 +757,18 @@ function renderT(){
 }
 
 function pickT(id,num){
+  // Tap same table again = deselect
+  if(selT&&selT.id===id){
+    selT=null;
+    document.getElementById("optit").textContent="Нарачка";
+    updSum();chkBtn();updNaplateno();
+    renderT();
+    return;
+  }
   selT=TBL.find(t=>t.id===id);renderT();
   document.getElementById("optit").textContent="Нарачка — Маса "+num;
   updSum();chkBtn();updNaplateno();
-  // DON'T open order panel - let kelner browse menu first
-  // Just show a brief toast so they know the table is selected
   toast("Маса "+num+" избрана — додајте артикли","ok");
-  // Scroll to menu section
   setTimeout(()=>{
     const mgrd=document.getElementById("mgrd");
     if(mgrd)mgrd.scrollIntoView({behavior:"smooth",block:"start"});
@@ -1714,10 +1719,14 @@ function subRT(){
       if(U.role==="barmen")loadB();
       if(U.role==="kelner"){
         loadAmt();
+        // Only react if this order belongs to THIS kelner
+        if(p.new&&p.new.kelner_id!==U.id)return;
         loadReadyCenter();
-        // If order went to ready → show banner
+        // If order went to ready → show banner only for this kelner
         if(p.new&&p.new.status==="ready"){
-          const{data:ord}=await sb.from("orders").select("table_number,order_items(type)").eq("id",p.new.id).single();
+          const{data:ord}=await sb.from("orders")
+            .select("table_number,order_items(type)")
+            .eq("id",p.new.id).single();
           if(ord){
             const hasF=ord.order_items?.some(i=>i.type==="food");
             const hasD=ord.order_items?.some(i=>i.type==="drink");
