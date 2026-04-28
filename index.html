@@ -686,9 +686,26 @@ function toggleOP(show){
 // KELNER
 function renderK(){loadAmt();renderZ();renderT();menuGroup=null;menuCat=null;renderMenuNav();updKelnerTotal();loadReadyCenter();}
 
+let tableOwners={}; // tableNumber → {kelner_id, kelner_name}
+
 async function loadAmt(){
-  const{data}=await sb.from("orders").select("table_number,total_amount").in("status",["pending","preparing","ready"]);
-  tAmt={};(data||[]).forEach(o=>{if(!tAmt[o.table_number])tAmt[o.table_number]=0;tAmt[o.table_number]+=o.total_amount||0;});
+  const{data}=await sb.from("orders")
+    .select("table_number,total_amount,kelner_id,kelner_name")
+    .in("status",["pending","preparing","ready"]);
+  tAmt={};tableOwners={};
+  (data||[]).forEach(o=>{
+    if(!tAmt[o.table_number])tAmt[o.table_number]=0;
+    tAmt[o.table_number]+=o.total_amount||0;
+    if(!tableOwners[o.table_number]){
+      tableOwners[o.table_number]={kelner_id:o.kelner_id,kelner_name:o.kelner_name};
+    }
+  });
+  // Also update table statuses — if no orders exist for a table, mark it free locally
+  TBL.forEach(t=>{
+    if(!tableOwners[t.number]&&t.status==="occupied"){
+      t.status="free";
+    }
+  });
   renderT();
 }
 
@@ -705,14 +722,35 @@ function renderT(){
   const list=zF==="all"?TBL:TBL.filter(t=>t.zone_id===zF);
   let h="";
   list.forEach(t=>{
-    const isSel=selT?.id===t.id,isOcc=t.status==="occupied";
-    const cls="tbl"+(isSel?" sel":isOcc?" occ":"");
-    const zone=t.zones?.name||"";
+    const isSel=selT?.id===t.id;
+    const owner=tableOwners[t.number];
+    const isOcc=t.status==="occupied"||!!owner;
+    const isMine=owner&&owner.kelner_id===U.id;
+    const isOther=isOcc&&owner&&owner.kelner_id!==U.id;
     const amt=tAmt[t.number]?(tAmt[t.number].toLocaleString()+" ден."):"";
-    if(isOcc){
-      h+=`<div class="${cls}" onclick="viewT(${t.number},'${t.id}')">М${t.number}<div class="ts">Зафатена</div>${amt?`<div class="ta">${amt}</div>`:""}</div>`;
+    const zone=t.zones?.name||"";
+
+    if(isOther){
+      // Another kelner's table — locked, dimmed, no interaction
+      const ownerName=owner.kelner_name?owner.kelner_name.split(" ")[0]:"Зафатена";
+      h+=`<div class="tbl locked" onclick="toast('Маса ${t.number} е на ${ownerName}','err')"
+        style="opacity:.45;cursor:not-allowed;border-color:rgba(255,255,255,.1)">
+        М${t.number}
+        <div class="ts" style="color:var(--dim)">🔒 ${ownerName}</div>
+      </div>`;
+    }else if(isMine){
+      // My occupied table — show amount, click to view/manage
+      h+=`<div class="tbl occ${isSel?" sel":""}" onclick="viewT(${t.number},'${t.id}')">
+        М${t.number}
+        <div class="ts">Зафатена</div>
+        ${amt?`<div class="ta">${amt}</div>`:""}
+      </div>`;
     }else{
-      h+=`<div class="${cls}" onclick="pickT('${t.id}',${t.number})">М${t.number}<div class="ts">${zone}</div></div>`;
+      // Free table — click to select and take order
+      h+=`<div class="tbl${isSel?" sel":""}" onclick="pickT('${t.id}',${t.number})">
+        М${t.number}
+        <div class="ts">${zone}</div>
+      </div>`;
     }
   });
   cont.innerHTML=h||"<div style='color:var(--dim);font-size:11px;grid-column:span 8'>Нема маси</div>";
@@ -1438,7 +1476,29 @@ async function doTransfer(tableNum, role, toStaffId, toStaffName, el){
     }
 
     closeM("transferMod");
-    // Reload everything so transferred tables disappear from current user
+
+    // Immediately remove transferred table from local state
+    if(tableNum){
+      delete tAmt[tableNum];
+      delete tableOwners[tableNum];
+      // If this was the selected table, deselect it
+      if(selT&&selT.number==tableNum){
+        selT=null;
+        updSum();chkBtn();
+      }
+    }else{
+      // Full shift transfer — clear ALL owned tables
+      Object.keys(tableOwners).forEach(num=>{
+        if(tableOwners[num]&&tableOwners[num].kelner_id===U.id){
+          delete tAmt[num];
+          delete tableOwners[num];
+        }
+      });
+      selT=null;
+      updSum();chkBtn();
+    }
+
+    // Reload everything fresh from DB
     await loadAll();
     if(role==="kelner"){renderK();}
     else if(role==="kuvar")loadK();
