@@ -1168,37 +1168,37 @@ let readyItems = {food:[], drink:[]}; // cache of ready items
 
 async function loadReadyCenter(){
   if(!U||U.role!=="kelner")return;
-  // Load all ready order items for this kelner's tables
-  const{data:orders}=await sb.from("orders")
-    .select("id,table_number,kelner_id,order_items(*)")
-    .eq("kelner_id",U.id)
-    .eq("status","ready");
+  try{
+    // Get all orders for this kelner that have ready items
+    const{data:orders}=await sb.from("orders")
+      .select("id,table_number,order_items(*)")
+      .eq("kelner_id",U.id)
+      .in("status",["pending","preparing","ready"]);
 
-  const food=[];const drink=[];
-  (orders||[]).forEach(o=>{
-    o.order_items.forEach(it=>{
-      if(it.status==="ready"){
-        const entry={
-          order_id:o.id,
-          table_number:o.table_number,
-          item_id:it.id,
-          name:it.menu_item_name,
-          quantity:it.quantity,
-          type:it.type,
-          ready_at:it.updated_at||o.updated_at
-        };
-        if(it.type==="food")food.push(entry);
-        else drink.push(entry);
-      }
+    const food=[];const drink=[];
+    (orders||[]).forEach(o=>{
+      (o.order_items||[]).forEach(it=>{
+        if(it.status==="ready"){
+          const entry={
+            order_id:o.id,
+            table_number:o.table_number,
+            item_id:it.id,
+            name:it.menu_item_name,
+            quantity:it.quantity,
+            type:it.type,
+            ready_at:it.updated_at||new Date().toISOString()
+          };
+          if(it.type==="food")food.push(entry);
+          else drink.push(entry);
+        }
+      });
     });
-  });
 
-  // Sort by ready time (oldest first — serve those first)
-  food.sort((a,b)=>new Date(a.ready_at)-new Date(b.ready_at));
-  drink.sort((a,b)=>new Date(a.ready_at)-new Date(b.ready_at));
-  readyItems={food,drink};
-
-  updateReadyCenterUI();
+    food.sort((a,b)=>new Date(a.ready_at)-new Date(b.ready_at));
+    drink.sort((a,b)=>new Date(a.ready_at)-new Date(b.ready_at));
+    readyItems={food,drink};
+    updateReadyCenterUI();
+  }catch(e){console.error("loadReadyCenter:",e);}
 }
 
 function updateReadyCenterUI(){
@@ -1303,36 +1303,34 @@ function openReadyModal(type){
 }
 
 async function confirmServed(tableNum,type,btn){
-  if(!confirm(`Маса ${tableNum} — потврди дека е сервирано?`))return;
   btn.disabled=true;btn.textContent="Се ажурира...";
   try{
-    // Mark order items as served for this table+type
-    const{data:orders}=await sb.from("orders")
-      .select("id").eq("table_number",tableNum).eq("kelner_id",U.id).eq("status","ready");
-
-    for(const o of (orders||[])){
-      await sb.from("order_items").update({status:"served"}).eq("order_id",o.id).eq("type",type);
-      // Check if ALL items served → mark order as served
-      const{data:remaining}=await sb.from("order_items").select("status").eq("order_id",o.id);
-      if(remaining&&remaining.every(i=>i.status==="served")){
-        await sb.from("orders").update({status:"served"}).eq("id",o.id);
-      }
+    // Mark all ready items of this type for this table as "served"
+    // Find the order items that are ready for this table
+    const itemsToServe=readyItems[type].filter(i=>i.table_number==tableNum);
+    for(const it of itemsToServe){
+      await sb.from("order_items")
+        .update({status:"served",updated_at:new Date().toISOString()})
+        .eq("id",it.item_id);
     }
 
     // Remove from local cache
-    readyItems[type]=readyItems[type].filter(i=>i.table_number!==tableNum);
+    readyItems[type]=readyItems[type].filter(i=>i.table_number!=tableNum);
     updateReadyCenterUI();
-    toast(`Маса ${tableNum} — сервирано ✓`,"ok");
+    toast(`Маса ${tableNum} — однесено ✓`,"ok");
 
     // Refresh modal
-    const remaining=readyItems[type];
-    if(!remaining.length){
+    if(!readyItems[type].length){
       closeM("readyMod");
     }else{
       openReadyModal(type);
     }
     loadAmt();
-  }catch(err){toast("Грешка: "+err.message,"err");}
+  }catch(err){
+    toast("Грешка: "+err.message,"err");
+    btn.disabled=false;
+    btn.textContent=`✓ СЕРВИРАНО — Маса ${tableNum}`;
+  }
 }
 
 // KITCHEN
@@ -1369,11 +1367,13 @@ function renderSt(cid,ords,type,stn){
     h+=`<div class="ois" style="max-height:none">`;
     its.forEach(it=>{
       const iR=it.status==="ready";
-      const qCol=isB?"var(--tel)":"var(--gold)";
-      h+=`<div class="oi" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);opacity:${iR?.5:1}">`;
-      h+=`<div class="oqb${isB?" bar":""}" style="${iR?"background:var(--grn);color:#fff":""}"">${it.quantity}</div>`;
-      h+=`<div style="flex:1"><div class="oit" style="${iR?"text-decoration:line-through;color:var(--mut)":""}">${it.menu_item_name}</div></div>`;
-      if(iR){
+      const iS=it.status==="served";
+      h+=`<div class="oi" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);opacity:${iS?.35:iR?.6:1}">`;
+      h+=`<div class="oqb${isB?" bar":""}" style="${iR?"background:var(--grn);color:#fff":iS?"background:var(--dim);color:#fff":""}"">${it.quantity}</div>`;
+      h+=`<div style="flex:1"><div class="oit" style="${(iR||iS)?"text-decoration:line-through;color:var(--mut)":""}">${it.menu_item_name}</div></div>`;
+      if(iS){
+        h+=`<div style="color:var(--dim);font-size:10px;font-weight:600;white-space:nowrap">✓ Однесено</div>`;
+      }else if(iR){
         h+=`<div style="color:var(--grn);font-size:11px;font-weight:600;white-space:nowrap">✓ Готово</div>`;
       }else{
         h+=`<button onclick="markItemReady('${it.id}','${o.id}','${stn}',this)" style="background:transparent;border:1px solid ${isB?"var(--tel)":"var(--grn)"};color:${isB?"var(--tel)":"var(--grn)"};font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;font-family:'Raleway',sans-serif">Готово</button>`;
@@ -1384,8 +1384,10 @@ function renderSt(cid,ords,type,stn){
 
     // Summary row
     const readyCount=its.filter(i=>i.status==="ready").length;
+    const servedCount=its.filter(i=>i.status==="served").length;
+    const pendingCount=its.filter(i=>i.status==="pending").length;
     h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:6px;border-top:1px solid var(--bdr)">`;
-    h+=`<span style="color:var(--mut);font-size:11px">${readyCount}/${its.length} готови</span>`;
+    h+=`<span style="color:var(--mut);font-size:11px">${pendingCount>0?`<span style="color:var(--org)">${pendingCount} се прават</span> · `:""}<span style="color:var(--grn)">${readyCount} готови</span>${servedCount>0?` · <span style="color:var(--dim)">${servedCount} однесени</span>`:""}</span>`;
     h+=`<span style="color:var(--gold);font-size:12px;font-weight:600">${its.reduce((s,i)=>s+i.price*i.quantity,0).toLocaleString()} ден.</span>`;
     h+=`</div>`;
 
@@ -1455,35 +1457,39 @@ async function markR(oid,stn){
 }
 
 // KELNER READY BANNERS
-function showBanner(tableNum,type){
-  const eid="bnr-"+type;
+function showBanner(tableNum,type,itemName,qty){
+  // Use unique ID per banner so multiple can stack
+  const eid="bnr-"+type+"-"+tableNum;
   const old=document.getElementById(eid);if(old)old.remove();
   const isF=type==="food";
   const icon=isF?"🍽":"🍹";
-  const msg=isF?"Јадењето е готово!":"Пијалоците се готови!";
+  const msg=itemName?(qty+"x "+itemName+" — готово!"):isF?"Јадењето е готово!":"Пијалоците се готови!";
   const col=isF?"var(--gold)":"var(--tel)";
   const brd=isF?"rgba(201,168,76,.6)":"rgba(0,153,170,.6)";
   const el=document.createElement("div");
   el.id=eid;
-  el.style.cssText="position:fixed;top:70px;right:16px;z-index:500;background:var(--dark);border:2px solid "+brd+";border-radius:12px;padding:14px 18px;min-width:240px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.5)";
-  const dismiss=function(){var x=document.getElementById(eid);if(x)x.remove();};
+  // Stack banners vertically
+  const existing=document.querySelectorAll("[id^='bnr-']").length;
+  const topOffset=70+(existing*90);
+  el.style.cssText="position:fixed;top:"+topOffset+"px;right:16px;z-index:500;background:var(--dark);border:2px solid "+brd+";border-radius:12px;padding:12px 16px;min-width:220px;max-width:280px;box-shadow:0 4px 20px rgba(0,0,0,.5)";
+  const dismiss=function(){var x=document.getElementById(eid);if(x)x.remove();loadReadyCenter();};
   const inner=document.createElement("div");
-  inner.innerHTML="<div style='display:flex;align-items:flex-start;gap:10px'>"
-    +"<div style='font-size:24px;line-height:1'>"+icon+"</div>"
+  inner.innerHTML="<div style='display:flex;align-items:flex-start;gap:8px'>"
+    +"<div style='font-size:20px;line-height:1'>"+icon+"</div>"
     +"<div style='flex:1'>"
-    +"<div style='color:"+col+";font-size:13px;font-weight:700;letter-spacing:1px'>МАСА "+tableNum+"</div>"
-    +"<div style='color:var(--text);font-size:12px;margin-top:2px'>"+msg+"</div>"
-    +"<div style='color:var(--mut);font-size:10px;margin-top:3px'>Подигни и сервирај</div>"
+    +"<div style='color:"+col+";font-size:12px;font-weight:700;letter-spacing:1px'>МАСА "+tableNum+"</div>"
+    +"<div style='color:var(--text);font-size:12px;margin-top:2px;font-weight:600'>"+msg+"</div>"
+    +"<div style='color:var(--mut);font-size:10px;margin-top:2px'>Сервирај → потврди во панелот</div>"
     +"</div>"
-    +"<div style='cursor:pointer;color:var(--mut);font-size:18px;padding:2px' id='x-"+eid+"'>&#215;</div>"
+    +"<div style='cursor:pointer;color:var(--mut);font-size:16px;padding:2px' id='x-"+eid+"'>&#215;</div>"
     +"</div>"
-    +"<button id='b-"+eid+"' style='width:100%;margin-top:10px;background:"+col+";border:none;border-radius:6px;color:var(--black);font-size:11px;font-weight:700;padding:8px;cursor:pointer;letter-spacing:1px'>ПОТВРДИ</button>";
+    +"<button id='b-"+eid+"' style='width:100%;margin-top:8px;background:"+col+";border:none;border-radius:6px;color:var(--black);font-size:11px;font-weight:700;padding:7px;cursor:pointer;letter-spacing:1px'>✓ ВИДЕНО</button>";
   el.appendChild(inner);
   document.body.appendChild(el);
   document.getElementById("x-"+eid).onclick=dismiss;
   document.getElementById("b-"+eid).onclick=dismiss;
-  setTimeout(dismiss,30000);
-  beep();notify("Маса "+tableNum+" — "+msg,isF?"Кујна":"Бар");
+  setTimeout(dismiss,20000);
+  notify("Маса "+tableNum+" — "+msg,isF?"Кујна":"Бар");
 }
 
 // REALTIME
@@ -1494,17 +1500,25 @@ function subRT(){
       if(U.role==="barmen"){loadB();beep();notify("Нова нарачка","Маса "+p.new.table_number);}
       if(U.role==="kelner")loadAmt();
     })
-    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders"},async p=>{
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"order_items"},async p=>{
+      // Kitchen/Bar reload when items change
       if(U.role==="kuvar")loadK();
       if(U.role==="barmen")loadB();
+      // Kelner: when item marked ready → update ready boxes + show banner
       if(U.role==="kelner"&&p.new.status==="ready"&&p.old&&p.old.status!=="ready"){
-        loadReadyCenter(); // refresh command center
-        const{data:ord}=await sb.from("orders").select("table_number,order_items(type,status,menu_item_name)").eq("id",p.new.id).single();
-        const hasF=ord?.order_items?.some(i=>i.type==="food"&&i.status==="ready");
-        const hasD=ord?.order_items?.some(i=>i.type==="drink"&&i.status==="ready");
-        if(hasF)showBanner(p.new.table_number,"food");
-        if(hasD)showBanner(p.new.table_number,"drink");
+        loadReadyCenter();
+        beep();
+        const{data:ord}=await sb.from("orders").select("table_number").eq("id",p.new.order_id).single();
+        if(ord){
+          const isFood=p.new.type==="food";
+          showBanner(ord.table_number,isFood?"food":"drink",p.new.menu_item_name,p.new.quantity);
+        }
       }
+    })
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders"},p=>{
+      if(U.role==="kuvar")loadK();
+      if(U.role==="barmen")loadB();
+      if(U.role==="kelner")loadAmt();
     })
     .subscribe();
 }
