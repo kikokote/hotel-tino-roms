@@ -368,7 +368,7 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
       <div class="sbar">
         <div class="sinfo">Смена: <b id="stime">-</b> | Зона: <b id="szone">-</b></div>
         <div style="display:flex;align-items:center;gap:8px">
-          <div style="background:rgba(201,168,76,.1);border:1px solid var(--bdr);border-radius:8px;padding:4px 10px;text-align:center">
+          <div onclick="openShiftHistory()" style="background:rgba(201,168,76,.1);border:1px solid var(--bdr);border-radius:8px;padding:4px 10px;text-align:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bdr)'">
             <div style="color:var(--dim);font-size:9px;letter-spacing:1px;text-transform:uppercase">Моја смена</div>
             <div style="color:var(--gold);font-size:13px;font-weight:700" id="kelnerTotal">0 ден.</div>
           </div>
@@ -511,6 +511,19 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
       <div class="asec"><div class="ash"><div class="ast">Историја</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="date" class="fi" id="rFrom" style="width:130px"><input type="date" class="fi" id="rTo" style="width:130px"><button class="svb" onclick="loadRep()">Прикажи</button></div></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Датум</th><th>Маса</th><th>Келнер</th><th>Зона</th><th>Вкупно</th><th>Статус</th></tr></thead><tbody id="repT"></tbody></table></div></div>
       <div class="asec"><div class="ash"><div class="ast">Перформанси</div></div><table class="dt"><thead><tr><th>Вработен</th><th>Улога</th><th>Нарачки</th><th>Приход</th></tr></thead><tbody id="perfT"></tbody></table></div>
     </div>
+  </div>
+</div>
+
+<!-- SHIFT HISTORY MODAL -->
+<div class="mov" id="shiftHistMod">
+  <div class="mdl" style="max-width:500px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="mtt" style="margin:0;color:var(--gold)">📋 Моја Смена</div>
+      <button class="cnc" onclick="closeM('shiftHistMod')">Затвори</button>
+    </div>
+    <div id="shiftHistMeta" style="color:var(--mut);font-size:11px;margin-bottom:14px"></div>
+    <div id="shiftHistList" style="max-height:65vh;overflow-y:auto"></div>
+    <div id="shiftHistTotal" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)"></div>
   </div>
 </div>
 
@@ -1302,6 +1315,109 @@ async function removeOrderItem(itemId, orderId, price, qty){
 }
 
 // Update kelner's shift total in the UI
+async function openShiftHistory(){
+  if(!U||U.role!=="kelner")return;
+  document.getElementById("shiftHistMod").classList.add("on");
+  document.getElementById("shiftHistList").innerHTML=`<div style="text-align:center;padding:20px;color:var(--dim)">Се вчитува...</div>`;
+
+  const today=new Date().toISOString().split("T")[0];
+  const{data:orders}=await sb.from("orders")
+    .select("*,order_items(id,menu_item_name,quantity,price,type,status)")
+    .eq("kelner_id",U.id)
+    .gte("created_at",today+"T00:00:00")
+    .in("status",["pending","preparing","ready","served"])
+    .order("created_at",{ascending:false});
+
+  const os=orders||[];
+  const total=os.reduce((s,o)=>s+(o.total_amount||0),0);
+  const active=os.filter(o=>o.status!=="served").length;
+  const served=os.filter(o=>o.status==="served").length;
+
+  // Meta info
+  const shiftStart=document.getElementById("stime")?.textContent||"-";
+  document.getElementById("shiftHistMeta").innerHTML=
+    `Почеток: <b style="color:var(--text)">${shiftStart}</b> &nbsp;·&nbsp; `+
+    `<span style="color:var(--org)">${active} активни</span> &nbsp;·&nbsp; `+
+    `<span style="color:var(--grn)">${served} затворени</span>`;
+
+  if(!os.length){
+    document.getElementById("shiftHistList").innerHTML=
+      `<div style="text-align:center;padding:30px;color:var(--dim)">Нема нарачки оваа смена уште</div>`;
+    document.getElementById("shiftHistTotal").innerHTML="";
+    return;
+  }
+
+  const sm={pending:"Во тек",preparing:"Во тек",ready:"Готово",served:"Платено"};
+  const sc={pending:"var(--org)",preparing:"var(--org)",ready:"var(--tel)",served:"var(--grn)"};
+
+  let h="";
+  os.forEach((o,idx)=>{
+    const tm=new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"});
+    const itemCount=o.order_items?.length||0;
+    const oid="shord-"+idx;
+    h+=`<div style="background:var(--d2);border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px;overflow:hidden">
+      <div onclick="toggleShiftOrder('${oid}')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer">
+        <div style="background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:8px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:var(--gold);flex-shrink:0">М${o.table_number}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${itemCount} артикли &nbsp;·&nbsp; <span style="color:${sc[o.status]||'var(--mut)'}">${sm[o.status]||o.status}</span></div>
+          <div style="font-size:11px;color:var(--mut);margin-top:1px">${tm}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="color:var(--gold);font-size:14px;font-weight:700">${(o.total_amount||0).toLocaleString()}</div>
+          <div style="color:var(--dim);font-size:10px">ден.</div>
+        </div>
+        <div style="color:var(--dim);font-size:14px;margin-left:4px" id="${oid}-arrow">▼</div>
+      </div>
+      <div id="${oid}" style="display:none;border-top:1px solid var(--bdr);padding:10px 14px">`;
+
+    // Item list
+    (o.order_items||[]).forEach(it=>{
+      const isServed=it.status==="served";
+      const typeIcon=it.type==="food"?"🍽":"🍹";
+      h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="color:var(--dim);font-size:12px">${typeIcon}</div>
+        <div style="flex:1;font-size:12px;color:${isServed?"var(--mut)":"var(--text)"}${isServed?";text-decoration:line-through":""}">${it.quantity}x ${it.menu_item_name}</div>
+        <div style="font-size:12px;color:var(--gold);white-space:nowrap">${((it.price||0)*it.quantity).toLocaleString()} ден.</div>
+      </div>`;
+    });
+
+    if(o.notes){
+      h+=`<div style="margin-top:8px;padding:6px 10px;background:rgba(201,168,76,.06);border-radius:6px;font-size:11px;color:var(--mut)">📝 ${o.notes}</div>`;
+    }
+
+    h+=`<div style="display:flex;justify-content:flex-end;margin-top:8px;padding-top:6px;border-top:1px solid var(--bdr)">
+      <div style="font-size:12px;color:var(--mut)">Вкупно: </div>
+      <div style="font-size:14px;font-weight:700;color:var(--gold);margin-left:6px">${(o.total_amount||0).toLocaleString()} ден.</div>
+    </div>`;
+
+    h+=`</div></div>`;
+  });
+
+  document.getElementById("shiftHistList").innerHTML=h;
+
+  // Total footer
+  document.getElementById("shiftHistTotal").innerHTML=
+    `<div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="color:var(--mut);font-size:11px">${os.length} нарачки вкупно</div>
+        <div style="color:var(--dim);font-size:10px;margin-top:2px">Просек: ${os.length?Math.round(total/os.length).toLocaleString():0} ден.</div>
+      </div>
+      <div style="text-align:right">
+        <div style="color:var(--dim);font-size:10px;letter-spacing:1px;text-transform:uppercase">Вкупен промет</div>
+        <div style="color:var(--gold);font-size:22px;font-weight:700;font-family:'Cinzel',serif">${total.toLocaleString()} ден.</div>
+      </div>
+    </div>`;
+}
+
+function toggleShiftOrder(id){
+  const el=document.getElementById(id);
+  const arrow=document.getElementById(id+"-arrow");
+  if(!el)return;
+  const open=el.style.display==="block";
+  el.style.display=open?"none":"block";
+  if(arrow)arrow.textContent=open?"▼":"▲";
+}
+
 async function updKelnerTotal(){
   if(!U||U.role!=="kelner")return;
   const today=new Date().toISOString().split("T")[0];
