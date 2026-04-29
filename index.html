@@ -654,7 +654,7 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
         <div style="color:var(--dim);font-size:11px">Нов вкупен износ</div>
         <div style="color:var(--gold);font-size:20px;font-weight:700;font-family:'Cinzel',serif" id="corrTotal">0 ден.</div>
       </div>
-      <button onclick="saveCorrection()" style="background:var(--tel);border:none;color:#fff;font-size:13px;font-weight:700;font-family:'Cinzel',serif;padding:12px 24px;border-radius:9px;cursor:pointer;letter-spacing:1px">💾 ЗАЧУВАЈ КОРЕКЦИЈА</button>
+      <button id="corrSaveBtn" onclick="saveCorrection()" style="background:var(--tel);border:none;color:#fff;font-size:13px;font-weight:700;font-family:'Cinzel',serif;padding:12px 24px;border-radius:9px;cursor:pointer;letter-spacing:1px">💾 ЗАЧУВАЈ КОРЕКЦИЈА</button>
     </div>
   </div>
 </div>
@@ -2625,6 +2625,9 @@ async function openCorrection(orderId){
 
   document.getElementById("corrMod").classList.add("on");
   document.getElementById("corrItems").innerHTML=`<div style="text-align:center;padding:20px;color:var(--dim)">Се вчитува...</div>`;
+  // Always reset button state on open
+  const btn=document.getElementById("corrSaveBtn");
+  if(btn){btn.disabled=false;btn.textContent="💾 ЗАЧУВАЈ КОРЕКЦИЈА";}
 
   const{data:ord}=await sb.from("orders")
     .select("*,order_items(*)")
@@ -2726,7 +2729,8 @@ function calcCorrTotal(){
 
 async function saveCorrection(){
   if(!corrOrder)return;
-  const btn=document.querySelector("#corrMod button[onclick='saveCorrection()']");
+  const btn=document.getElementById("corrSaveBtn");
+  if(!btn)return;
   btn.disabled=true;btn.textContent="Се зачувува...";
 
   try{
@@ -2749,15 +2753,15 @@ async function saveCorrection(){
       }).eq("id",it.id);
     }
 
-    // 3. Insert new items
-    const newItems=corrItems.filter(i=>!i._deleted&&i._new&&it.menu_item_name);
-    for(const it of newItems){
+    // 3. Insert new items — fixed variable name bug (was 'it' referencing outer scope)
+    const newItems=corrItems.filter(i=>!i._deleted&&i._new&&i.menu_item_name);
+    for(const ni of newItems){
       await sb.from("order_items").insert({
         order_id:corrOrder.id,
-        menu_item_name:it.menu_item_name,
-        quantity:it.quantity,
-        price:it.price,
-        type:it.type,
+        menu_item_name:ni.menu_item_name,
+        quantity:ni.quantity,
+        price:ni.price,
+        type:ni.type,
         status:"served"
       });
     }
@@ -2771,12 +2775,17 @@ async function saveCorrection(){
     }).eq("id",corrOrder.id);
 
     toast(`Корекција зачувана · Нов износ: ${newTotal.toLocaleString()} ден.`,"ok");
+    // Reset state so modal can be used again
+    corrOrder=null;corrItems=[];
     closeM("corrMod");
     loadRep();
 
   }catch(err){
     toast("Грешка: "+err.message,"err");
-    btn.disabled=false;btn.textContent="💾 ЗАЧУВАЈ КОРЕКЦИЈА";
+  }finally{
+    // ALWAYS re-enable button — success or error
+    btn.disabled=false;
+    btn.textContent="💾 ЗАЧУВАЈ КОРЕКЦИЈА";
   }
 }
 async function endShift(){if(!confirm("Крај на смена?"))return;if(SH)await sb.from("shifts").update({clock_out:new Date().toISOString()}).eq("id",SH.id);doLogout();}
