@@ -440,8 +440,18 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
 <div id="kujnaScreen" class="screen">
   <div class="ss">
     <div class="sbar"><div class="sinfo">Готвач: <b id="kname">-</b> | Смена: <b id="ktime">-</b></div><button class="esb" onclick="endShift()">Крај</button></div>
-    <div class="sh"><div class="stit">КУЈНА</div><div style="display:flex;align-items:center;gap:10px"><div class="liv"><div class="ld"></div><span id="kcnt">0 активни</span></div><button onclick="openTransferModal(null,'kuvar')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли смена</button></div></div>
+    <div class="sh">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="stit">КУЈНА</div>
+        <div class="liv"><div class="ld"></div><span id="kcnt">0 активни</span></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="toggleStHistory('k')" id="kHistBtn" style="background:transparent;border:1px solid var(--bdr);color:var(--mut);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer">📋 Историја</button>
+        <button onclick="openTransferModal(null,'kuvar')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли</button>
+      </div>
+    </div>
     <div class="ogrd" id="kords"><div class="noo"><div class="bi">🍽</div>Нема активни нарачки</div></div>
+    <div id="kHist" style="display:none;margin-top:10px"></div>
   </div>
 </div>
 
@@ -449,8 +459,18 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
 <div id="barScreen" class="screen">
   <div class="ss">
     <div class="sbar"><div class="sinfo">Бармен: <b id="bname">-</b> | Смена: <b id="btime">-</b></div><button class="esb" onclick="endShift()">Крај</button></div>
-    <div class="sh"><div class="stit bar">БАР</div><div style="display:flex;align-items:center;gap:10px"><div class="liv"><div class="ld"></div><span id="bcnt">0 активни</span></div><button onclick="openTransferModal(null,'barmen')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли смена</button></div></div>
+    <div class="sh">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="stit bar">БАР</div>
+        <div class="liv"><div class="ld"></div><span id="bcnt">0 активни</span></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="toggleStHistory('b')" id="bHistBtn" style="background:transparent;border:1px solid var(--bdr);color:var(--mut);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer">📋 Историја</button>
+        <button onclick="openTransferModal(null,'barmen')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Raleway',sans-serif">🔄 Префрли</button>
+      </div>
+    </div>
     <div class="ogrd" id="bords"><div class="noo"><div class="bi">🍹</div>Нема активни нарачки</div></div>
+    <div id="bHist" style="display:none;margin-top:10px"></div>
   </div>
 </div>
 
@@ -1791,7 +1811,8 @@ async function doTransfer(tableNum, role, toStaffId, toStaffName, el){
 
 async function loadK(){
   const{data}=await sb.from("orders").select("*,order_items(*)").eq("status","pending").order("created_at");
-  const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="food"));
+  // Only show orders that have at least one food item still pending (not ready/served)
+  const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="food"&&i.status==="pending"));
   renderSt("kords",ords,"food","kitchen");
   document.getElementById("kcnt").textContent=ords.length+" активни";
 }
@@ -1799,7 +1820,8 @@ async function loadK(){
 // BAR
 async function loadB(){
   const{data}=await sb.from("orders").select("*,order_items(*)").eq("status","pending").order("created_at");
-  const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="drink"));
+  // Only show orders that have at least one drink item still pending (not ready/served)
+  const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="drink"&&i.status==="pending"));
   renderSt("bords",ords,"drink","bar");
   document.getElementById("bcnt").textContent=ords.length+" активни";
 }
@@ -1812,13 +1834,15 @@ function renderSt(cid,ords,type,stn){
     const its=o.order_items.filter(i=>i.type===type);if(!its.length)return;
     const mins=Math.floor((Date.now()-new Date(o.created_at))/60000);
     const urg=mins>10,isB=stn==="bar";
-    const allReady=its.every(i=>i.status==="ready");
+    const pendingItems=its.filter(i=>i.status==="pending");
+    const readyItems_=its.filter(i=>i.status==="ready");
+    const servedItems=its.filter(i=>i.status==="served");
+
     h+=`<div class="oc${urg?" urg":""}${isB?" bc":""}" data-created="${o.created_at}">`;
     h+=`<div class="och"><div><div class="otn${isB?" bar":""}">Маса ${o.table_number}</div><div class="okl">${o.kelner_name||""} ${o.zone_name?"· "+o.zone_name:""}</div></div>`;
     h+=`<div class="tc${urg?" urg":""}${isB?" bar":""}">${mins} мин</div></div>`;
     if(o.notes)h+=`<div class="cn">📝 ${o.notes}</div>`;
 
-    // PER-ITEM list with individual ready buttons
     h+=`<div class="ois" style="max-height:none">`;
     its.forEach(it=>{
       const iR=it.status==="ready";
@@ -1837,22 +1861,17 @@ function renderSt(cid,ords,type,stn){
     });
     h+=`</div>`;
 
-    // Summary row
-    const readyCount=its.filter(i=>i.status==="ready").length;
-    const servedCount=its.filter(i=>i.status==="served").length;
-    const pendingCount=its.filter(i=>i.status==="pending").length;
+    // Summary
     h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:6px;border-top:1px solid var(--bdr)">`;
-    h+=`<span style="color:var(--mut);font-size:11px">${pendingCount>0?`<span style="color:var(--org)">${pendingCount} се прават</span> · `:""}<span style="color:var(--grn)">${readyCount} готови</span>${servedCount>0?` · <span style="color:var(--dim)">${servedCount} однесени</span>`:""}</span>`;
+    h+=`<span style="color:var(--mut);font-size:11px">${pendingItems.length>0?`<span style="color:var(--org)">${pendingItems.length} се прават</span>${readyItems_.length>0?" · ":""}`:""} ${readyItems_.length>0?`<span style="color:var(--grn)">${readyItems_.length} готови</span>`:""}</span>`;
     h+=`<span style="color:var(--gold);font-size:12px;font-weight:600">${its.reduce((s,i)=>s+i.price*i.quantity,0).toLocaleString()} ден.</span>`;
     h+=`</div>`;
 
-    // All ready button - only show if not all are ready yet
-    if(!allReady){
+    // "Сè Готово" button — only show if MORE THAN ONE item is still pending
+    // If only 1 pending → chef will press its individual button → auto-clears
+    // If 0 pending → all done, card will disappear on next reload
+    if(pendingItems.length>1){
       h+=`<button class="rb${isB?" bar":""}" onclick="markR('${o.id}','${stn}')" style="margin-top:8px">✓ Сè Готово — Сервирај</button>`;
-    }else{
-      h+=`<div style="text-align:center;color:var(--grn);font-size:13px;font-weight:700;margin-top:8px;padding:10px;border:1px solid rgba(76,175,80,.3);border-radius:8px;background:rgba(76,175,80,.08)">✓ Нарачката е комплетна!</div>`;
-      // Auto-mark order as ready after 2 seconds
-      h+=`<button class="rb${isB?" bar":""}" onclick="markR('${o.id}','${stn}')" style="margin-top:6px;opacity:.7;font-size:11px">Испрати известување до келнер</button>`;
     }
     h+=`</div>`;
   });
@@ -2541,7 +2560,48 @@ async function loadRep(){
   document.getElementById("perfT").innerHTML=ph||"<tr><td colspan='4' style='color:var(--dim);text-align:center;padding:14px'>Нема податоци</td></tr>";
 }
 
-// ===== ORDER CORRECTION (Admin/Manager only) =====
+// ===== KITCHEN/BAR HISTORY =====
+async function toggleStHistory(stn){
+  const histDiv=document.getElementById(stn+"Hist");
+  const btn=document.getElementById(stn+"HistBtn");
+  if(histDiv.style.display==="block"){
+    histDiv.style.display="none";
+    btn.style.borderColor="var(--bdr)";btn.style.color="var(--mut)";
+    return;
+  }
+  btn.style.borderColor="var(--gold)";btn.style.color="var(--gold)";
+  histDiv.style.display="block";
+  histDiv.innerHTML=`<div style="text-align:center;padding:14px;color:var(--dim)">Се вчитува...</div>`;
+
+  const type=stn==="k"?"food":"drink";
+  const today=new Date().toISOString().split("T")[0];
+  const{data}=await sb.from("order_items")
+    .select("id,menu_item_name,quantity,type,status,order_id,orders!inner(table_number,kelner_name,created_at)")
+    .eq("type",type)
+    .in("status",["ready","served"])
+    .gte("orders.created_at",today+"T00:00:00")
+    .order("orders.created_at",{ascending:false})
+    .limit(30);
+
+  if(!data||!data.length){
+    histDiv.innerHTML=`<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Нема завршени нарачки денес</div>`;
+    return;
+  }
+
+  const isB=stn==="b";
+  let h=`<div style="font-size:10px;color:var(--mut);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Последни ${data.length} завршени</div>`;
+  data.forEach(it=>{
+    const tm=new Date(it.orders?.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"});
+    const isServed=it.status==="served";
+    h+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--d2);border:1px solid var(--bdr);border-radius:7px;margin-bottom:5px;opacity:${isServed?.6:1}">`;
+    h+=`<div style="background:${isServed?"var(--dim)":"var(--grn)"};color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${it.quantity}</div>`;
+    h+=`<div style="flex:1;font-size:12px;color:${isServed?"var(--mut)":"var(--text)"}${isServed?";text-decoration:line-through":""}">${it.menu_item_name}</div>`;
+    h+=`<div style="font-size:10px;color:var(--dim)">М${it.orders?.table_number} · ${tm}</div>`;
+    h+=`<div style="font-size:10px;font-weight:600;color:${isServed?"var(--dim)":"var(--grn)"}">${isServed?"✓ Однесено":"✓ Готово"}</div>`;
+    h+=`</div>`;
+  });
+  histDiv.innerHTML=h;
+}
 let corrOrder=null;
 let corrItems=[];
 
@@ -2573,48 +2633,74 @@ async function openCorrection(orderId){
 }
 
 function renderCorrItems(){
+  const menuOpts=MNU.map(i=>`<option value="${i.id}" data-price="${i.price}" data-type="${i.type}">${i.name} — ${i.price} ден.</option>`).join("");
+
   let h="";
   corrItems.forEach((it,i)=>{
     if(it._deleted){
       h+=`<div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,50,50,.06);border:1px solid rgba(255,50,50,.2);opacity:.5">
         <div style="flex:1;font-size:12px;color:var(--dim);text-decoration:line-through">${it.quantity}x ${it.menu_item_name}</div>
-        <div style="font-size:11px;color:var(--red)">Избришан</div>
+        <div style="font-size:11px;color:#ff6b6b">Избришан</div>
         <button onclick="corrItems[${i}]._deleted=false;renderCorrItems()" style="background:transparent;border:1px solid var(--grn);color:var(--grn);font-size:10px;padding:3px 8px;border-radius:5px;cursor:pointer">↩ Врати</button>
       </div>`;
       return;
     }
-    h+=`<div style="background:var(--d2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:6px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:11px;color:${it.type==="food"?"var(--gold)":"var(--tel)"}">${it.type==="food"?"🍽":"🍹"}</span>
-        <input value="${it.menu_item_name}" onchange="corrItems[${i}].menu_item_name=this.value"
-          style="flex:1;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none">
-        <button onclick="corrItems[${i}]._deleted=true;renderCorrItems()" title="Избриши артикл"
-          style="background:transparent;border:1px solid rgba(255,50,50,.4);color:#ff6b6b;font-size:12px;width:28px;height:28px;border-radius:6px;cursor:pointer;flex-shrink:0">✕</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="color:var(--mut);font-size:11px;flex-shrink:0">Кол.:</div>
-        <input type="number" min="1" value="${it.quantity}" onchange="corrItems[${i}].quantity=parseInt(this.value)||1;calcCorrTotal()"
-          style="width:60px;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center">
-        <div style="color:var(--mut);font-size:11px;flex-shrink:0">Цена:</div>
-        <input type="number" min="0" value="${it.price||0}" onchange="corrItems[${i}].price=parseFloat(this.value)||0;calcCorrTotal()"
-          style="width:80px;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center">
-        <div style="color:var(--mut);font-size:11px">ден.</div>
-        <div style="margin-left:auto;color:var(--gold);font-size:13px;font-weight:600">${((it.price||0)*(it.quantity||1)).toLocaleString()} ден.</div>
-      </div>
-    </div>`;
+
+    if(it._new){
+      // New item — show menu dropdown
+      h+=`<div style="background:rgba(0,153,170,.06);border:1px solid rgba(0,153,170,.3);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+        <div style="font-size:10px;color:var(--tel);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">+ Нов артикл</div>
+        <select onchange="const o=this.options[this.selectedIndex];if(o.value){corrItems[${i}].menu_item_name=o.text.split(' — ')[0];corrItems[${i}].price=parseFloat(o.dataset.price)||0;corrItems[${i}].type=o.dataset.type||'food';calcCorrTotal();renderCorrItems();}"
+          style="width:100%;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:7px;outline:none;margin-bottom:8px">
+          <option value="">-- Одбери артикл --</option>
+          ${menuOpts}
+        </select>
+        ${it.menu_item_name?`
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="color:var(--mut);font-size:11px">Кол.:</div>
+          <input type="number" min="1" value="${it.quantity}" onchange="corrItems[${i}].quantity=parseInt(this.value)||1;calcCorrTotal()"
+            style="width:60px;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center">
+          <div style="color:var(--mut);font-size:11px">× ${it.price} ден. = <b style="color:var(--gold)">${((it.price||0)*(it.quantity||1)).toLocaleString()} ден.</b></div>
+          <button onclick="corrItems[${i}]._deleted=true;renderCorrItems()" style="margin-left:auto;background:transparent;border:1px solid rgba(255,50,50,.4);color:#ff6b6b;font-size:12px;width:28px;height:28px;border-radius:6px;cursor:pointer">✕</button>
+        </div>`:""}
+      </div>`;
+    }else{
+      // Existing item — show editable fields
+      h+=`<div style="background:var(--d2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:11px;color:${it.type==="food"?"var(--gold)":"var(--tel)"}">${it.type==="food"?"🍽":"🍹"}</span>
+          <select onchange="const o=this.options[this.selectedIndex];corrItems[${i}].menu_item_name=o.text.split(' — ')[0];corrItems[${i}].price=parseFloat(o.dataset.price)||corrItems[${i}].price;corrItems[${i}].type=o.dataset.type||corrItems[${i}].type;calcCorrTotal();renderCorrItems();"
+            style="flex:1;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none">
+            <option value="">-- ${it.menu_item_name} --</option>
+            ${menuOpts}
+          </select>
+          <button onclick="corrItems[${i}]._deleted=true;renderCorrItems()"
+            style="background:transparent;border:1px solid rgba(255,50,50,.4);color:#ff6b6b;font-size:12px;width:28px;height:28px;border-radius:6px;cursor:pointer;flex-shrink:0">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="color:var(--mut);font-size:11px;flex-shrink:0">Кол.:</div>
+          <input type="number" min="1" value="${it.quantity}" onchange="corrItems[${i}].quantity=parseInt(this.value)||1;calcCorrTotal()"
+            style="width:60px;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center">
+          <div style="color:var(--mut);font-size:11px;flex-shrink:0">Цена:</div>
+          <input type="number" min="0" value="${it.price||0}" onchange="corrItems[${i}].price=parseFloat(this.value)||0;calcCorrTotal()"
+            style="width:80px;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center">
+          <div style="color:var(--mut);font-size:11px">ден.</div>
+          <div style="margin-left:auto;color:var(--gold);font-size:13px;font-weight:600">${((it.price||0)*(it.quantity||1)).toLocaleString()} ден.</div>
+        </div>
+      </div>`;
+    }
   });
 
-  // Add new item button
   h+=`<button onclick="addCorrItem()" style="width:100%;background:transparent;border:1px dashed var(--bdr);color:var(--mut);font-size:12px;padding:10px;border-radius:8px;cursor:pointer;margin-top:4px">+ Додај артикл</button>`;
   document.getElementById("corrItems").innerHTML=h;
   calcCorrTotal();
 }
 
 function addCorrItem(){
-  corrItems.push({id:"new-"+Date.now(),menu_item_name:"",quantity:1,price:0,type:"food",status:"served",_deleted:false,_new:true});
+  // Build menu options from loaded menu items
+  const menuOpts=MNU.map(i=>`<option value="${i.id}" data-price="${i.price}" data-type="${i.type}" data-name="${i.name}">${i.name} — ${i.price} ден.</option>`).join("");
+  corrItems.push({id:"new-"+Date.now(),menu_item_name:"",quantity:1,price:0,type:"food",status:"served",_deleted:false,_new:true,_menuOpts:menuOpts});
   renderCorrItems();
-  // Focus last name input
-  setTimeout(()=>{const inputs=document.querySelectorAll("#corrItems input[type='text'],#corrItems input:not([type])");if(inputs.length)inputs[inputs.length-2]?.focus();},50);
 }
 
 function calcCorrTotal(){
