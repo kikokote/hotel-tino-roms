@@ -665,6 +665,13 @@ async function doLogin(){
     const{data:sh}=await sb.from("shifts").insert({staff_id:U.id,staff_name:U.name,role:U.role,zone_name:"Сите зони"}).select().single();
     SH=sh;
     await loadAll();
+    // ✅ Success flash before entering app
+    b.textContent="✓ Добредојде, "+U.name.split(" ")[0]+"!";
+    b.style.background="linear-gradient(135deg,#4caf50,#66bb6a)";
+    b.style.boxShadow="0 4px 20px rgba(76,175,80,.4)";
+    const card=document.querySelector(".lcard");
+    if(card){card.style.transition="transform .3s ease,box-shadow .3s ease";card.style.transform="scale(1.02)";card.style.boxShadow="0 0 80px rgba(201,168,76,.4)";}
+    await new Promise(r=>setTimeout(r,900));
     showApp();
   }catch(err){
     e.textContent="Грешка: "+err.message;e.style.display="block";b.textContent="ВЛЕЗ";b.disabled=false;
@@ -711,6 +718,9 @@ async function loadAll(){
 }
 
 function showApp(){
+  // Remove login stars immediately
+  document.querySelectorAll(".lstar").forEach(s=>s.remove());
+
   document.getElementById("loginScreen").classList.remove("active");
   document.getElementById("topbar").style.display="flex";
   const rn={kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен",menager:"Менаџер",admin:"Администратор"};
@@ -2360,7 +2370,12 @@ function doLogout(){
   document.getElementById("topbar").style.display="none";
   document.getElementById("uname").value="";document.getElementById("upin").value="";
   document.getElementById("lbtn").textContent="ВЛЕЗ";document.getElementById("lbtn").disabled=false;
+  document.getElementById("lbtn").style.background="";document.getElementById("lbtn").style.boxShadow="";
+  const card=document.querySelector(".lcard");
+  if(card){card.style.transform="";card.style.boxShadow="";}
   document.getElementById("lerr").style.display="none";
+  spawnLoginStars();
+  animateLoginFields();
   const mb=document.getElementById("mobBarTitle");if(mb)mb.textContent="Одберете маса";
   const mi=document.getElementById("mobBarItems");if(mi)mi.textContent="0 артикли";
   const ms=document.getElementById("mobBarSend");if(ms){ms.disabled=true;ms.textContent="Испрати";}
