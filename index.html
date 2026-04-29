@@ -2575,32 +2575,47 @@ async function toggleStHistory(stn){
 
   const type=stn==="k"?"food":"drink";
   const today=new Date().toISOString().split("T")[0];
-  const{data}=await sb.from("order_items")
-    .select("id,menu_item_name,quantity,type,status,order_id,orders!inner(table_number,kelner_name,created_at)")
-    .eq("type",type)
-    .in("status",["ready","served"])
-    .gte("orders.created_at",today+"T00:00:00")
-    .order("orders.created_at",{ascending:false})
-    .limit(30);
 
-  if(!data||!data.length){
-    histDiv.innerHTML=`<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Нема завршени нарачки денес</div>`;
-    return;
+  try{
+    // Get today's orders with items
+    const{data:orders,error}=await sb.from("orders")
+      .select("id,table_number,kelner_name,created_at,order_items(menu_item_name,quantity,type,status)")
+      .gte("created_at",today+"T00:00:00")
+      .order("created_at",{ascending:false})
+      .limit(50);
+
+    if(error){histDiv.innerHTML=`<div style="color:#ff6b6b;padding:14px;font-size:12px">Грешка: ${error.message}</div>`;return;}
+
+    // Flatten items of the right type that are ready or served
+    const items=[];
+    (orders||[]).forEach(o=>{
+      (o.order_items||[]).forEach(it=>{
+        if(it.type===type&&(it.status==="ready"||it.status==="served")){
+          items.push({...it,table_number:o.table_number,kelner_name:o.kelner_name,created_at:o.created_at});
+        }
+      });
+    });
+
+    if(!items.length){
+      histDiv.innerHTML=`<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px">Нема завршени нарачки денес</div>`;
+      return;
+    }
+
+    let h=`<div style="font-size:10px;color:var(--mut);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding:0 2px">Последни ${items.length} завршени денес</div>`;
+    items.forEach(it=>{
+      const tm=new Date(it.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"});
+      const isServed=it.status==="served";
+      h+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--d2);border:1px solid var(--bdr);border-radius:7px;margin-bottom:5px">
+        <div style="background:${isServed?"var(--dim)":"var(--grn)"};color:#fff;border-radius:50%;width:22px;height:22px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${it.quantity}</div>
+        <div style="flex:1;font-size:12px;color:${isServed?"var(--mut)":"var(--text)"}${isServed?";text-decoration:line-through":""}">${it.menu_item_name}</div>
+        <div style="font-size:10px;color:var(--dim);white-space:nowrap">М${it.table_number} · ${tm}</div>
+        <div style="font-size:10px;font-weight:600;color:${isServed?"var(--dim)":"var(--grn)"};white-space:nowrap">${isServed?"✓ Однесено":"✓ Готово"}</div>
+      </div>`;
+    });
+    histDiv.innerHTML=h;
+  }catch(e){
+    histDiv.innerHTML=`<div style="color:#ff6b6b;padding:14px;font-size:12px">Грешка: ${e.message}</div>`;
   }
-
-  const isB=stn==="b";
-  let h=`<div style="font-size:10px;color:var(--mut);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Последни ${data.length} завршени</div>`;
-  data.forEach(it=>{
-    const tm=new Date(it.orders?.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"});
-    const isServed=it.status==="served";
-    h+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--d2);border:1px solid var(--bdr);border-radius:7px;margin-bottom:5px;opacity:${isServed?.6:1}">`;
-    h+=`<div style="background:${isServed?"var(--dim)":"var(--grn)"};color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${it.quantity}</div>`;
-    h+=`<div style="flex:1;font-size:12px;color:${isServed?"var(--mut)":"var(--text)"}${isServed?";text-decoration:line-through":""}">${it.menu_item_name}</div>`;
-    h+=`<div style="font-size:10px;color:var(--dim)">М${it.orders?.table_number} · ${tm}</div>`;
-    h+=`<div style="font-size:10px;font-weight:600;color:${isServed?"var(--dim)":"var(--grn)"}">${isServed?"✓ Однесено":"✓ Готово"}</div>`;
-    h+=`</div>`;
-  });
-  histDiv.innerHTML=h;
 }
 let corrOrder=null;
 let corrItems=[];
@@ -2633,7 +2648,7 @@ async function openCorrection(orderId){
 }
 
 function renderCorrItems(){
-  const menuOpts=MNU.map(i=>`<option value="${i.id}" data-price="${i.price}" data-type="${i.type}">${i.name} — ${i.price} ден.</option>`).join("");
+  const menuOpts=ITM.map(i=>`<option value="${i.id}" data-price="${i.price}" data-type="${i.type}">${i.name} — ${i.price} ден.</option>`).join("");
 
   let h="";
   corrItems.forEach((it,i)=>{
@@ -2698,7 +2713,7 @@ function renderCorrItems(){
 
 function addCorrItem(){
   // Build menu options from loaded menu items
-  const menuOpts=MNU.map(i=>`<option value="${i.id}" data-price="${i.price}" data-type="${i.type}" data-name="${i.name}">${i.name} — ${i.price} ден.</option>`).join("");
+  const menuOpts=ITM.map(i=>`<option value="${i.id}" data-price="${i.price}" data-type="${i.type}">${i.name} — ${i.price} ден.</option>`).join("");
   corrItems.push({id:"new-"+Date.now(),menu_item_name:"",quantity:1,price:0,type:"food",status:"served",_deleted:false,_new:true,_menuOpts:menuOpts});
   renderCorrItems();
 }
