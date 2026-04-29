@@ -1,0 +1,24 @@
+{
+  "name": "Хотел Тино РОМС",
+  "short_name": "Тино РОМС",
+  "description": "Restaurant Order Management System — Хотел Тино Св. Стефан",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "https://hotel-tino-roms.vercel.app/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://hotel-tino-roms.vercel.app/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["food", "business"],
+  "lang": "mk"
+}
