@@ -1332,7 +1332,6 @@ async function openShiftHistory(){
   const total=os.reduce((s,o)=>s+(o.total_amount||0),0);
   const active=os.filter(o=>o.status!=="served").length;
   const served=os.filter(o=>o.status==="served").length;
-
   // Meta info
   const shiftStart=document.getElementById("stime")?.textContent||"-";
   document.getElementById("shiftHistMeta").innerHTML=
@@ -1347,8 +1346,8 @@ async function openShiftHistory(){
     return;
   }
 
-  const sm={pending:"Во тек",preparing:"Во тек",ready:"Готово",served:"Платено"};
-  const sc={pending:"var(--org)",preparing:"var(--org)",ready:"var(--tel)",served:"var(--grn)"};
+  const sm={pending:"Активна",preparing:"Активна",ready:"Активна",served:"Затворена"};
+  const sc={pending:"var(--org)",preparing:"var(--org)",ready:"var(--org)",served:"var(--grn)"};
 
   let h="";
   os.forEach((o,idx)=>{
@@ -1935,26 +1934,34 @@ function showBanner(tableNum,type,itemName,qty){
 // REALTIME
 function subRT(){
   return sb.channel("roms-"+Date.now())
-    // New order → kitchen/bar see it immediately
-    .on("postgres_changes",{event:"INSERT",schema:"public",table:"orders"},p=>{
-      if(U.role==="kuvar"){loadK();beep();notify("Нова нарачка","Маса "+p.new.table_number);}
-      if(U.role==="barmen"){loadB();beep();notify("Нова нарачка","Маса "+p.new.table_number);}
+    // New order → kitchen beeps only if has food, bar only if has drinks
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"orders"},async p=>{
+      if(U.role==="kuvar"){
+        // Only beep/notify if order has food items
+        const{data:o}=await sb.from("orders").select("order_items(type)").eq("id",p.new.id).single();
+        const hasFood=o?.order_items?.some(i=>i.type==="food");
+        loadK();
+        if(hasFood){beep();notify("Нова нарачка","Маса "+p.new.table_number);}
+      }
+      if(U.role==="barmen"){
+        // Only beep/notify if order has drink items
+        const{data:o}=await sb.from("orders").select("order_items(type)").eq("id",p.new.id).single();
+        const hasDrink=o?.order_items?.some(i=>i.type==="drink");
+        loadB();
+        if(hasDrink){beep();notify("Нова нарачка","Маса "+p.new.table_number);}
+      }
       if(U.role==="kelner"){loadAmt();}
     })
-    // Order updated (status change)
+    // Order updated
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders"},async p=>{
       if(U.role==="kuvar")loadK();
       if(U.role==="barmen")loadB();
       if(U.role==="kelner"){
         loadAmt();
-        // Only react if this order belongs to THIS kelner
         if(p.new&&p.new.kelner_id!==U.id)return;
         loadReadyCenter();
-        // If order went to ready → show banner only for this kelner
         if(p.new&&p.new.status==="ready"){
-          const{data:ord}=await sb.from("orders")
-            .select("table_number,order_items(type)")
-            .eq("id",p.new.id).single();
+          const{data:ord}=await sb.from("orders").select("table_number,order_items(type)").eq("id",p.new.id).single();
           if(ord){
             const hasF=ord.order_items?.some(i=>i.type==="food");
             const hasD=ord.order_items?.some(i=>i.type==="drink");
@@ -1964,17 +1971,15 @@ function subRT(){
         }
       }
     })
-    // Order item updated → refresh kitchen/bar AND kelner ready boxes
+    // Order item updated → NO beep for kitchen/bar on item updates (only on new orders)
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"order_items"},async p=>{
       if(!p.new)return;
-      // Kitchen/bar: reload to show new item state
+      // Kitchen/bar: silently reload — no beep (this is their OWN action confirming)
       if(U.role==="kuvar"){loadK();return;}
       if(U.role==="barmen"){loadB();return;}
-      // Kelner: ALWAYS reload ready center on any item change
+      // Kelner: beep only for their own orders becoming ready
       if(U.role==="kelner"){
-        // Only act if this item belongs to THIS kelner's order
-        const{data:ord}=await sb.from("orders")
-          .select("table_number,kelner_id").eq("id",p.new.order_id).single();
+        const{data:ord}=await sb.from("orders").select("table_number,kelner_id").eq("id",p.new.order_id).single();
         if(!ord||ord.kelner_id!==U.id)return;
         await loadReadyCenter();
         if(p.new.status==="ready"){
