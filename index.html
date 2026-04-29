@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Тино РОМС">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="/manifest.json">
 <title>Хотел Тино РОМС</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -532,7 +536,19 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
 </div></div>
 
 <!-- ZONE MODAL -->
-<div class="mov" id="zMod"><div class="mdl">
+<!-- ZONE TABLE EDIT MODAL -->
+<div class="mov" id="zoneTableMod">
+  <div class="mdl" style="max-width:500px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="mtt" id="zoneTableTitle" style="margin:0;color:var(--gold)">Маси во зона</div>
+      <button class="cnc" onclick="closeM('zoneTableMod')">Затвори</button>
+    </div>
+    <div style="color:var(--mut);font-size:11px;margin-bottom:12px">Кликни на маса за да ја додадеш/отстраниш од оваа зона</div>
+    <div id="zoneTableList"></div>
+  </div>
+</div>
+
+<!-- ZONE ADD MODAL -->
   <div class="mtt">Додај зона</div>
   <div class="fg"><label class="fl">Назив</label><input class="fi" type="text" id="zNm" placeholder="пр. Зона А"></div>
   <div class="fg"><label class="fl">Боја</label><input class="fi" type="color" id="zCol" value="#b8860b"></div>
@@ -2081,9 +2097,75 @@ async function delStaff(id){if(!confirm("Избриши?"))return;await sb.from(
 
 // ZONES MGMT
 function loadZonesT(){
+  const el=document.getElementById("zonesT");
+  if(!el)return;
   let h="";
-  ZON.forEach(z=>{const tc=TBL.filter(t=>t.zone_id===z.id).length;h+=`<tr><td>${z.name}</td><td>${tc} маси</td><td><div style="width:18px;height:18px;background:${z.color};border-radius:3px;display:inline-block"></div></td><td><button class="act del" onclick="delZone('${z.id}')">Избриши</button></td></tr>`;});
-  document.getElementById("zonesT").innerHTML=h;
+  ZON.forEach(z=>{
+    const zoneTables=TBL.filter(t=>t.zone_id===z.id).sort((a,b)=>a.number-b.number);
+    const tableNums=zoneTables.map(t=>t.number);
+    h+=`<tr>
+      <td><b style="color:${z.color}">${z.name}</b></td>
+      <td>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+          ${tableNums.map(n=>`<span style="background:var(--d3);border:1px solid var(--bdr);border-radius:4px;padding:2px 7px;font-size:11px;color:var(--text)">М${n}</span>`).join("")||"<span style='color:var(--dim);font-size:11px'>Нема маси</span>"}
+        </div>
+        <button onclick="openZoneTableEdit('${z.id}','${z.name}')" style="background:transparent;border:1px solid var(--gold);color:var(--gold);font-size:10px;font-weight:600;padding:3px 10px;border-radius:5px;cursor:pointer">✏️ Уреди маси</button>
+      </td>
+      <td><div style="width:18px;height:18px;background:${z.color};border-radius:3px;display:inline-block"></div></td>
+      <td><button class="act del" onclick="delZone('${z.id}')">Избриши</button></td>
+    </tr>`;
+  });
+  el.innerHTML=h;
+}
+
+function openZoneTableEdit(zoneId, zoneName){
+  // Build a modal showing all tables with checkboxes to assign to this zone
+  const modal=document.getElementById("zoneTableMod");
+  if(!modal)return;
+  document.getElementById("zoneTableTitle").textContent="Маси во зона: "+zoneName;
+
+  // Sort all tables by number
+  const sorted=[...TBL].sort((a,b)=>a.number-b.number);
+
+  let h=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">`;
+  sorted.forEach(t=>{
+    const inZone=t.zone_id===zoneId;
+    h+=`<div onclick="toggleTableZone('${t.id}','${zoneId}',this)"
+      style="padding:8px 4px;border-radius:7px;border:2px solid ${inZone?"var(--gold)":"var(--bdr)"};
+      background:${inZone?"rgba(201,168,76,.15)":"var(--d2)"};
+      text-align:center;cursor:pointer;transition:all .15s;font-family:'Cinzel',serif;font-size:12px;font-weight:700;
+      color:${inZone?"var(--gold)":"var(--mut)"}">
+      М${t.number}
+    </div>`;
+  });
+  h+=`</div>`;
+  document.getElementById("zoneTableList").innerHTML=h;
+  modal.classList.add("on");
+}
+
+async function toggleTableZone(tableId, zoneId, el){
+  const t=TBL.find(t=>t.id===tableId);
+  if(!t)return;
+  const inZone=t.zone_id===zoneId;
+  if(inZone){
+    // Remove from zone — set to null
+    const{error}=await sb.from("tables").update({zone_id:null}).eq("id",tableId);
+    if(error){toast("Грешка: "+error.message,"err");return;}
+    t.zone_id=null;
+    el.style.borderColor="var(--bdr)";
+    el.style.background="var(--d2)";
+    el.style.color="var(--mut)";
+  }else{
+    // Assign to this zone
+    const{error}=await sb.from("tables").update({zone_id:zoneId}).eq("id",tableId);
+    if(error){toast("Грешка: "+error.message,"err");return;}
+    t.zone_id=zoneId;
+    el.style.borderColor="var(--gold)";
+    el.style.background="rgba(201,168,76,.15)";
+    el.style.color="var(--gold)";
+  }
+  loadZonesT();
+  renderZ();renderT();
 }
 function showAddZone(){document.getElementById("zNm").value="";document.getElementById("zMod").classList.add("on");}
 async function saveZone(){const name=document.getElementById("zNm").value.trim(),color=document.getElementById("zCol").value;if(!name)return toast("Внесете назив","err");await sb.from("zones").insert({name,color});toast("Додадено","ok");closeM("zMod");await loadAll();loadZonesT();}
