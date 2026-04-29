@@ -1099,38 +1099,50 @@ async function submitOrder(){
   const tot=list.reduce((s,i)=>s+i.price*i.qty,0);
   const zone=ZON.find(z=>z.id===selT.zone_id)?.name||"";
   try{
-    // Check if there's already an open bill for this table
+    // ONE order per table — check if active order already exists for this table
     const{data:existing}=await sb.from("orders")
-      .select("id,total_amount,order_items(type)")
+      .select("id,total_amount")
       .eq("table_number",selT.number)
-      .eq("status","pending")
+      .eq("kelner_id",U.id)
+      .in("status",["pending","preparing"])
       .order("created_at",{ascending:false})
-      .limit(2);
+      .limit(1)
+      .single();
 
-    const foodItems=list.filter(i=>i.type==="food");
-    const drinkItems=list.filter(i=>i.type==="drink");
-
-    // Find existing pending food/drink orders to add to
-    const existingFood=existing?.find(o=>o.order_items.some(x=>x.type==="food"));
-    const existingDrink=existing?.find(o=>o.order_items.some(x=>x.type==="drink"));
-
-    const addToOrCreate=async(ois,existingOrd)=>{
-      if(!ois.length)return;
-      const t=ois.reduce((s,i)=>s+i.price*i.qty,0);
-      if(existingOrd){
-        // Add items to existing order
-        await sb.from("order_items").insert(ois.map(i=>({order_id:existingOrd.id,menu_item_id:i.id,menu_item_name:i.name,quantity:i.qty,price:i.price,type:i.type,notes})));
-        await sb.from("orders").update({total_amount:(existingOrd.total_amount||0)+t,updated_at:new Date().toISOString()}).eq("id",existingOrd.id);
-      }else{
-        // Create new order
-        const{data:ord}=await sb.from("orders").insert({table_id:selT.id,table_number:selT.number,kelner_id:U.id,kelner_name:U.name,zone_name:zone,notes,total_amount:t,status:"pending"}).select().single();
-        if(ord)await sb.from("order_items").insert(ois.map(i=>({order_id:ord.id,menu_item_id:i.id,menu_item_name:i.name,quantity:i.qty,price:i.price,type:i.type,notes})));
+    if(existing){
+      // Add new items to the existing order (same bill)
+      await sb.from("order_items").insert(
+        list.map(i=>({order_id:existing.id,menu_item_id:i.id,menu_item_name:i.name,quantity:i.qty,price:i.price,type:i.type,notes,status:"pending"}))
+      );
+      await sb.from("orders").update({
+        total_amount:(existing.total_amount||0)+tot,
+        status:"pending"
+      }).eq("id",existing.id);
+    }else{
+      // Create ONE new order with ALL items
+      const{data:ord}=await sb.from("orders").insert({
+        table_id:selT.id,
+        table_number:selT.number,
+        kelner_id:U.id,
+        kelner_name:U.name,
+        zone_name:zone,
+        notes,
+        total_amount:tot,
+        status:"pending"
+      }).select().single();
+      if(ord){
+        await sb.from("order_items").insert(
+          list.map(i=>({order_id:ord.id,menu_item_id:i.id,menu_item_name:i.name,quantity:i.qty,price:i.price,type:i.type,notes,status:"pending"}))
+        );
       }
-    };
+    }
 
-    await Promise.all([addToOrCreate(foodItems,existingFood),addToOrCreate(drinkItems,existingDrink)]);
     await sb.from("tables").update({status:"occupied"}).eq("id",selT.id);
-    if(SH)await sb.from("shifts").update({total_orders:(SH.total_orders||0)+1,total_revenue:(SH.total_revenue||0)+tot}).eq("id",SH.id);
+    if(SH)await sb.from("shifts").update({
+      total_orders:(SH.total_orders||0)+1,
+      total_revenue:(SH.total_revenue||0)+tot
+    }).eq("id",SH.id);
+
     toast("Нарачката е испратена!","ok");
     oI={};document.getElementById("onotes").value="";
     document.getElementById("onotes").style.height="42px";
@@ -1900,25 +1912,26 @@ async function markR(oid,stn){
     .select("table_number,kelner_id,order_items(id,type,status,menu_item_name,quantity)")
     .eq("id",oid).single();
 
-  await sb.from("orders").update({status:"ready",updated_at:new Date().toISOString()}).eq("id",oid);
-
-  // Only mark items that are still pending/preparing as ready — not already served ones
   const type=stn==="kitchen"?"food":"drink";
   if(ord){
-    const unservedIds=(ord.order_items||[])
+    // Mark all pending items of this type as ready
+    const toMarkIds=(ord.order_items||[])
       .filter(i=>i.type===type&&i.status!=="served"&&i.status!=="ready")
       .map(i=>i.id);
-    if(unservedIds.length){
-      await sb.from("order_items").update({status:"ready"}).in("id",unservedIds);
+    if(toMarkIds.length){
+      await sb.from("order_items").update({status:"ready"}).in("id",toMarkIds);
     }
-  }
 
-  toast("Нарачката е готова!","ok");
+    // Only mark the ORDER as ready if ALL items (food+drink) are now ready/served
+    const allItems=ord.order_items||[];
+    const allDone=allItems.every(i=>i.status==="ready"||i.status==="served"||(i.type===type&&toMarkIds.includes(i.id)));
+    if(allDone){
+      await sb.from("orders").update({status:"ready"}).eq("id",oid);
+    }
+    // If not all done, keep order as "pending" so both kitchen AND bar can still see it
 
-  // Only push notification for items NOT yet served
-  if(ord){
-    const unservedItems=(ord.order_items||[])
-      .filter(i=>i.type===type&&i.status!=="served");
+    // Push notification for items just marked ready
+    const unservedItems=(ord.order_items||[]).filter(i=>i.type===type&&i.status!=="served");
     if(unservedItems.length){
       const names=unservedItems.map(i=>`${i.quantity}x ${i.menu_item_name}`).join(", ");
       const title=`${stn==="kitchen"?"🍽":"🍹"} Маса ${ord.table_number} — Готово!`;
@@ -1926,6 +1939,8 @@ async function markR(oid,stn){
       sendPushToKelners(ord.table_number,type,title,body,ord.kelner_id);
     }
   }
+
+  toast("Нарачката е готова!","ok");
   if(stn==="kitchen")loadK();else loadB();
 }
 
