@@ -508,7 +508,22 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
     </div>
     <div id="tab-rep" style="display:none">
       <div class="sgrd" id="repSt"></div>
-      <div class="asec"><div class="ash"><div class="ast">Историја</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="date" class="fi" id="rFrom" style="width:130px"><input type="date" class="fi" id="rTo" style="width:130px"><button class="svb" onclick="loadRep()">Прикажи</button></div></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Датум</th><th>Маса</th><th>Келнер</th><th>Зона</th><th>Вкупно</th><th>Статус</th></tr></thead><tbody id="repT"></tbody></table></div></div>
+      <div class="asec">
+        <div class="ash">
+          <div class="ast">Историја на нарачки</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <input type="date" class="fi" id="rFrom" style="width:130px">
+            <input type="date" class="fi" id="rTo" style="width:130px">
+            <button class="svb" onclick="loadRep()">Прикажи</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="dt">
+            <thead><tr><th>Датум</th><th>Маса</th><th>Келнер</th><th>Зона</th><th>Вкупно</th><th>Статус</th><th>Акција</th></tr></thead>
+            <tbody id="repT"></tbody>
+          </table>
+        </div>
+      </div>
       <div class="asec"><div class="ash"><div class="ast">Перформанси</div></div><table class="dt"><thead><tr><th>Вработен</th><th>Улога</th><th>Нарачки</th><th>Приход</th></tr></thead><tbody id="perfT"></tbody></table></div>
     </div>
   </div>
@@ -605,6 +620,25 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
 </div></div>
 
 <!-- ZONE MODAL -->
+<!-- ORDER CORRECTION MODAL -->
+<div class="mov" id="corrMod">
+  <div class="mdl" style="max-width:560px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="mtt" style="margin:0;color:var(--tel)">✏️ Корекција на нарачка</div>
+      <button class="cnc" onclick="closeM('corrMod')">Затвори</button>
+    </div>
+    <div id="corrMeta" style="background:rgba(0,153,170,.07);border:1px solid rgba(0,153,170,.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--mut)"></div>
+    <div id="corrItems" style="max-height:50vh;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--bdr)">
+      <div>
+        <div style="color:var(--dim);font-size:11px">Нов вкупен износ</div>
+        <div style="color:var(--gold);font-size:20px;font-weight:700;font-family:'Cinzel',serif" id="corrTotal">0 ден.</div>
+      </div>
+      <button onclick="saveCorrection()" style="background:var(--tel);border:none;color:#fff;font-size:13px;font-weight:700;font-family:'Cinzel',serif;padding:12px 24px;border-radius:9px;cursor:pointer;letter-spacing:1px">💾 ЗАЧУВАЈ КОРЕКЦИЈА</button>
+    </div>
+  </div>
+</div>
+
 <!-- ZONE TABLE EDIT MODAL -->
 <div class="mov" id="zoneTableMod">
   <div class="mdl" style="max-width:500px">
@@ -2466,17 +2500,169 @@ async function loadRep(){
   const{data}=await sb.from("orders").select("*").gte("created_at",from+"T00:00:00").lte("created_at",to+"T23:59:59").order("created_at",{ascending:false});
   const os=data||[];
   const tot=os.reduce((s,o)=>s+(o.total_amount||0),0);
-  document.getElementById("repSt").innerHTML=`<div class="sc"><div class="scl">Вкупен приход</div><div class="scv">${tot.toLocaleString()}</div><div class="scs">денари</div></div><div class="sc"><div class="scl">Вкупно нарачки</div><div class="scv">${os.length}</div></div><div class="sc"><div class="scl">Просек</div><div class="scv">${os.length?Math.round(tot/os.length).toLocaleString():"0"}</div><div class="scs">денари</div></div>`;
-  const sm={pending:"Во тек",preparing:"Во тек",ready:"Готово",served:"Сервирано",cancelled:"Откажано"};
+  document.getElementById("repSt").innerHTML=
+    `<div class="sc"><div class="scl">Вкупен приход</div><div class="scv">${tot.toLocaleString()}</div><div class="scs">денари</div></div>`+
+    `<div class="sc"><div class="scl">Вкупно нарачки</div><div class="scv">${os.length}</div></div>`+
+    `<div class="sc"><div class="scl">Просек</div><div class="scv">${os.length?Math.round(tot/os.length).toLocaleString():"0"}</div><div class="scs">денари</div></div>`;
+  const sm={pending:"Во тек",preparing:"Во тек",ready:"Во тек",served:"Затворена",cancelled:"Откажана"};
+  const sc={pending:"var(--org)",preparing:"var(--org)",ready:"var(--org)",served:"var(--grn)",cancelled:"var(--red)"};
   let h="";
-  os.forEach(o=>{const dt=new Date(o.created_at);h+=`<tr><td>${dt.toLocaleDateString("mk-MK")} ${dt.toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td><td>М${o.table_number}</td><td>${o.kelner_name||"-"}</td><td>${o.zone_name||"-"}</td><td>${(o.total_amount||0).toLocaleString()} ден.</td><td>${sm[o.status]||o.status}</td></tr>`;});
-  document.getElementById("repT").innerHTML=h||"<tr><td colspan='6' style='color:var(--dim);text-align:center;padding:14px'>Нема нарачки</td></tr>";
+  os.forEach(o=>{
+    const dt=new Date(o.created_at);
+    const corrected=o.corrected_by?`<span style="font-size:9px;background:rgba(201,168,76,.15);color:var(--gold);padding:1px 5px;border-radius:4px;margin-left:4px">✏️ Кор.</span>`:"";
+    h+=`<tr>
+      <td>${dt.toLocaleDateString("mk-MK")} ${dt.toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td>
+      <td>М${o.table_number}</td>
+      <td>${o.kelner_name||"-"}</td>
+      <td>${o.zone_name||"-"}</td>
+      <td style="color:var(--gold);font-weight:600">${(o.total_amount||0).toLocaleString()} ден.${corrected}</td>
+      <td><span style="color:${sc[o.status]||"var(--mut)"};font-size:11px">${sm[o.status]||o.status}</span></td>
+      <td><button onclick="openCorrection('${o.id}')" style="background:transparent;border:1px solid var(--tel);color:var(--tel);font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer">✏️ Корекција</button></td>
+    </tr>`;
+  });
+  document.getElementById("repT").innerHTML=h||"<tr><td colspan='7' style='color:var(--dim);text-align:center;padding:14px'>Нема нарачки</td></tr>";
   const sp={};os.forEach(o=>{const k=o.kelner_name||"?";if(!sp[k])sp[k]={n:0,r:0};sp[k].n++;sp[k].r+=o.total_amount||0;});
   let ph="";Object.entries(sp).sort((a,b)=>b[1].r-a[1].r).forEach(([n,v])=>ph+=`<tr><td>${n}</td><td><span class="tag tkl">Келнер</span></td><td>${v.n}</td><td>${v.r.toLocaleString()} ден.</td></tr>`);
   document.getElementById("perfT").innerHTML=ph||"<tr><td colspan='4' style='color:var(--dim);text-align:center;padding:14px'>Нема податоци</td></tr>";
 }
 
-// SHIFT / LOGOUT
+// ===== ORDER CORRECTION (Admin/Manager only) =====
+let corrOrder=null;
+let corrItems=[];
+
+async function openCorrection(orderId){
+  if(U.role!=="admin"&&U.role!=="menager"){toast("Само администратор може да прави корекции","err");return;}
+
+  document.getElementById("corrMod").classList.add("on");
+  document.getElementById("corrItems").innerHTML=`<div style="text-align:center;padding:20px;color:var(--dim)">Се вчитува...</div>`;
+
+  const{data:ord}=await sb.from("orders")
+    .select("*,order_items(*)")
+    .eq("id",orderId).single();
+
+  if(!ord){toast("Нарачката не е пронајдена","err");closeM("corrMod");return;}
+
+  corrOrder=ord;
+  // Deep copy items for editing
+  corrItems=(ord.order_items||[]).map(it=>({...it,_deleted:false}));
+
+  const dt=new Date(ord.created_at);
+  document.getElementById("corrMeta").innerHTML=
+    `<b style="color:var(--tel)">Маса ${ord.table_number}</b> &nbsp;·&nbsp; `+
+    `${ord.kelner_name||"?"} &nbsp;·&nbsp; `+
+    `${dt.toLocaleDateString("mk-MK")} ${dt.toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}`+
+    (ord.corrected_by?`<br><span style="color:var(--gold);font-size:10px">Последна корекција: ${ord.corrected_by} · ${new Date(ord.corrected_at).toLocaleString("mk-MK")}</span>`:"")+
+    `<br><span style="color:var(--dim);font-size:10px">Оригинален износ: ${(ord.original_amount||ord.total_amount||0).toLocaleString()} ден.</span>`;
+
+  renderCorrItems();
+}
+
+function renderCorrItems(){
+  let h="";
+  corrItems.forEach((it,i)=>{
+    if(it._deleted){
+      h+=`<div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,50,50,.06);border:1px solid rgba(255,50,50,.2);opacity:.5">
+        <div style="flex:1;font-size:12px;color:var(--dim);text-decoration:line-through">${it.quantity}x ${it.menu_item_name}</div>
+        <div style="font-size:11px;color:var(--red)">Избришан</div>
+        <button onclick="corrItems[${i}]._deleted=false;renderCorrItems()" style="background:transparent;border:1px solid var(--grn);color:var(--grn);font-size:10px;padding:3px 8px;border-radius:5px;cursor:pointer">↩ Врати</button>
+      </div>`;
+      return;
+    }
+    h+=`<div style="background:var(--d2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:11px;color:${it.type==="food"?"var(--gold)":"var(--tel)"}">${it.type==="food"?"🍽":"🍹"}</span>
+        <input value="${it.menu_item_name}" onchange="corrItems[${i}].menu_item_name=this.value"
+          style="flex:1;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none">
+        <button onclick="corrItems[${i}]._deleted=true;renderCorrItems()" title="Избриши артикл"
+          style="background:transparent;border:1px solid rgba(255,50,50,.4);color:#ff6b6b;font-size:12px;width:28px;height:28px;border-radius:6px;cursor:pointer;flex-shrink:0">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="color:var(--mut);font-size:11px;flex-shrink:0">Кол.:</div>
+        <input type="number" min="1" value="${it.quantity}" onchange="corrItems[${i}].quantity=parseInt(this.value)||1;calcCorrTotal()"
+          style="width:60px;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center">
+        <div style="color:var(--mut);font-size:11px;flex-shrink:0">Цена:</div>
+        <input type="number" min="0" value="${it.price||0}" onchange="corrItems[${i}].price=parseFloat(this.value)||0;calcCorrTotal()"
+          style="width:80px;background:var(--d3);border:1px solid var(--bdr);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center">
+        <div style="color:var(--mut);font-size:11px">ден.</div>
+        <div style="margin-left:auto;color:var(--gold);font-size:13px;font-weight:600">${((it.price||0)*(it.quantity||1)).toLocaleString()} ден.</div>
+      </div>
+    </div>`;
+  });
+
+  // Add new item button
+  h+=`<button onclick="addCorrItem()" style="width:100%;background:transparent;border:1px dashed var(--bdr);color:var(--mut);font-size:12px;padding:10px;border-radius:8px;cursor:pointer;margin-top:4px">+ Додај артикл</button>`;
+  document.getElementById("corrItems").innerHTML=h;
+  calcCorrTotal();
+}
+
+function addCorrItem(){
+  corrItems.push({id:"new-"+Date.now(),menu_item_name:"",quantity:1,price:0,type:"food",status:"served",_deleted:false,_new:true});
+  renderCorrItems();
+  // Focus last name input
+  setTimeout(()=>{const inputs=document.querySelectorAll("#corrItems input[type='text'],#corrItems input:not([type])");if(inputs.length)inputs[inputs.length-2]?.focus();},50);
+}
+
+function calcCorrTotal(){
+  const total=corrItems.filter(i=>!i._deleted).reduce((s,i)=>s+(i.price||0)*(i.quantity||1),0);
+  const el=document.getElementById("corrTotal");
+  if(el)el.textContent=total.toLocaleString()+" ден.";
+}
+
+async function saveCorrection(){
+  if(!corrOrder)return;
+  const btn=document.querySelector("#corrMod button[onclick='saveCorrection()']");
+  btn.disabled=true;btn.textContent="Се зачувува...";
+
+  try{
+    const newTotal=corrItems.filter(i=>!i._deleted).reduce((s,i)=>s+(i.price||0)*(i.quantity||1),0);
+    const originalAmount=corrOrder.original_amount||corrOrder.total_amount;
+
+    // 1. Delete removed items
+    const deleted=corrItems.filter(i=>i._deleted&&!i._new);
+    for(const it of deleted){
+      await sb.from("order_items").delete().eq("id",it.id);
+    }
+
+    // 2. Update existing items
+    const updated=corrItems.filter(i=>!i._deleted&&!i._new);
+    for(const it of updated){
+      await sb.from("order_items").update({
+        menu_item_name:it.menu_item_name,
+        quantity:it.quantity,
+        price:it.price
+      }).eq("id",it.id);
+    }
+
+    // 3. Insert new items
+    const newItems=corrItems.filter(i=>!i._deleted&&i._new&&it.menu_item_name);
+    for(const it of newItems){
+      await sb.from("order_items").insert({
+        order_id:corrOrder.id,
+        menu_item_name:it.menu_item_name,
+        quantity:it.quantity,
+        price:it.price,
+        type:it.type,
+        status:"served"
+      });
+    }
+
+    // 4. Update order total + correction log
+    await sb.from("orders").update({
+      total_amount:newTotal,
+      original_amount:originalAmount,
+      corrected_by:U.name,
+      corrected_at:new Date().toISOString()
+    }).eq("id",corrOrder.id);
+
+    toast(`Корекција зачувана · Нов износ: ${newTotal.toLocaleString()} ден.`,"ok");
+    closeM("corrMod");
+    loadRep();
+
+  }catch(err){
+    toast("Грешка: "+err.message,"err");
+    btn.disabled=false;btn.textContent="💾 ЗАЧУВАЈ КОРЕКЦИЈА";
+  }
+}
 async function endShift(){if(!confirm("Крај на смена?"))return;if(SH)await sb.from("shifts").update({clock_out:new Date().toISOString()}).eq("id",SH.id);doLogout();}
 function doLogout(){
   localStorage.removeItem("roms_user");
