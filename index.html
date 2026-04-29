@@ -50,7 +50,7 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
 .tlogo img{height:30px;width:auto;border-radius:6px}
 .tsub{color:var(--mut);font-size:10px;letter-spacing:1px}
 .tright{display:flex;align-items:center;gap:6px}
-.ubadge{background:var(--d2);border:1px solid var(--bdr);color:var(--gold);font-size:10px;padding:4px 10px;border-radius:20px;font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ubadge{background:var(--d2);border:1px solid var(--bdr);color:var(--gold);font-size:10px;padding:4px 10px;border-radius:20px;font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
 .tbtn{background:rgba(232,64,64,.12);border:1px solid rgba(232,64,64,.4);color:#ff6b6b;font-size:11px;font-weight:700;padding:0 12px;border-radius:8px;cursor:pointer;font-family:"Raleway",sans-serif;letter-spacing:.5px;white-space:nowrap;height:36px;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
 .tbtn:hover{background:rgba(232,64,64,.22);}
 .nbtn{background:transparent;border:1px solid var(--bdr);color:var(--mut);padding:5px 9px;border-radius:6px;cursor:pointer;font-size:14px}
@@ -107,7 +107,9 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
   .asec{overflow-x:auto}
   .dt{min-width:480px}
   .fg2{grid-template-columns:1fr}
-  .ubadge{max-width:120px}
+  .ubadge{display:none}
+  .tright{gap:4px}
+  .tbtn{font-size:10px;padding:0 10px}
 }
 /* TABLET */
 @media(min-width:769px) and (max-width:1100px){
@@ -119,6 +121,27 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
 @keyframes rglow{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.4)}50%{box-shadow:0 0 12px 3px rgba(201,168,76,.3)}}
 @keyframes bglow{0%,100%{box-shadow:0 0 0 0 rgba(0,153,170,.4)}50%{box-shadow:0 0 12px 3px rgba(0,153,170,.3)}}
 .ready-panel:active{transform:scale(.98)}
+/* ===== LOGIN ANIMATION ===== */
+@keyframes loginFadeIn{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes loginGlow{0%,100%{box-shadow:0 8px 32px rgba(201,168,76,.2)}50%{box-shadow:0 8px 48px rgba(201,168,76,.45),0 0 80px rgba(201,168,76,.12)}}
+@keyframes logoSpin{0%{transform:scale(0) rotate(-180deg);opacity:0}65%{transform:scale(1.12) rotate(8deg);opacity:1}82%{transform:scale(.94) rotate(-3deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes starFloat{0%,100%{transform:translateY(0) scale(1);opacity:.5}50%{transform:translateY(-18px) scale(1.3);opacity:.9}}
+
+#loginScreen{background:radial-gradient(ellipse at 30% 20%,rgba(201,168,76,.06) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(201,168,76,.04) 0%,transparent 60%),var(--black)}
+.lcard{animation:loginFadeIn .75s cubic-bezier(.34,1.56,.64,1) forwards,loginGlow 3s ease-in-out 1.5s infinite}
+.llogo img{animation:logoSpin .9s cubic-bezier(.34,1.56,.64,1) .15s both}
+.lhotel{animation:slideUp .5s ease .45s both}
+.lsys{animation:slideUp .5s ease .55s both}
+.lbtn{background:linear-gradient(135deg,#c9a84c,#e8c96a,#c9a84c);background-size:200% auto;transition:all .25s}
+.lbtn:hover{background-position:right center;transform:translateY(-1px);box-shadow:0 6px 24px rgba(201,168,76,.45)}
+.lbtn:active{transform:scale(.98)}
+.inp:focus{border-color:var(--gold) !important;box-shadow:0 0 0 3px rgba(201,168,76,.15)}
+
+/* Floating gold stars on login bg */
+.lstar{position:fixed;font-size:10px;pointer-events:none;animation:starFloat linear infinite;color:rgba(201,168,76,.35)}
+
 .ztabs{display:flex;gap:5px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
 .ztabs::-webkit-scrollbar{display:none}
 .ztab{background:var(--d2);border:1px solid var(--bdr);border-radius:20px;color:var(--mut);font-size:11px;font-weight:600;padding:6px 14px;cursor:pointer;transition:all .2s;font-family:"Raleway",sans-serif;white-space:nowrap;flex-shrink:0}
@@ -292,7 +315,9 @@ body{font-family:"Raleway",sans-serif;background:var(--black);color:var(--text);
   .asec{overflow-x:auto}
   .dt{min-width:480px}
   .fg2{grid-template-columns:1fr}
-  .ubadge{max-width:120px}
+  .ubadge{display:none}
+  .tright{gap:4px}
+  .tbtn{font-size:10px;padding:0 10px}
 }
 @media(min-width:769px){
   .klyt{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px}
@@ -1280,7 +1305,36 @@ async function updKelnerTotal(){
   if(el)el.textContent=total.toLocaleString()+" ден.";
 }
 
-// ===== KELNER READY COMMAND CENTER =====
+// ===== LOGIN SCREEN PARTICLES =====
+function spawnLoginStars(){
+  const existing=document.querySelectorAll(".lstar");
+  existing.forEach(e=>e.remove());
+  const count=12;
+  const symbols=["✦","✧","◆","◇","★","✶"];
+  for(let i=0;i<count;i++){
+    const s=document.createElement("div");
+    s.className="lstar";
+    s.textContent=symbols[Math.floor(Math.random()*symbols.length)];
+    s.style.left=Math.random()*100+"vw";
+    s.style.top=Math.random()*100+"vh";
+    s.style.fontSize=(6+Math.random()*10)+"px";
+    s.style.animationDuration=(3+Math.random()*4)+"s";
+    s.style.animationDelay=(Math.random()*3)+"s";
+    s.style.opacity=(0.1+Math.random()*0.3);
+    document.body.appendChild(s);
+  }
+}
+
+// Add delayed field animations on login screen
+function animateLoginFields(){
+  const fields=document.querySelectorAll("#loginScreen .fld, #loginScreen .lerr, #loginScreen .lbtn, #loginScreen .lhint");
+  fields.forEach((el,i)=>{
+    el.style.opacity="0";
+    el.style.transform="translateY(16px)";
+    el.style.transition=`opacity .4s ease ${.55+i*.1}s, transform .4s ease ${.55+i*.1}s`;
+    setTimeout(()=>{el.style.opacity="1";el.style.transform="translateY(0)";},50);
+  });
+}
 let readyItems = {food:[], drink:[]}; // cache of ready items
 
 async function loadReadyCenter(){
@@ -2324,7 +2378,8 @@ window.addEventListener("load",()=>{
   const rF=document.getElementById("rFrom");const rT=document.getElementById("rTo");
   if(rF)rF.value=from.toISOString().split("T")[0];
   if(rT)rT.value=now.toISOString().split("T")[0];
-  // Try to restore session after refresh
+  spawnLoginStars();
+  animateLoginFields();
   tryAutoLogin();
 });
 </script>
