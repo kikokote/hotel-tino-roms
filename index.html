@@ -302,7 +302,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
 .fs{width:100%;background:var(--d2);border:1px solid var(--d4);border-radius:6px;color:var(--text);padding:9px 10px;font-size:14px;font-family:"DM Sans",sans-serif}
 .svb{background:var(--gold);border:none;border-radius:7px;color:var(--black);font-size:12px;font-weight:700;font-family:"Unbounded",sans-serif;letter-spacing:1px;padding:10px 22px;cursor:pointer}
 .chart{background:var(--d2);border-radius:9px;padding:14px;margin-bottom:12px}
-.cbrs{display:flex;align-items:flex-end;gap:5px;height:90px;margin-top:10px}
+.cbrs{display:flex;align-items:flex-end;gap:5px;height:126px;margin-top:10px}
 .cbw{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .cb{width:100%;background:rgba(201,168,76,.25);border-radius:3px 3px 0 0;min-height:3px}
 .cb.td{background:var(--gold)}
@@ -398,14 +398,8 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
   <div class="klyt">
     <div class="kleft">
       <div class="sbar">
-        <div class="sinfo">Смена: <b id="stime">-</b> | Келнер: <b id="kelnerName">-</b> | Зона: <b id="szone">-</b></div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div onclick="openShiftHistory()" style="background:rgba(201,168,76,.1);border:1px solid var(--bdr);border-radius:8px;padding:4px 10px;text-align:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bdr)'">
-            <div style="color:var(--dim);font-size:9px;letter-spacing:1px;text-transform:uppercase">Моја смена</div>
-            <div style="color:var(--gold);font-size:13px;font-weight:700" id="kelnerTotal">0 ден.</div>
-          </div>
-          <button class="esb" onclick="endShift()">Крај</button>
-        </div>
+        <div class="sinfo">Келнер: <b id="kelnerName">-</b> | Смена: <b id="stime">-</b> | Зона: <b id="szone">-</b> | Моја смена: <b id="kelnerTotal" onclick="openShiftHistory()" style="cursor:pointer">0 ден.</b></div>
+        <button class="esb" onclick="endShift()">Крај</button>
       </div>
 
       <!-- READY COMMAND CENTER -->
@@ -546,7 +540,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
       </div>
       <div class="chart"><div class="sl">Приходи последните 7 дена</div><div class="cbrs" id="rchart"></div></div>
       <div class="asec"><div class="ash"><div class="ast">Зони — перформанси денес</div></div><div id="zStats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px"></div></div>
-      <div class="asec"><div class="ash"><div class="ast">Нарачки денес</div></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Маса</th><th>Келнер</th><th>Зона</th><th>Вкупно</th><th>Статус</th><th>Време</th></tr></thead><tbody id="todayT"></tbody></table></div></div>
+      <div class="asec"><div class="ash"><div class="ast">Нарачки денес</div></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Маса</th><th>Келнер</th><th>Зона</th><th>Вкупно</th><th>Статус</th><th>Време</th><th>Акција</th></tr></thead><tbody id="todayT"></tbody></table></div></div>
     </div>
     <div id="tab-menu" style="display:none">
       <div class="asec"><div class="ash"><div class="ast">Артикли</div><button class="aab" onclick="showAddItem()">+ Додај</button></div><div style="overflow-x:auto"><table class="dt"><thead><tr><th>Назив</th><th>Кат.</th><th>Цена</th><th>Тип</th><th>Дост.</th><th>Акции</th></tr></thead><tbody id="menuT"></tbody></table></div></div>
@@ -674,19 +668,23 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
 <!-- ZONE MODAL -->
 <!-- ORDER CORRECTION MODAL -->
 <div class="mov" id="corrMod">
-  <div class="mdl" style="max-width:560px">
+  <div class="mdl" style="max-width:680px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <div class="mtt" style="margin:0;color:var(--tel)"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Корекција на нарачка</div>
       <button class="cnc" onclick="closeM('corrMod')">Затвори</button>
     </div>
-    <div id="corrMeta" style="background:rgba(0,153,170,.07);border:1px solid rgba(0,153,170,.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--mut)"></div>
-    <div id="corrItems" style="max-height:50vh;overflow-y:auto;margin-bottom:14px"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--bdr)">
+    <div id="corrMeta" style="background:rgba(0,153,170,.07);border:1px solid rgba(0,153,170,.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--mut)"></div>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap">
+      <div style="color:var(--dim);font-size:11px">Промени производ, количина, цена, додади или отстрани артикл.</div>
+      <button class="svb" onclick="addCorrectionItem()" style="background:rgba(46,204,138,.14);border:1px solid var(--grn);color:var(--grn);padding:9px 12px;border-radius:8px">+ Додај производ</button>
+    </div>
+    <div id="corrItems" style="max-height:52vh;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--bdr);gap:10px;flex-wrap:wrap">
       <div>
         <div style="color:var(--dim);font-size:11px">Нов вкупен износ</div>
-        <div style="color:var(--gold);font-size:20px;font-weight:700;font-family:"Unbounded",sans-serif" id="corrTotal">0 ден.</div>
+        <div style="color:var(--gold);font-size:20px;font-weight:700;font-family:Unbounded,sans-serif" id="corrTotal">0 ден.</div>
       </div>
-      <button id="corrSaveBtn" onclick="saveCorrection()" style="background:var(--tel);border:none;color:#fff;font-size:13px;font-weight:700;font-family:"Unbounded",sans-serif;padding:12px 24px;border-radius:9px;cursor:pointer;letter-spacing:1px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> ЗАЧУВАЈ КОРЕКЦИЈА</button>
+      <button id="corrSaveBtn" onclick="saveCorrection()" style="background:var(--tel);border:none;color:#fff;font-size:13px;font-weight:700;font-family:Unbounded,sans-serif;padding:12px 24px;border-radius:9px;cursor:pointer;letter-spacing:1px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> ЗАЧУВАЈ КОРЕКЦИЈА</button>
     </div>
   </div>
 </div>
@@ -946,19 +944,18 @@ function showApp(){
     document.getElementById("kelnerScreen").classList.add("active");
     document.getElementById("stime").textContent=ts;
     const kn=document.getElementById("kelnerName");
-    // Compact mobile display: show username only, not full name + username.
     if(kn)kn.textContent=(U.username||U.name||"-");
     renderK();RT=subRT();keepScreenOn();
   }else if(U.role==="kuvar"){
     document.getElementById("kujnaScreen").classList.add("active");
     document.getElementById("kname").textContent=U.name;
     document.getElementById("ktime").textContent=ts;
-    loadK();RT=subRT();keepScreenOn();
+    loadK({alertNew:false});RT=subRT();keepScreenOn();
   }else if(U.role==="barmen"){
     document.getElementById("barScreen").classList.add("active");
     document.getElementById("bname").textContent=U.name;
     document.getElementById("btime").textContent=ts;
-    loadB();RT=subRT();keepScreenOn();
+    loadB({alertNew:false});RT=subRT();keepScreenOn();
   }else{
     document.getElementById("adminScreen").classList.add("active");
     loadAdmin();
@@ -1385,7 +1382,8 @@ async function submitOrder(){
 
       const{error:updErr}=await sb.from("orders").update({
         total_amount:(existing.total_amount||0)+tot,
-        status:"pending"
+        status:"pending",
+        updated_at:new Date().toISOString()
       }).eq("id",existing.id);
       if(updErr){
         console.error("[ORDER] order update error:",updErr);
@@ -1422,6 +1420,10 @@ async function submitOrder(){
         alert("Грешка при испраќање на ставки: "+insErr.message);
         throw insErr;
       }
+      // Important: trigger an orders UPDATE after order_items exist.
+      // Kitchen/bar tablets reliably receive orders UPDATE events, so this prevents
+      // the empty-dashboard problem when the order INSERT arrives before its items.
+      await sb.from("orders").update({status:"pending",updated_at:new Date().toISOString()}).eq("id",ord.id);
       console.log("[ORDER] ✅ New order",ord.id,"with",payload.length,"items created");
     }
 
@@ -1995,50 +1997,39 @@ async function confirmServed(tableNum,type,btn){
 function beep(kind="default"){
   try{
     const Ctx=window.AudioContext||window.webkitAudioContext;
-    if(!Ctx)return;
     const a=new Ctx();
     const now=a.currentTime;
     const master=a.createGain();
     master.connect(a.destination);
     master.gain.setValueAtTime(0.0001,now);
-    master.gain.exponentialRampToValueAtTime(0.22,now+0.015);
-
-    const profiles={
-      kitchen:{notes:[740,932,1175],dur:.115,gap:.045,wave:"triangle",vol:.24},
-      food:{notes:[740,932,1175],dur:.115,gap:.045,wave:"triangle",vol:.24},
-      kuvar:{notes:[740,932,1175],dur:.115,gap:.045,wave:"triangle",vol:.24},
-
-      bar:{notes:[1046,1318,1568],dur:.09,gap:.035,wave:"sine",vol:.20},
-      drink:{notes:[1046,1318,1568],dur:.09,gap:.035,wave:"sine",vol:.20},
-      barmen:{notes:[1046,1318,1568],dur:.09,gap:.035,wave:"sine",vol:.20},
-
-      foodReady:{notes:[1175,932,740,1175],dur:.105,gap:.04,wave:"triangle",vol:.23},
-      drinkReady:{notes:[1568,1318,1046,1568],dur:.09,gap:.035,wave:"sine",vol:.20},
-      ready:{notes:[988,1244,1568],dur:.105,gap:.04,wave:"triangle",vol:.22},
-
-      default:{notes:[880,1175],dur:.12,gap:.05,wave:"sine",vol:.20}
+    master.gain.exponentialRampToValueAtTime(0.32,now+0.015);
+    master.gain.exponentialRampToValueAtTime(0.001,now+0.95);
+    const patterns={
+      kitchen:[523.25,659.25,783.99],
+      bar:[659.25,880.00,987.77],
+      foodReady:[783.99,659.25,523.25],
+      drinkReady:[987.77,880.00,659.25],
+      ready:[783.99,987.77,783.99],
+      default:[880,660]
     };
-    const p=profiles[kind]||profiles.default;
-    master.gain.setValueAtTime(p.vol,now+.02);
-
-    p.notes.forEach((freq,idx)=>{
-      const t=now+idx*(p.dur+p.gap);
+    const seq=patterns[kind]||patterns.default;
+    seq.forEach((freq,i)=>{
       const o=a.createOscillator();
       const g=a.createGain();
-      o.type=p.wave;
-      o.frequency.setValueAtTime(freq,t);
-      g.gain.setValueAtTime(0.0001,t);
-      g.gain.exponentialRampToValueAtTime(0.9,t+0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001,t+p.dur);
+      o.type=i%2?"triangle":"sine";
+      o.frequency.setValueAtTime(freq,now+i*0.14);
+      g.gain.setValueAtTime(0.0001,now+i*0.14);
+      g.gain.exponentialRampToValueAtTime(0.75,now+i*0.14+0.018);
+      g.gain.exponentialRampToValueAtTime(0.001,now+i*0.14+0.18);
       o.connect(g);g.connect(master);
-      o.start(t);
-      o.stop(t+p.dur+.025);
+      o.start(now+i*0.14);o.stop(now+i*0.14+0.2);
     });
-
-    const total=p.notes.length*(p.dur+p.gap)+.08;
-    master.gain.setValueAtTime(p.vol,now+Math.max(.02,total-.08));
-    master.gain.exponentialRampToValueAtTime(0.0001,now+total);
-    setTimeout(()=>{try{a.close();}catch(e){}},Math.ceil((total+0.12)*1000));
+    if(navigator.vibrate){
+      if(kind==="kitchen")navigator.vibrate([220,70,220]);
+      else if(kind==="bar")navigator.vibrate([120,60,120,60,160]);
+      else if(String(kind).includes("Ready"))navigator.vibrate([280,80,280]);
+    }
+    setTimeout(()=>{try{a.close();}catch(e){}},1200);
   }catch(e){}
 }
 
@@ -2371,194 +2362,85 @@ async function pushTo(opts){
   }catch(e){console.error("[PUSH] pushTo error:",e.message);}
 }
 
-const READY_BANNER_RECENT=new Map();
-let READY_BANNER_SEQ=0;
-
-function escReadyHtml(v){
-  return String(v??"").replace(/[&<>"']/g,ch=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[ch]));
-}
-function ensureReadyBannerStyles(){
-  if(document.getElementById("readyBannerDynStyle"))return;
-  const st=document.createElement("style");
-  st.id="readyBannerDynStyle";
-  st.textContent=`
-    #readyBannerStack{
-      position:fixed;top:74px;left:50%;transform:translateX(-50%);
-      z-index:9999;width:min(calc(100vw - 22px),440px);
-      display:flex;flex-direction:column;gap:10px;pointer-events:none;
-    }
-    .ready-card{
-      pointer-events:auto;position:relative;overflow:hidden;
-      background:linear-gradient(180deg,rgba(24,24,27,.98),rgba(10,10,12,.98));
-      border:2px solid var(--ready-color);border-radius:20px;
-      padding:14px 14px 12px 14px;
-      box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 0 1px var(--ready-soft) inset,0 0 36px var(--ready-glow);
-      backdrop-filter:blur(12px);
-      transform-origin:top center;
-      animation:readyPopIn .38s cubic-bezier(.16,1.25,.32,1),readyGlow 1.65s ease-in-out infinite;
-    }
-    .ready-card.ready-exit{animation:readyPopOut .18s ease forwards}
-    .ready-card::before{
-      content:"";position:absolute;inset:0;pointer-events:none;
-      background:radial-gradient(circle at 20% 0%,var(--ready-soft),transparent 45%);
-      opacity:.9;
-    }
-    .ready-card-top{display:flex;align-items:flex-start;gap:12px;padding-right:40px;position:relative;z-index:1}
-    .ready-card-icon{
-      width:48px;height:48px;border-radius:16px;background:var(--ready-soft);
-      display:flex;align-items:center;justify-content:center;font-size:26px;
-      box-shadow:0 0 0 1px var(--ready-soft) inset,0 0 18px var(--ready-glow);
-      flex-shrink:0;animation:readyIconPulse 1.25s ease-in-out infinite;
-    }
-    .ready-card-pill{
-      display:inline-flex;align-items:center;gap:7px;color:var(--ready-color);
-      font-size:12px;font-weight:900;font-family:'Unbounded',sans-serif;
-      letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;
-    }
-    .ready-card-dot{
-      display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ready-color);
-      box-shadow:0 0 12px var(--ready-color);animation:readyDotPulse 1s ease-in-out infinite;
-    }
-    .ready-card-table{color:var(--text);font-size:31px;line-height:1.03;font-weight:900;margin-bottom:6px}
-    .ready-card-item{color:#fff;font-size:16px;font-weight:700;line-height:1.28;margin-bottom:6px;word-break:break-word}
-    .ready-card-sub{color:var(--mut);font-size:12px;line-height:1.3}
-    .ready-card-close{
-      position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;
-      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-      color:#fff;font-size:24px;cursor:pointer;line-height:1;
-      display:flex;align-items:center;justify-content:center;z-index:2;
-    }
-    .ready-card-actions{display:flex;gap:10px;margin-top:13px;position:relative;z-index:1}
-    .ready-card-primary,.ready-card-secondary{
-      flex:1;font-size:14px;font-weight:900;padding:12px 14px;border-radius:13px;cursor:pointer;
-    }
-    .ready-card-primary{background:var(--ready-color);border:none;color:var(--ready-button-text)}
-    .ready-card-secondary{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.13);color:#fff}
-    .ready-progress{height:4px;margin-top:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;position:relative;z-index:1}
-    .ready-progress>div{height:100%;width:100%;background:var(--ready-color);transform-origin:left center;animation:readyCountdown 14s linear forwards}
-    @keyframes readyPopIn{0%{opacity:0;transform:translateY(-22px) scale(.84)}65%{opacity:1;transform:translateY(5px) scale(1.035)}100%{opacity:1;transform:translateY(0) scale(1)}}
-    @keyframes readyPopOut{to{opacity:0;transform:translateY(-10px) scale(.96);max-height:0;margin-top:-10px;padding-top:0;padding-bottom:0}}
-    @keyframes readyGlow{0%,100%{box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 0 1px var(--ready-soft) inset,0 0 24px var(--ready-glow)}50%{box-shadow:0 24px 66px rgba(0,0,0,.6),0 0 0 1px var(--ready-soft) inset,0 0 48px var(--ready-glow)}}
-    @keyframes readyIconPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-    @keyframes readyDotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.72)}}
-    @keyframes readyCountdown{from{transform:scaleX(1)}to{transform:scaleX(0)}}
-    @media(max-width:600px){
-      #readyBannerStack{top:72px;width:calc(100vw - 18px);gap:8px}
-      .ready-card{border-radius:18px;padding:13px 12px 11px}
-      .ready-card-icon{width:44px;height:44px;border-radius:14px;font-size:24px}
-      .ready-card-table{font-size:29px}
-      .ready-card-item{font-size:15px}
-    }
-  `;
-  document.head.appendChild(st);
-}
-function ensureReadyBannerStack(){
-  ensureReadyBannerStyles();
-  let stack=document.getElementById("readyBannerStack");
-  if(!stack){
-    stack=document.createElement("div");
-    stack.id="readyBannerStack";
-    document.body.appendChild(stack);
-  }
-  return stack;
-}
-function dismissReadyBanner(id){
-  const el=id?document.getElementById(id):document.querySelector("#readyBannerStack .ready-card");
-  if(!el)return;
-  el.classList.add("ready-exit");
-  setTimeout(()=>{try{el.remove();}catch(e){}},180);
-}
-function openReadyFromBanner(id,type){
-  dismissReadyBanner(id);
-  try{openReadyModal(type);}catch(e){}
-}
-function hasRecentReadyBanner(tableNum,type,ms=3500){
-  const t=READY_BANNER_RECENT.get(`station:${type}:table:${tableNum}`)||0;
-  return Date.now()-t<ms;
-}
 function showBanner(tableNum,type,itemName,qty){
+  const old=document.getElementById("readyBanner");
+  if(old)old.remove();
   const isFood=type==="food";
-  const stationType=isFood?"food":"drink";
-  const key=`${stationType}|${tableNum}|${itemName||""}|${qty||""}`;
-  const now=Date.now();
-  if(now-(READY_BANNER_RECENT.get(key)||0)<2500)return;
-  READY_BANNER_RECENT.set(key,now);
-  READY_BANNER_RECENT.set(`station:${stationType}:table:${tableNum}`,now);
-
-  const stack=ensureReadyBannerStack();
-  while(stack.children.length>=4){
-    try{stack.lastElementChild.remove();}catch(e){break;}
-  }
-
   const color=isFood?"var(--gold)":"var(--tel)";
-  const soft=isFood?"rgba(201,168,76,.18)":"rgba(74,158,255,.18)";
-  const glow=isFood?"rgba(201,168,76,.38)":"rgba(74,158,255,.38)";
-  const btnText=isFood?"#161616":"#06121c";
-  const label=isFood?"Кујна":"Бар";
-  const icon=isFood?"🍽":"🍹";
+  const label=isFood?"🍽 Кујна":"🍹 Бар";
   const text=itemName?`${qty||1}x ${itemName}`:"Нарачката е готова";
-  const id=`readyBanner-${++READY_BANNER_SEQ}`;
-
   const d=document.createElement("div");
-  d.id=id;
-  d.className=`ready-card ${isFood?"ready-food":"ready-drink"}`;
-  d.style.setProperty("--ready-color",color);
-  d.style.setProperty("--ready-soft",soft);
-  d.style.setProperty("--ready-glow",glow);
-  d.style.setProperty("--ready-button-text",btnText);
-  d.innerHTML=`
-    <button class="ready-card-close" onclick="dismissReadyBanner('${id}')" aria-label="Затвори">×</button>
-    <div class="ready-card-top">
-      <div class="ready-card-icon">${icon}</div>
-      <div style="flex:1;min-width:0">
-        <div class="ready-card-pill"><span class="ready-card-dot"></span>${label} — ГОТОВО</div>
-        <div class="ready-card-table">Маса ${escReadyHtml(tableNum)}</div>
-        <div class="ready-card-item">${escReadyHtml(text)}</div>
-        <div class="ready-card-sub">Нарачката е спремна за подигнување.</div>
-      </div>
-    </div>
-    <div class="ready-card-actions">
-      <button class="ready-card-primary" onclick="openReadyFromBanner('${id}','${stationType}')">Отвори</button>
-      <button class="ready-card-secondary" onclick="dismissReadyBanner('${id}')">Видов</button>
-    </div>
-    <div class="ready-progress"><div></div></div>`;
-  stack.prepend(d);
+  d.id="readyBanner";
+  d.style.cssText=`position:fixed;top:70px;right:12px;z-index:9999;background:var(--dark);border:2px solid ${color};border-radius:12px;padding:12px 16px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:slideIn .3s ease`;
+  d.innerHTML=`<div style="color:${color};font-size:11px;font-weight:700;font-family:'Unbounded',sans-serif;letter-spacing:1px;margin-bottom:4px">${label} — ГОТОВО</div><div style="color:var(--text);font-size:13px;font-weight:600;margin-bottom:2px">Маса ${tableNum}</div><div style="color:var(--mut);font-size:11px">${text}</div><button onclick="this.closest('#readyBanner').remove()" style="position:absolute;top:8px;right:8px;background:transparent;border:none;color:var(--mut);font-size:16px;cursor:pointer;line-height:1">×</button>`;
+  document.body.appendChild(d);
+  setTimeout(()=>{try{d.remove();}catch(e){}},8000);
+}
 
+// ===== STATION AUTO-REFRESH + ALERTS =====
+const STATION_SEEN_PENDING={food:new Set(),drink:new Set()};
+const STATION_BOOTSTRAPPED={food:false,drink:false};
+function stationKind(type){return type==="food"?"kitchen":"bar";}
+function stationLabel(type){return type==="food"?"Кујна":"Бар";}
+function stationIcon(type){return type==="food"?"🍽":"🍹";}
+function handleStationNewPending(type,ords,alertNew){
   try{
-    if(navigator.vibrate)navigator.vibrate(isFood?[220,80,220]:[120,60,120,60,160]);
-  }catch(e){}
-  setTimeout(()=>dismissReadyBanner(id),14000);
+    const current=new Set();
+    const tables=new Set();
+    (ords||[]).forEach(o=>{
+      (o.order_items||[]).forEach(i=>{
+        if(i.type===type&&i.status==="pending"){
+          current.add(String(i.id));
+          tables.add(o.table_number);
+        }
+      });
+    });
+    const seen=STATION_SEEN_PENDING[type]||new Set();
+    const booted=!!STATION_BOOTSTRAPPED[type];
+    let added=0;
+    current.forEach(id=>{if(!seen.has(id))added++;});
+    STATION_SEEN_PENDING[type]=current;
+    STATION_BOOTSTRAPPED[type]=true;
+    if(alertNew&&booted&&added>0){
+      const list=[...tables].filter(x=>x!==undefined&&x!==null).slice(0,4).join(", ")||"-";
+      const more=tables.size>4?"…":"";
+      const msg=`${stationIcon(type)} Нова ${stationLabel(type).toLowerCase()} нарачка — Маса ${list}${more}`;
+      try{beep(stationKind(type));}catch(e){}
+      try{notify(`${stationIcon(type)} Нова ${stationLabel(type)}`,`Маса ${list}${more}`);}catch(e){}
+      try{toast(msg,"ok");}catch(e){}
+    }
+  }catch(e){console.warn("[STATION] alert state error:",e.message||e);}
 }
 
 // ===== KITCHEN =====
-async function loadK(){
+async function loadK(opts={}){
   try{
     const{data,error}=await sb.from("orders")
       .select("*,order_items(*)")
-      .eq("status","pending")
+      .in("status",["pending","preparing"])
       .order("created_at");
     if(error){console.error("[loadK] error:",error);return;}
-    const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="food"&&i.status==="pending"));
+    const ords=(data||[]).filter(o=>(o.order_items||[]).some(i=>i.type==="food"&&i.status==="pending"));
     console.log("[loadK] orders with pending food items:",ords.length);
     renderSt("kords",ords,"food","kitchen");
     document.getElementById("kcnt").textContent=ords.length+" активни";
+    handleStationNewPending("food",ords,!!opts.alertNew);
   }catch(e){console.error("[loadK] exception:",e);}
 }
 
 // ===== BAR =====
-async function loadB(){
+async function loadB(opts={}){
   try{
     const{data,error}=await sb.from("orders")
       .select("*,order_items(*)")
-      .eq("status","pending")
+      .in("status",["pending","preparing"])
       .order("created_at");
     if(error){console.error("[loadB] error:",error);return;}
-    const ords=(data||[]).filter(o=>o.order_items.some(i=>i.type==="drink"&&i.status==="pending"));
+    const ords=(data||[]).filter(o=>(o.order_items||[]).some(i=>i.type==="drink"&&i.status==="pending"));
     console.log("[loadB] orders with pending drink items:",ords.length);
     renderSt("bords",ords,"drink","bar");
     document.getElementById("bcnt").textContent=ords.length+" активни";
+    handleStationNewPending("drink",ords,!!opts.alertNew);
   }catch(e){console.error("[loadB] exception:",e);}
 }
 
@@ -2641,7 +2523,7 @@ async function markItemReady(itemId,ordId,stn,btn){
         console.warn("[PUSH] markItemReady: order has no kelner_id");
       }
     }
-    if(stn==="kitchen")loadK();else loadB();
+    if(stn==="kitchen")loadK({alertNew:false});else loadB({alertNew:false});
   }catch(e){
     toast("Грешка: "+e.message,"err");
     btn.disabled=false;btn.textContent="Готово";
@@ -2682,7 +2564,7 @@ async function markR(oid,stn){
       }
     }
     toast("Нарачката е готова!","ok");
-    if(stn==="kitchen")loadK();else loadB();
+    if(stn==="kitchen")loadK({alertNew:false});else loadB({alertNew:false});
   }catch(e){toast("Грешка: "+e.message,"err");}
 }
 
@@ -2703,8 +2585,8 @@ async function keepScreenOn(){
   heartbeatInterval=setInterval(async()=>{
     pulse();
     if(wakeLock&&wakeLock.released){try{wakeLock=await navigator.wakeLock.request("screen");}catch(e){}}
-    if(U&&U.role==="kuvar")loadK();
-    if(U&&U.role==="barmen")loadB();
+    if(U&&U.role==="kuvar")loadK({alertNew:true});
+    if(U&&U.role==="barmen")loadB({alertNew:true});
     if(U&&U.role==="kelner")loadReadyCenter();
     if(U&&isAdminLike&&isAdminLike())scheduleAdminSync();
   },25000);
@@ -2728,8 +2610,8 @@ document.addEventListener("visibilitychange",async()=>{
   if(!U)return;
   if(document.visibilityState==="visible"){
     syncPushForCurrentLogin({silent:true,requestPermission:false});
-    if(U.role==="kuvar")loadK();
-    if(U.role==="barmen")loadB();
+    if(U.role==="kuvar")loadK({alertNew:true});
+    if(U.role==="barmen")loadB({alertNew:true});
     if(U.role==="kelner")loadAmt();
     if(isAdminLike&&isAdminLike())scheduleAdminSync();
     if("wakeLock"in navigator&&(!wakeLock||wakeLock.released)){try{wakeLock=await navigator.wakeLock.request("screen");}catch(e){}}
@@ -3068,16 +2950,22 @@ async function renderAdminDashboard(){
   setTxt("topItem",topI?topI[0]:"—");
   setTxt("topItemCnt",topI?topI[1]+" пати нарачан":"0 пати нарачан");
 
-  // 7-day revenue chart
+  // 7-day revenue chart with visible day totals.
   const dayTotals={};
-  for(let i=6;i>=0;i--){const d=addDays(today,-i);dayTotals[dateKey(d)]=0;}
-  weekOrders.forEach(o=>{const k=dateKey(new Date(o.created_at));if(dayTotals[k]!==undefined)dayTotals[k]+=Number(o.total_amount||0);});
-  const max=Math.max(1,...Object.values(dayTotals));
+  for(let i=6;i>=0;i--){const d=addDays(today,-i);dayTotals[dateKey(d)]={date:d,total:0};}
+  weekOrders.forEach(o=>{const k=dateKey(new Date(o.created_at));if(dayTotals[k])dayTotals[k].total+=Number(o.total_amount||0);});
+  const max=Math.max(1,...Object.values(dayTotals).map(x=>x.total));
   let ch="";
-  Object.entries(dayTotals).forEach(([k,v])=>{
-    const d=dateInputStart(k);const h=Math.max(3,Math.round(v/max*82));
+  Object.entries(dayTotals).forEach(([k,obj])=>{
+    const v=Number(obj.total||0);
+    const h=Math.max(4,Math.round(v/max*78));
     const isToday=k===dateKey(today);
-    ch+=`<div class="cbw" title="${safeText(fmtMoney(v))} ден."><div class="cb ${isToday?"td":""}" style="height:${h}px"></div><div class="cdy">${d.toLocaleDateString("mk-MK",{day:"2-digit",month:"2-digit"})}</div></div>`;
+    const amount=v?fmtMoney(v):"0";
+    ch+=`<div class="cbw" title="${safeText(amount)} ден." style="height:118px;justify-content:flex-end;gap:5px">
+      <div style="color:${isToday?"var(--gold)":"var(--mut)"};font-size:9px;font-weight:800;min-height:13px;white-space:nowrap">${safeText(amount)}</div>
+      <div class="cb ${isToday?"td":""}" style="height:${h}px;box-shadow:${isToday?"0 0 12px rgba(201,168,76,.28)":"none"}"></div>
+      <div class="cdy" style="${isToday?"color:var(--gold);font-weight:700":""}">${obj.date.toLocaleDateString("mk-MK",{day:"2-digit",month:"2-digit"})}</div>
+    </div>`;
   });
   setHTML("rchart",ch);
 
@@ -3087,8 +2975,8 @@ async function renderAdminDashboard(){
   const zoneCards=Object.values(zoneMap).sort((a,b)=>b.total-a.total).map(z=>`<div class="sc"><div class="scl" style="color:${safeText(z.color)}">${safeText(z.name)}</div><div class="scv" style="font-size:18px;color:${safeText(z.color)}">${fmtMoney(z.total)}</div><div class="scs">${z.orders} нар. · ${z.tables.size} маси</div></div>`).join("");
   setHTML("zStats",zoneCards||`<div style="color:var(--dim);font-size:12px;padding:10px">Нема податоци</div>`);
 
-  const rows=todayOrders.slice(0,60).map(o=>`<tr><td>М${safeText(o.table_number)}</td><td>${safeText(o.kelner_name||"-")}</td><td>${safeText(o.zone_name||"-")}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(o.total_amount)} ден.</td><td><span class="tag ${statusClass(o.status)}">${statusLabel(o.status)}</span></td><td>${new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td></tr>`).join("");
-  setHTML("todayT",rows||`<tr><td colspan="6" style="color:var(--dim);text-align:center;padding:18px">Нема нарачки денес</td></tr>`);
+  const rows=todayOrders.slice(0,60).map(o=>`<tr><td>М${safeText(o.table_number)}</td><td>${safeText(o.kelner_name||"-")}</td><td>${safeText(o.zone_name||"-")}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(o.total_amount)} ден.</td><td><span class="tag ${statusClass(o.status)}">${statusLabel(o.status)}</span></td><td>${new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td><td><button class="act" onclick="openCorrection('${o.id}')">Корекција</button></td></tr>`).join("");
+  setHTML("todayT",rows||`<tr><td colspan="7" style="color:var(--dim);text-align:center;padding:18px">Нема нарачки денес</td></tr>`);
 
   setTxt("liveTicker",`Синхронизирано ${new Date().toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit",second:"2-digit"})} · ${activeOrders.length} активни нарачки · ${todayOrders.length} денес · ${fmtMoney(rev)} ден.`);
 }
@@ -3294,132 +3182,271 @@ async function loadRep(){
   setHTML("perfT",Object.values(perf).sort((a,b)=>b.total-a.total).map(p=>`<tr><td>${safeText(p.name)}</td><td><span class="tag tkl">Келнер</span></td><td>${p.orders}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(p.total)} ден.</td></tr>`).join("")||`<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:18px">Нема податоци</td></tr>`);
 }
 
+
+function corrMenuItems(){
+  const src=(ADM_ITM&&ADM_ITM.length?ADM_ITM:ITM)||[];
+  return src.slice().sort((a,b)=>
+    (a.type||"").localeCompare(b.type||"")||
+    String(a.name||"").localeCompare(String(b.name||""),"mk")
+  );
+}
+async function ensureCorrMenu(){
+  if(!ADM_ITM||!ADM_ITM.length){
+    try{await loadAdminCatalog();}catch(e){console.warn("[CORR] menu catalog load failed",e);}
+  }
+  return corrMenuItems();
+}
+function corrRowKey(it,idx){return it._key||it.id||("new-"+idx);}
+function getCorrItemByKey(key){
+  return (CORR.items||[]).find(x=>String(x._key||x.id)===String(key));
+}
+function corrVisibleItems(){return (CORR.items||[]).filter(it=>!it._deleted);}
+function corrStatusForNewItem(){
+  const st=CORR.order?.status;
+  return (st==="served"||st==="ready")?st:"pending";
+}
 async function openCorrection(orderId){
-  const res=await sb.from("orders").select("*,order_items(id,menu_item_name,quantity,price,type,status,notes)").eq("id",orderId).single();
+  if(!isAdminLike()){toast("Само Администратор / Менаџер може корекција","err");return;}
+  await ensureCorrMenu();
+  const res=await sb.from("orders").select("*,order_items(id,menu_item_id,menu_item_name,quantity,price,type,notes,status)").eq("id",orderId).single();
   if(res.error){toast(res.error.message,"err");return;}
-  CORR={order:res.data,items:(res.data.order_items||[]).map(x=>({...x}))};
-  document.getElementById("corrMeta").innerHTML=`Маса <b style="color:var(--text)">${safeText(res.data.table_number)}</b> · Келнер <b style="color:var(--text)">${safeText(res.data.kelner_name||"-")}</b> · ${new Date(res.data.created_at).toLocaleString("mk-MK")}`;
-  let h="";
-  CORR.items.forEach(it=>{
-    h+=`<div style="display:grid;grid-template-columns:1fr 76px 92px;gap:8px;align-items:center;background:var(--d2);border:1px solid var(--bdr);border-radius:8px;padding:9px;margin-bottom:7px"><div><div style="font-size:13px;font-weight:700;color:var(--text)">${safeText(it.menu_item_name)}</div><div style="font-size:10px;color:var(--mut)">${it.type==="drink"?"Пијалок":"Јадење"} · ${statusLabel(it.status)}</div></div><input id="cq-${it.id}" class="fi" type="number" min="0" value="${Number(it.quantity||0)}" oninput="updateCorrTotal()" style="padding:7px;text-align:center"><input id="cp-${it.id}" class="fi" type="number" min="0" step="0.01" value="${Number(it.price||0)}" oninput="updateCorrTotal()" style="padding:7px;text-align:right"></div>`;
-  });
-  setHTML("corrItems",h||`<div style="color:var(--dim);text-align:center;padding:18px">Нема артикли</div>`);
-  updateCorrTotal();
+  CORR={
+    order:res.data,
+    items:(res.data.order_items||[]).map((x,i)=>({
+      ...x,
+      _key:x.id||("old-"+i),
+      _new:false,
+      _deleted:false,
+      menu_item_id:x.menu_item_id||""
+    }))
+  };
+  document.getElementById("corrMeta").innerHTML=
+    `Маса <b style="color:var(--text)">М${safeText(res.data.table_number)}</b> · `+
+    `Келнер <b style="color:var(--text)">${safeText(res.data.kelner_name||"-")}</b> · `+
+    `Статус <b style="color:var(--text)">${safeText(statusLabel(res.data.status))}</b> · `+
+    `${new Date(res.data.created_at).toLocaleString("mk-MK")}`;
+  renderCorrection();
   document.getElementById("corrMod").classList.add("on");
+}
+function renderCorrection(){
+  const menu=corrMenuItems();
+  const visible=corrVisibleItems();
+  if(!visible.length){
+    setHTML("corrItems",`<div style="color:var(--dim);text-align:center;padding:20px;border:1px dashed var(--bdr);border-radius:10px">Нема артикли. Кликни „+ Додај производ“.</div>`);
+    updateCorrTotal();
+    return;
+  }
+  const opts=menu.map(m=>`<option value="${safeText(m.id)}">${safeText(m.type==="drink"?"🍹":"🍽")} ${safeText(m.name)} — ${fmtMoney(m.price)} ден.</option>`).join("");
+  let h="";
+  visible.forEach((it,idx)=>{
+    const key=corrRowKey(it,idx);
+    const typeLabel=it.type==="drink"?"Пијалок / Бар":"Јадење / Кујна";
+    h+=`<div data-corr-key="${safeText(key)}" style="background:var(--d2);border:1px solid ${it._new?"var(--grn)":"var(--bdr)"};border-radius:10px;padding:10px;margin-bottom:9px">
+      <div style="display:grid;grid-template-columns:1fr 76px 92px 38px;gap:8px;align-items:center">
+        <div>
+          <label style="display:block;color:var(--dim);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Производ</label>
+          <select class="fs" onchange="corrChangeProduct('${safeText(key)}',this.value)" style="width:100%;padding:8px">${opts}</select>
+        </div>
+        <div>
+          <label style="display:block;color:var(--dim);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Кол.</label>
+          <input class="fi" id="cq-${safeText(key)}" type="number" min="0" step="1" value="${Number(it.quantity||1)}" oninput="corrUpdateQty('${safeText(key)}',this.value)" style="padding:8px;text-align:center">
+        </div>
+        <div>
+          <label style="display:block;color:var(--dim);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Цена</label>
+          <input class="fi" id="cp-${safeText(key)}" type="number" min="0" step="0.01" value="${Number(it.price||0)}" oninput="corrUpdatePrice('${safeText(key)}',this.value)" style="padding:8px;text-align:right">
+        </div>
+        <button onclick="removeCorrectionItem('${safeText(key)}')" title="Отстрани производ" style="align-self:end;height:36px;background:rgba(232,64,64,.10);border:1px solid var(--red);color:var(--red);border-radius:8px;font-size:18px;font-weight:800;cursor:pointer">×</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:7px;color:var(--mut);font-size:11px">
+        <span>${safeText(typeLabel)} · ${it._new?"Нов артикл":safeText(statusLabel(it.status||CORR.order?.status||"pending"))}</span>
+        <span id="cl-${safeText(key)}" style="color:var(--gold);font-weight:700">${fmtMoney(Number(it.quantity||0)*Number(it.price||0))} ден.</span>
+      </div>
+    </div>`;
+  });
+  setHTML("corrItems",h);
+  visible.forEach((it,idx)=>{
+    const key=corrRowKey(it,idx);
+    const rowEl=[...document.querySelectorAll("[data-corr-key]")].find(el=>el.getAttribute("data-corr-key")===String(key));
+    const sel=rowEl?rowEl.querySelector("select"):null;
+    if(sel){
+      const desired=it.menu_item_id||"";
+      if(desired&&[...sel.options].some(o=>o.value===desired))sel.value=desired;
+      else{
+        const found=corrMenuItems().find(m=>m.name===it.menu_item_name&&Number(m.price)==Number(it.price));
+        if(found){sel.value=found.id;it.menu_item_id=found.id;}
+      }
+    }
+  });
+  updateCorrTotal();
+}
+function corrChangeProduct(key,itemId){
+  const it=getCorrItemByKey(key);if(!it)return;
+  const m=corrMenuItems().find(x=>String(x.id)===String(itemId));if(!m)return;
+  it.menu_item_id=m.id;
+  it.menu_item_name=m.name;
+  it.price=Number(m.price||0);
+  it.type=m.type||"food";
+  renderCorrection();
+}
+function corrUpdateQty(key,value){
+  const it=getCorrItemByKey(key);if(!it)return;
+  it.quantity=Math.max(0,Number(value||0));
+  updateCorrTotal();
+}
+function corrUpdatePrice(key,value){
+  const it=getCorrItemByKey(key);if(!it)return;
+  it.price=Math.max(0,Number(value||0));
+  updateCorrTotal();
+}
+async function addCorrectionItem(){
+  await ensureCorrMenu();
+  const menu=corrMenuItems();
+  if(!menu.length){toast("Нема мени артикли за додавање","err");return;}
+  const m=menu.find(x=>x.available!==false)||menu[0];
+  const key="new-"+Date.now()+"-"+Math.random().toString(16).slice(2);
+  CORR.items.push({
+    _key:key,
+    _new:true,
+    _deleted:false,
+    id:null,
+    menu_item_id:m.id,
+    menu_item_name:m.name,
+    quantity:1,
+    price:Number(m.price||0),
+    type:m.type||"food",
+    notes:"",
+    status:corrStatusForNewItem()
+  });
+  renderCorrection();
+}
+function removeCorrectionItem(key){
+  const it=getCorrItemByKey(key);if(!it)return;
+  if(!confirm("Отстрани го овој производ од нарачката?"))return;
+  if(it._new){
+    CORR.items=CORR.items.filter(x=>String(x._key)!==String(key));
+  }else{
+    it._deleted=true;
+  }
+  renderCorrection();
 }
 function updateCorrTotal(){
   let total=0;
-  (CORR.items||[]).forEach(it=>{const q=Number(document.getElementById("cq-"+it.id)?.value||0);const pr=Number(document.getElementById("cp-"+it.id)?.value||0);if(q>0&&pr>=0)total+=q*pr;});
+  corrVisibleItems().forEach((it,idx)=>{
+    const key=corrRowKey(it,idx);
+    const q=Number(document.getElementById("cq-"+key)?.value ?? it.quantity ?? 0);
+    const pr=Number(document.getElementById("cp-"+key)?.value ?? it.price ?? 0);
+    it.quantity=Math.max(0,q);
+    it.price=Math.max(0,pr);
+    const line=it.quantity*it.price;
+    total+=line;
+    setTxt("cl-"+key,fmtMoney(line)+" ден.");
+  });
   setTxt("corrTotal",fmtMoney(total)+" ден.");
+  return total;
 }
 async function saveCorrection(){
-  if(!CORR.order)return;
-  let total=0;
-  for(const it of CORR.items){
-    const q=Number(document.getElementById("cq-"+it.id)?.value||0);
-    const pr=Number(document.getElementById("cp-"+it.id)?.value||0);
-    if(q<=0){await sb.from("order_items").delete().eq("id",it.id);continue;}
-    total+=q*pr;
-    const res=await sb.from("order_items").update({quantity:q,price:pr,updated_at:new Date().toISOString()}).eq("id",it.id);
-    if(res.error){toast(res.error.message,"err");return;}
+  if(!CORR.order){toast("Нема отворена нарачка за корекција","err");return;}
+  if(!isAdminLike()){toast("Само Администратор / Менаџер може корекција","err");return;}
+  const btn=document.getElementById("corrSaveBtn");
+  const oldText=btn?btn.innerHTML:"";
+  if(btn){btn.disabled=true;btn.style.opacity=".65";btn.innerHTML="Се зачувува...";}
+  try{
+    updateCorrTotal();
+    const visible=corrVisibleItems().filter(it=>Number(it.quantity||0)>0);
+    if(!visible.length){
+      if(!confirm("Нарачката нема артикли. Да ја избришам целата нарачка?"))return;
+      const delItems=await sb.from("order_items").delete().eq("order_id",CORR.order.id);
+      if(delItems.error)throw delItems.error;
+      const delOrd=await sb.from("orders").delete().eq("id",CORR.order.id);
+      if(delOrd.error)throw delOrd.error;
+      closeM("corrMod");
+      toast("Нарачката е избришана","ok");
+      await loadAll();
+      await loadAdmin({silent:true});
+      if(ADMIN_TAB==="rep")await loadRep();
+      return;
+    }
+    for(const it of CORR.items||[]){
+      if(it._deleted&&!it._new&&it.id){
+        const del=await sb.from("order_items").delete().eq("id",it.id);
+        if(del.error)throw del.error;
+      }
+    }
+    for(const it of visible){
+      const payload={
+        menu_item_id:it.menu_item_id||null,
+        menu_item_name:it.menu_item_name||"Артикл",
+        quantity:Number(it.quantity||0),
+        price:Number(it.price||0),
+        type:it.type||"food",
+        notes:it.notes||"",
+        status:it.status||corrStatusForNewItem()
+      };
+      if(it._new||!it.id){
+        const ins=await sb.from("order_items").insert({...payload,order_id:CORR.order.id});
+        if(ins.error)throw ins.error;
+      }else{
+        const upd=await sb.from("order_items").update(payload).eq("id",it.id);
+        if(upd.error)throw upd.error;
+      }
+    }
+    const total=visible.reduce((s,it)=>s+Number(it.quantity||0)*Number(it.price||0),0);
+    const orderPayload={
+      total_amount:total,
+      corrected_by:U?.name||U?.username||"admin",
+      corrected_at:new Date().toISOString(),
+      updated_at:new Date().toISOString()
+    };
+    if(CORR.order.original_amount==null)orderPayload.original_amount=Number(CORR.order.total_amount||0);
+    const ord=await sb.from("orders").update(orderPayload).eq("id",CORR.order.id);
+    if(ord.error)throw ord.error;
+    closeM("corrMod");
+    toast("Корекцијата е зачувана","ok");
+    await loadAll();
+    await loadAdmin({silent:true});
+    if(ADMIN_TAB==="rep")await loadRep();
+    if(U&&U.role==="kelner"){try{await loadAmt();renderK();}catch(e){}}
+  }catch(e){
+    console.error("[CORR] save failed",e);
+    toast("Корекција грешка: "+(e.message||e),"err");
+  }finally{
+    if(btn){btn.disabled=false;btn.style.opacity="1";btn.innerHTML=oldText;}
   }
-  if(total<=0){
-    if(!confirm("Нарачката има 0 денари. Да ја избришам целата нарачка?"))return;
-    const del=await sb.from("orders").delete().eq("id",CORR.order.id);
-    if(del.error){toast(del.error.message,"err");return;}
-  }else{
-    const payload={total_amount:total,corrected_by:U?.name||"admin",corrected_at:new Date().toISOString(),updated_at:new Date().toISOString()};
-    if(CORR.order.original_amount==null)payload.original_amount=Number(CORR.order.total_amount||0);
-    const upd=await sb.from("orders").update(payload).eq("id",CORR.order.id);
-    if(upd.error){toast(upd.error.message,"err");return;}
-  }
-  closeM("corrMod");toast("Корекцијата е зачувана","ok");await loadAdmin({silent:true});if(ADMIN_TAB==="rep")await loadRep();
 }
 
 // ===== REALTIME SUBSCRIPTIONS =====
 function subRT(){
   console.log("[RT] Creating realtime channel...");
+  const ch = sb.channel("roms-"+Date.now());
 
-  const STATION_ALERT_RECENT=new Map();
-  function currentStationType(){
-    if(U?.role==="kuvar")return "food";
-    if(U?.role==="barmen")return "drink";
-    return "";
-  }
-  function scheduleStationRefresh(stationType){
-    const isFood=stationType==="food";
-    const delays=[0,350,900,1800,3200,5200];
+  function refreshStationSoon(alertNew=true){
+    const delays=[0,250,750,1500,3000,5000];
     delays.forEach(ms=>setTimeout(()=>{
       try{
-        if(isFood&&U?.role==="kuvar")loadK();
-        if(!isFood&&U?.role==="barmen")loadB();
+        if(U?.role==="kuvar")loadK({alertNew});
+        if(U?.role==="barmen")loadB({alertNew});
       }catch(e){console.error("[RT] station refresh error:",e);}
     },ms));
   }
-  async function stationOrderAlert(orderId,tableNumber,stationType){
-    const isFood=stationType==="food";
-    scheduleStationRefresh(stationType);
-    const key=`${U?.id||""}|${stationType}|${orderId||tableNumber||""}`;
-    const now=Date.now();
-    if(now-(STATION_ALERT_RECENT.get(key)||0)<15000)return;
-    STATION_ALERT_RECENT.set(key,now);
-    try{beep(isFood?"kitchen":"bar");}catch(e){}
-    try{notify(isFood?"🍽 Нова кујна":"🍹 Нова бар","Маса "+(tableNumber||"-"));}catch(e){}
-    try{toast((isFood?"Нова кујна нарачка":"Нова бар нарачка")+" — Маса "+(tableNumber||"-"),"ok");}catch(e){}
-  }
-  async function orderTableNumber(orderId,fallback){
-    if(fallback)return fallback;
-    try{
-      const{data}=await sb.from("orders").select("table_number").eq("id",orderId).maybeSingle();
-      return data?.table_number||"-";
-    }catch(e){return "-";}
-  }
-  async function getOrderItemTypesForRealtime(orderId,retries=6,delayMs=300){
-    for(let attempt=0;attempt<retries;attempt++){
-      try{
-        const{data,error}=await sb.from("order_items").select("type,status").eq("order_id",orderId);
-        if(error)throw error;
-        const rows=(data||[]).filter(i=>i&&i.type);
-        if(rows.length)return [...new Set(rows.map(i=>String(i.type)))];
-      }catch(e){
-        console.warn("[RT] getOrderItemTypesForRealtime attempt",attempt+1,"failed:",e.message||e);
-      }
-      if(attempt<retries-1)await new Promise(r=>setTimeout(r,delayMs));
-    }
-    return [];
-  }
 
-  const ch = sb.channel("roms-"+Date.now());
-
-  // NEW ORDER → station dashboards must refresh automatically.
-  // The order row can arrive before order_items exist, so we refresh in a short burst.
-  // Chime/toast fires ONLY after we confirm the order contains the station's item type.
+  // Orders INSERT can arrive before order_items exist. Refresh in bursts, but do not
+  // chime here directly. loadK/loadB compare NEW pending item IDs and chime only
+  // for the correct station after the items are actually visible.
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"orders"},async p=>{
     console.log("[RT] INSERT orders:", p.new?.table_number, "role:", U?.role);
     try{
-      if(!U||!p.new)return;
-      const station=currentStationType();
-      if(station){
-        scheduleStationRefresh(station);
-        const types=await getOrderItemTypesForRealtime(p.new.id,12,400);
-        if(U.role==="kuvar"&&types.includes("food")){
-          await stationOrderAlert(p.new.id,p.new.table_number,"food");
-        }
-        if(U.role==="barmen"&&types.includes("drink")){
-          await stationOrderAlert(p.new.id,p.new.table_number,"drink");
-        }
-      }
+      if(!U)return;
+      if(U.role==="kuvar"||U.role==="barmen")refreshStationSoon(true);
       if(U.role==="kelner"){try{loadAmt();}catch(e){}}
-    }catch(e){console.error("[RT] INSERT handler error:",e);}
+    }catch(e){console.error("[RT] INSERT orders handler error:",e);}
   });
 
-  // ORDER UPDATED
+  // Orders UPDATE is now the reliable signal after a kelner sends the items.
   ch.on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders"},async p=>{
     console.log("[RT] UPDATE orders:", p.new?.id, "status:", p.new?.status);
     try{
       if(!U)return;
-      if(U.role==="kuvar"){try{await loadK();}catch(e){console.error("[RT] loadK error:",e);}}
-      if(U.role==="barmen"){try{await loadB();}catch(e){console.error("[RT] loadB error:",e);}}
+      if(U.role==="kuvar"||U.role==="barmen")refreshStationSoon(true);
       if(U.role==="kelner"){
         try{loadAmt();}catch(e){}
         if(!p.new||p.new.kelner_id!==U.id)return;
@@ -3428,8 +3455,8 @@ function subRT(){
           try{
             const{data:ord}=await sb.from("orders").select("table_number,order_items(type)").eq("id",p.new.id).single();
             if(ord){
-              if(ord.order_items?.some(i=>i.type==="food")&&!hasRecentReadyBanner(ord.table_number,"food",3500))showBanner(ord.table_number,"food");
-              if(ord.order_items?.some(i=>i.type==="drink")&&!hasRecentReadyBanner(ord.table_number,"drink",3500))showBanner(ord.table_number,"drink");
+              if(ord.order_items?.some(i=>i.type==="food"))showBanner(ord.table_number,"food");
+              if(ord.order_items?.some(i=>i.type==="drink"))showBanner(ord.table_number,"drink");
             }
           }catch(e){console.error("[RT] banner error:",e);}
         }
@@ -3437,18 +3464,13 @@ function subRT(){
     }catch(e){console.error("[RT] UPDATE orders handler error:",e);}
   });
 
-  // ORDER ITEM INSERTED → this is the most reliable signal that kitchen/bar items exist.
+  // If order_items realtime is enabled, this catches the station even faster.
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"order_items"},async p=>{
+    console.log("[RT] INSERT order_items:", p.new?.id, p.new?.type, "role:", U?.role);
     try{
       if(!U||!p.new)return;
-      if(U.role==="kuvar"&&p.new.type==="food"){
-        const tn=await orderTableNumber(p.new.order_id);
-        await stationOrderAlert(p.new.order_id,tn,"food");
-      }
-      if(U.role==="barmen"&&p.new.type==="drink"){
-        const tn=await orderTableNumber(p.new.order_id);
-        await stationOrderAlert(p.new.order_id,tn,"drink");
-      }
+      if(U.role==="kuvar"&&p.new.type==="food")refreshStationSoon(true);
+      if(U.role==="barmen"&&p.new.type==="drink")refreshStationSoon(true);
     }catch(e){console.error("[RT] INSERT order_items handler error:",e);}
   });
 
@@ -3457,8 +3479,8 @@ function subRT(){
     console.log("[RT] UPDATE order_items:", p.new?.id, "status:", p.new?.status);
     try{
       if(!U||!p.new)return;
-      if(U.role==="kuvar"){try{await loadK();}catch(e){}return;}
-      if(U.role==="barmen"){try{await loadB();}catch(e){}return;}
+      if(U.role==="kuvar"){try{await loadK({alertNew:false});}catch(e){}return;}
+      if(U.role==="barmen"){try{await loadB({alertNew:false});}catch(e){}return;}
       if(U.role==="kelner"){
         try{
           const{data:ord}=await sb.from("orders").select("table_number,kelner_id").eq("id",p.new.order_id).single();
@@ -3485,8 +3507,12 @@ function subRT(){
     console.log("[RT] Channel status:",status, err||"");
     if(status==="SUBSCRIBED"){
       console.log("[RT] ✅ Realtime connected successfully");
+      try{
+        if(U?.role==="kuvar")loadK({alertNew:false});
+        if(U?.role==="barmen")loadB({alertNew:false});
+      }catch(e){}
     }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){
-      console.warn("[RT] ⚠️ Channel problem:",status,"- will reconnect in 20s");
+      console.warn("[RT] ⚠️ Channel problem:",status,"- polling backup stays active");
     }
   });
 
@@ -3499,19 +3525,20 @@ setInterval(async()=>{
   if(RT&&RT.state==="closed"){
     try{sb.removeChannel(RT);}catch(e){}
     RT=subRT();
-    if(U.role==="kuvar")loadK();
-    if(U.role==="barmen")loadB();
+    if(U.role==="kuvar")loadK({alertNew:true});
+    if(U.role==="barmen")loadB({alertNew:true});
     if(isAdminLike&&isAdminLike())scheduleAdminSync();
   }
 },20000);
 
-// Kitchen/bar polling backup: realtime is primary, this catches missed mobile websocket events.
+// Kitchen/bar polling backup: this is the safety net if mobile websocket events are missed.
+// It also detects new pending item IDs and gives the correct station toast/chime.
 setInterval(()=>{
   try{
-    if(U&&U.role==="kuvar")loadK();
-    if(U&&U.role==="barmen")loadB();
+    if(U&&U.role==="kuvar")loadK({alertNew:true});
+    if(U&&U.role==="barmen")loadB({alertNew:true});
   }catch(e){}
-},7000);
+},3000);
 
 // Kelner ready center 5s polling backup
 setInterval(()=>{if(U&&U.role==="kelner")loadReadyCenter();},5000);
