@@ -398,7 +398,10 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
   <div class="klyt">
     <div class="kleft">
       <div class="sbar">
-        <div class="sinfo">Келнер: <b id="kelnerName">-</b> | Смена: <b id="stime">-</b> | Зона: <b id="szone">-</b> | Моја смена: <b id="kelnerTotal" onclick="openShiftHistory()" style="cursor:pointer">0 ден.</b></div>
+        <div style="min-width:0;flex:1">
+          <div class="sinfo">Келнер: <b id="kelnerName">-</b> | Смена: <b id="stime">-</b></div>
+          <div class="sinfo" style="margin-top:4px;font-size:10px">Зона: <b id="szone">-</b> | Моја смена: <b id="kelnerTotal" onclick="openShiftHistory()" style="cursor:pointer">0 ден.</b></div>
+        </div>
         <button class="esb" onclick="endShift()">Крај</button>
       </div>
 
@@ -944,7 +947,7 @@ function showApp(){
     document.getElementById("kelnerScreen").classList.add("active");
     document.getElementById("stime").textContent=ts;
     const kn=document.getElementById("kelnerName");
-    if(kn)kn.textContent=(U.username||U.name||"-");
+    if(kn)kn.textContent=(U.name||U.username||"-");
     renderK();RT=subRT();keepScreenOn();
   }else if(U.role==="kuvar"){
     document.getElementById("kujnaScreen").classList.add("active");
@@ -2379,37 +2382,110 @@ function showBanner(tableNum,type,itemName,qty){
 
 // ===== STATION AUTO-REFRESH + ALERTS =====
 const STATION_SEEN_PENDING={food:new Set(),drink:new Set()};
+const STATION_ALERTED_PENDING={food:new Set(),drink:new Set()};
 const STATION_BOOTSTRAPPED={food:false,drink:false};
 function stationKind(type){return type==="food"?"kitchen":"bar";}
 function stationLabel(type){return type==="food"?"Кујна":"Бар";}
 function stationIcon(type){return type==="food"?"🍽":"🍹";}
+function stationColor(type){return type==="food"?"var(--gold)":"var(--tel)";}
+function stationSoftColor(type){return type==="food"?"rgba(201,168,76,.16)":"rgba(74,158,255,.16)";}
+function ensureStationToastStack(){
+  let stack=document.getElementById("stationToastStack");
+  if(!stack){
+    stack=document.createElement("div");
+    stack.id="stationToastStack";
+    stack.style.cssText="position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:10050;width:min(calc(100vw - 22px),440px);display:flex;flex-direction:column;gap:8px;pointer-events:none";
+    document.body.appendChild(stack);
+  }
+  return stack;
+}
+function showStationToast(type,tables,count){
+  const stack=ensureStationToastStack();
+  const color=stationColor(type);
+  const soft=stationSoftColor(type);
+  const label=stationLabel(type);
+  const icon=stationIcon(type);
+  const tableText=(tables&&tables.length)?("Маса "+tables.slice(0,4).join(", ")+(tables.length>4?"…":"")):"Нова нарачка";
+  const itemText=count===1?"1 нов артикл":(count+" нови артикли");
+  const d=document.createElement("div");
+  d.className="station-toast-card";
+  d.style.cssText=`pointer-events:auto;background:linear-gradient(180deg,rgba(20,20,24,.98),rgba(12,12,15,.98));border:2px solid ${color};border-radius:16px;padding:12px 14px;box-shadow:0 16px 42px rgba(0,0,0,.48),0 0 0 1px ${soft} inset;animation:si .18s ease;position:relative;overflow:hidden`;
+  d.innerHTML=`
+    <button onclick="this.closest('.station-toast-card').remove()" aria-label="Затвори" style="position:absolute;top:7px;right:7px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;font-size:18px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center">×</button>
+    <div style="display:flex;gap:11px;align-items:center;padding-right:30px">
+      <div style="width:42px;height:42px;border-radius:13px;background:${soft};display:flex;align-items:center;justify-content:center;font-size:23px;flex-shrink:0">${icon}</div>
+      <div style="min-width:0;flex:1">
+        <div style="color:${color};font-size:11px;font-weight:900;font-family:'Unbounded',sans-serif;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:3px">НОВА ${label.toUpperCase()} НАРАЧКА</div>
+        <div style="color:var(--text);font-size:20px;font-weight:900;line-height:1.08;font-family:'Unbounded',sans-serif">${tableText}</div>
+        <div style="color:var(--mut);font-size:12px;margin-top:3px">${itemText} — отвори ја листата на нарачки.</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;height:3px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden"><div style="height:100%;background:${color};animation:stationToastCountdown 7s linear forwards"></div></div>`;
+  stack.prepend(d);
+  while(stack.children.length>3)stack.lastElementChild.remove();
+  if(!document.getElementById("stationToastStyle")){
+    const st=document.createElement("style");
+    st.id="stationToastStyle";
+    st.textContent="@keyframes stationToastCountdown{from{transform:scaleX(1);transform-origin:left center}to{transform:scaleX(0);transform-origin:left center}}";
+    document.head.appendChild(st);
+  }
+  setTimeout(()=>{try{d.remove();}catch(e){}},7000);
+}
+function stationAlert(type,tables,count){
+  const list=(tables||[]).filter(x=>x!==undefined&&x!==null);
+  const msg=`${stationIcon(type)} Нова ${stationLabel(type).toLowerCase()} нарачка — ${list.length?"Маса "+list.slice(0,4).join(", "):"нова маса"}${list.length>4?"…":""}`;
+  try{beep(stationKind(type));}catch(e){}
+  try{notify(`${stationIcon(type)} Нова ${stationLabel(type)}`,list.length?`Маса ${list.slice(0,4).join(", ")}`:"Нова нарачка");}catch(e){}
+  try{toast(msg,"ok");}catch(e){}
+  try{showStationToast(type,list,count||1);}catch(e){console.warn("[STATION] visual toast error:",e.message||e);}
+}
+function markStationItemAlerted(type,id){
+  if(!id)return false;
+  const key=String(id);
+  if(!STATION_ALERTED_PENDING[type])STATION_ALERTED_PENDING[type]=new Set();
+  if(STATION_ALERTED_PENDING[type].has(key))return false;
+  STATION_ALERTED_PENDING[type].add(key);
+  return true;
+}
 function handleStationNewPending(type,ords,alertNew){
   try{
     const current=new Set();
-    const tables=new Set();
+    const tablesByAdded=new Set();
+    const addedIds=[];
     (ords||[]).forEach(o=>{
       (o.order_items||[]).forEach(i=>{
         if(i.type===type&&i.status==="pending"){
-          current.add(String(i.id));
-          tables.add(o.table_number);
+          const id=String(i.id);
+          current.add(id);
+          if(alertNew && !STATION_SEEN_PENDING[type].has(id) && markStationItemAlerted(type,id)){
+            addedIds.push(id);
+            tablesByAdded.add(o.table_number);
+          }
         }
       });
     });
-    const seen=STATION_SEEN_PENDING[type]||new Set();
-    const booted=!!STATION_BOOTSTRAPPED[type];
-    let added=0;
-    current.forEach(id=>{if(!seen.has(id))added++;});
     STATION_SEEN_PENDING[type]=current;
     STATION_BOOTSTRAPPED[type]=true;
-    if(alertNew&&booted&&added>0){
-      const list=[...tables].filter(x=>x!==undefined&&x!==null).slice(0,4).join(", ")||"-";
-      const more=tables.size>4?"…":"";
-      const msg=`${stationIcon(type)} Нова ${stationLabel(type).toLowerCase()} нарачка — Маса ${list}${more}`;
-      try{beep(stationKind(type));}catch(e){}
-      try{notify(`${stationIcon(type)} Нова ${stationLabel(type)}`,`Маса ${list}${more}`);}catch(e){}
-      try{toast(msg,"ok");}catch(e){}
+    if(alertNew&&addedIds.length>0){
+      stationAlert(type,[...tablesByAdded],addedIds.length);
     }
   }catch(e){console.warn("[STATION] alert state error:",e.message||e);}
+}
+async function stationToastFromOrderItem(item){
+  try{
+    if(!item||!item.id||item.status!=="pending")return;
+    const type=item.type;
+    if(type!=="food"&&type!=="drink")return;
+    if(U?.role==="kuvar"&&type!=="food")return;
+    if(U?.role==="barmen"&&type!=="drink")return;
+    if(!markStationItemAlerted(type,item.id))return;
+    let table=item.table_number;
+    if(!table&&item.order_id){
+      const {data}=await sb.from("orders").select("table_number").eq("id",item.order_id).maybeSingle();
+      table=data?.table_number;
+    }
+    stationAlert(type,table?[table]:[],1);
+  }catch(e){console.warn("[STATION] item toast error:",e.message||e);}
 }
 
 // ===== KITCHEN =====
@@ -3469,8 +3545,14 @@ function subRT(){
     console.log("[RT] INSERT order_items:", p.new?.id, p.new?.type, "role:", U?.role);
     try{
       if(!U||!p.new)return;
-      if(U.role==="kuvar"&&p.new.type==="food")refreshStationSoon(true);
-      if(U.role==="barmen"&&p.new.type==="drink")refreshStationSoon(true);
+      if(U.role==="kuvar"&&p.new.type==="food"){
+        await stationToastFromOrderItem(p.new);
+        refreshStationSoon(false);
+      }
+      if(U.role==="barmen"&&p.new.type==="drink"){
+        await stationToastFromOrderItem(p.new);
+        refreshStationSoon(false);
+      }
     }catch(e){console.error("[RT] INSERT order_items handler error:",e);}
   });
 
