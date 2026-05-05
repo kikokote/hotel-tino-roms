@@ -843,7 +843,7 @@ function showApp(){
   document.getElementById("topbar").style.display="flex";
   const rn={kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен",menager:"Менаџер",admin:"Администратор"};
   document.getElementById("ubadge").textContent=U.name+" · "+(rn[U.role]||"");
-  claimExistingBrowserPushSubscription();
+  syncPushForCurrentLogin({silent:true,requestPermission:false});
   // Start live clock
   const clk=document.getElementById("liveClock");
   if(clk){
@@ -1968,115 +1968,181 @@ async function cleanupDuplicatePushSubscriptions(pushSub,ownerStaffId){
   }catch(e){console.warn("[PUSH] duplicate cleanup error:",e.message);}
 }
 
-async function claimExistingBrowserPushSubscription(){
-  // Runs silently after login. It prevents a shared browser from keeping a
-  // previous user's subscription row, which is the most common cause of
-  // “boomerang” notifications on kitchen/bar devices.
-  try{
-    if(!U||!("serviceWorker"in navigator)||!("PushManager"in window)||!("Notification"in window))return;
-    if(Notification.permission!=="granted")return;
-    const reg=await navigator.serviceWorker.ready;
-    const existing=await reg.pushManager.getSubscription();
-    if(existing)await cleanupDuplicatePushSubscriptions(existing,U.id);
-  }catch(e){console.warn("[PUSH] claim existing subscription skipped:",e.message);}
+async function savePushSubscriptionForCurrentUser(sub,silent){
+  // One physical browser/tablet can only have one active Web Push subscription.
+  // When shifts change on the same tablet, we move that device token from the
+  // previous staff member to the currently logged-in staff member.
+  if(!U||!sub||!sb)return false;
+  await cleanupDuplicatePushSubscriptions(sub,U.id);
+  const subPayload={
+    staff_id:     U.id,
+    staff_name:   U.name||"",
+    role:         U.role,
+    floor:        U.floor||null,
+    subscription: JSON.stringify(sub),
+    updated_at:   new Date().toISOString()
+  };
+  const{data:savedRow,error}=await sb
+    .from("push_subscriptions")
+    .upsert(subPayload,{onConflict:"staff_id"})
+    .select()
+    .single();
+  if(error){
+    console.error("[PUSH] Supabase Save Error:",error);
+    if(!silent){
+      alert("DB Save Error: "+error.message+"\n\nCode: "+error.code+"\nHint: "+(error.hint||"none")+"\n\nCheck: push_subscriptions table exists, RLS is OFF, staff_id column exists.");
+    }
+    return false;
+  }
+  if(!savedRow){
+    console.error("[PUSH] Supabase returned no row after upsert");
+    if(!silent){
+      alert("DB Error: No row returned. RLS may still be blocking writes.\nRun: ALTER TABLE push_subscriptions DISABLE ROW LEVEL SECURITY;");
+    }
+    return false;
+  }
+  const bell=document.querySelector(".nbtn");
+  if(bell){bell.style.color="var(--gold)";bell.style.borderColor="var(--gold)";}
+  console.log("[PUSH] ✅ Subscription saved for",U.name,"role:",U.role,"staff_id:",savedRow.staff_id);
+  return true;
 }
 
-async function subscribePush(){
-  // Check browser support
-  if(!("serviceWorker"in navigator)||!("PushManager"in window)){
-    alert("Вашиот прелистувач не поддржува push известувања.\nПробајте Chrome на Android.");
-    return;
+function setPushBellState(state,message){
+  const bell=document.querySelector(".nbtn");
+  if(!bell)return;
+  bell.setAttribute("data-push-state",state||"unknown");
+  if(message)bell.title=message;
+  if(state==="on"){
+    bell.style.color="var(--gold)";
+    bell.style.borderColor="var(--gold)";
+    bell.style.background="rgba(201,168,76,.10)";
+  }else if(state==="blocked"){
+    bell.style.color="var(--red)";
+    bell.style.borderColor="var(--red)";
+    bell.style.background="rgba(232,64,64,.10)";
+  }else{
+    bell.style.color="var(--mut)";
+    bell.style.borderColor="var(--bdr)";
+    bell.style.background="transparent";
   }
+}
 
-  // Already denied — tell user how to fix
-  if(Notification.permission==="denied"){
-    alert("Ве молиме дозволете известувања во поставките на вашиот прелистувач/телефон.\n\nAndroid: Поставки → Апликации → Chrome → Известувања → Дозволи");
-    return;
-  }
+async function syncPushForCurrentLogin(options={}){
+  // Normal-app behaviour for shared tablets:
+  // - First time only: staff taps the bell to grant Chrome notification permission.
+  // - Every later login: if permission is already granted, this silently creates/reuses
+  //   the browser push token and saves it for the currently logged-in staff member.
+  // - Logout may remove the Supabase mapping, but it does NOT remove Chrome permission,
+  //   so the next user on the same tablet is restored automatically.
+  const silent=options.silent!==false;
+  const requestPermission=!!options.requestPermission;
 
   try{
-    // Request permission
-    const permission=await Notification.requestPermission();
-    if(permission!=="granted"){
-      alert("Ве молиме дозволете известувања во поставките на вашиот прелистувач/телефон.");
-      return;
+    if(!U||!sb)return false;
+
+    if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){
+      setPushBellState("off","Овој прелистувач не поддржува push известувања");
+      if(!silent)alert("Вашиот прелистувач не поддржува push известувања.\nПробајте Chrome на Android.");
+      return false;
     }
 
-    // Get service worker
+    if(Notification.permission==="denied"){
+      setPushBellState("blocked","Известувањата се блокирани — отвори Site settings и дозволи Notifications");
+      if(!silent){
+        alert("Известувањата се блокирани за оваа веб-страна.\n\nAndroid Chrome:\n1. Отвори ја апликацијата/сајтот\n2. Притисни на катанецот / Site settings\n3. Notifications → Allow\n4. Врати се и притисни го ѕвончето еднаш");
+      }
+      return false;
+    }
+
+    if(Notification.permission!=="granted"){
+      if(!requestPermission){
+        setPushBellState("off","Прв пат на овој таблет: притисни го ѕвончето за да дозволиш известувања");
+        return false;
+      }
+      const permission=await Notification.requestPermission();
+      if(permission!=="granted"){
+        setPushBellState("off","Известувањата не се дозволени");
+        if(!silent)alert("Ве молиме дозволете известувања за да работат push нотификациите.");
+        return false;
+      }
+    }
+
     let reg;
     try{
       reg=await navigator.serviceWorker.ready;
     }catch(e){
-      alert("Service Worker грешка: "+e.message+"\nПроверете дека sw.js постои на серверот.");
-      return;
+      setPushBellState("off","Service Worker не е подготвен");
+      if(!silent)alert("Service Worker грешка: "+e.message+"\nПроверете дека sw.js постои на серверот.");
+      return false;
     }
 
-    // Subscribe to push. Same pattern as the working app: clear any old subscription first.
     let sub;
     try{
-      const existing=await reg.pushManager.getSubscription();
-      if(existing){
-        try{await existing.unsubscribe();}catch(e){console.warn("[PUSH] Existing unsubscribe failed:",e.message);}
+      sub=await reg.pushManager.getSubscription();
+      if(!sub){
+        sub=await reg.pushManager.subscribe({
+          userVisibleOnly:true,
+          applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC)
+        });
       }
-      sub=await reg.pushManager.subscribe({
-        userVisibleOnly:true,
-        applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC)
-      });
     }catch(e){
-      alert("Push subscription грешка: "+e.message+"\nВАПИД клучот може да биде погрешен.");
-      return;
+      setPushBellState("off","Push subscription не успеа");
+      if(!silent)alert("Push subscription грешка: "+e.message+"\nВАПИД клучот може да биде погрешен.");
+      return false;
     }
 
-    // Save to Supabase — all columns, request row back to confirm write
-    if(!U){alert("Ве молиме логирајте се прво.");return;}
-
-    await cleanupDuplicatePushSubscriptions(sub,U.id);
-
-    const subPayload={
-      staff_id:     U.id,
-      staff_name:   U.name||"",
-      role:         U.role,
-      floor:        U.floor||null,
-      subscription: JSON.stringify(sub),
-      updated_at:   new Date().toISOString()
-    };
-    console.log("[PUSH] Saving to push_subscriptions:",JSON.stringify({
-      staff_id:subPayload.staff_id,
-      staff_name:subPayload.staff_name,
-      role:subPayload.role
-    }));
-
-    const{data:savedRow,error}=await sb
-      .from("push_subscriptions")
-      .upsert(subPayload,{onConflict:"staff_id"})
-      .select()
-      .single();
-
-    if(error){
-      console.error("[PUSH] Supabase Save Error:",error);
-      alert("DB Save Error: "+error.message+"\n\nCode: "+error.code+"\nHint: "+(error.hint||"none")+"\n\nCheck: push_subscriptions table exists, RLS is OFF, staff_id column exists.");
-      return;
+    const saved=await savePushSubscriptionForCurrentUser(sub,silent);
+    if(saved){
+      setPushBellState("on","Известувањата се активни за: "+(U.name||"тековниот корисник"));
+      if(!silent){
+        alert("Известувањата се успешно вклучени! ✅\nОвој таблет/телефон сега е поврзан со: "+(U.name||"корисник")+".");
+        toast("Известувањата се вклучени ✓","ok");
+      }else{
+        console.log("[PUSH] Auto-synced for login:",U.name,U.role);
+      }
+      return true;
     }
-
-    if(!savedRow){
-      console.error("[PUSH] Supabase returned no row after upsert");
-      alert("DB Error: No row returned. RLS may still be blocking writes.\nRun: ALTER TABLE push_subscriptions DISABLE ROW LEVEL SECURITY;");
-      return;
-    }
-
-    console.log("[PUSH] ✅ Subscription saved. staff_id:",savedRow.staff_id);
-
-    // ✅ Success — ONLY shown after confirmed DB write
-    alert("Известувањата се успешно вклучени! ✅\nОд сега ќе добивате известувања кога нарачките се готови.");
-    toast("Известувањата се вклучени ✓","ok");
-    const bell=document.querySelector(".nbtn");
-    if(bell){bell.style.color="var(--gold)";bell.style.borderColor="var(--gold)";}
-    console.log("[PUSH] ✅ Subscribed for",U.name);
-
+    setPushBellState("off","Не можам да ја зачувам push претплатата — притисни го ѕвончето за проверка");
+    return false;
   }catch(e){
-    alert("Неочекувана грешка: "+e.message);
-    console.error("[PUSH] subscribePush error:",e);
+    console.warn("[PUSH] syncPushForCurrentLogin skipped:",e.message);
+    setPushBellState("off","Push sync грешка — притисни го ѕвончето за проверка");
+    if(!silent)alert("Неочекувана грешка: "+e.message);
+    return false;
   }
+}
+
+async function claimExistingBrowserPushSubscription(){
+  return syncPushForCurrentLogin({silent:true,requestPermission:false});
+}
+
+async function subscribePush(){
+  return syncPushForCurrentLogin({silent:false,requestPermission:true});
+}
+
+async function releaseCurrentDevicePushMapping(){
+  // Logout/KRAJ should stop the logged-out user receiving pushes on this tablet,
+  // but it must NOT revoke Chrome permission and must NOT unsubscribe the browser.
+  // The next login can silently save the same browser token for the new staff user.
+  try{
+    if(!U||!sb||!("serviceWorker" in navigator)||!("PushManager" in window))return;
+    if(("Notification" in window)&&Notification.permission!=="granted")return;
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.getSubscription();
+    const endpoint=pushEndpointFrom(sub);
+    if(!endpoint)return;
+    const{data,error}=await sb.from("push_subscriptions")
+      .select("staff_id,subscription")
+      .eq("staff_id",U.id)
+      .limit(1);
+    if(error){console.warn("[PUSH] logout mapping lookup failed:",error.message);return;}
+    const row=(data||[])[0];
+    if(row&&pushEndpointFrom(row.subscription)===endpoint){
+      const{error:delErr}=await sb.from("push_subscriptions").delete().eq("staff_id",U.id);
+      if(delErr)console.warn("[PUSH] logout mapping delete failed:",delErr.message);
+      else console.log("[PUSH] Released this tablet mapping for",U.name);
+    }
+  }catch(e){console.warn("[PUSH] release mapping skipped:",e.message);}
 }
 
 // Alias so both names work. The working app uses initPush(); this ROMS app uses subscribePush().
@@ -2382,6 +2448,7 @@ async function keepScreenOn(){
 document.addEventListener("visibilitychange",async()=>{
   if(!U)return;
   if(document.visibilityState==="visible"){
+    syncPushForCurrentLogin({silent:true,requestPermission:false});
     if(U.role==="kuvar")loadK();
     if(U.role==="barmen")loadB();
     if(U.role==="kelner")loadAmt();
@@ -2476,7 +2543,149 @@ async function openTransferModal(tableNum, role){
   document.getElementById("transferColleagues").innerHTML=h;
   document.getElementById("transferMod").classList.add("on");
 }
-async function endShift(){if(!confirm("Крај на смена?"))return;if(SH)await sb.from("shifts").update({clock_out:new Date().toISOString()}).eq("id",SH.id);doLogout();}
+async function moveCurrentDevicePushToStaff(targetId,targetName,role){
+  // Shared-tablet handoff helper: if this browser already has notification
+  // permission, move the current device token to the incoming staff member.
+  // This prevents one tablet from staying attached to the previous shift user.
+  try{
+    if(!targetId||!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window))return false;
+    if(Notification.permission!=="granted")return false;
+    const reg=await navigator.serviceWorker.ready;
+    let existing=await reg.pushManager.getSubscription();
+    if(!existing){
+      try{
+        existing=await reg.pushManager.subscribe({
+          userVisibleOnly:true,
+          applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC)
+        });
+      }catch(e){
+        console.warn("[TRANSFER] silent push subscribe skipped:",e.message);
+        return false;
+      }
+    }
+    await cleanupDuplicatePushSubscriptions(existing,targetId);
+    const payload={
+      staff_id:targetId,
+      staff_name:targetName||"",
+      role:role,
+      floor:null,
+      subscription:JSON.stringify(existing),
+      updated_at:new Date().toISOString()
+    };
+    const{error}=await sb.from("push_subscriptions").upsert(payload,{onConflict:"staff_id"});
+    if(error){console.warn("[TRANSFER] push handoff upsert failed:",error.message);return false;}
+    console.log("[TRANSFER] Device push token moved to",targetName,role);
+    return true;
+  }catch(e){console.warn("[TRANSFER] push handoff skipped:",e.message);return false;}
+}
+
+async function finishShiftAndLogout(){
+  try{
+    if(SH){
+      await sb.from("shifts").update({clock_out:new Date().toISOString()}).eq("id",SH.id);
+    }
+  }catch(e){
+    console.warn("[SHIFT] clock_out update failed:",e.message);
+  }
+  doLogout();
+}
+
+async function doTransfer(tableNum,role,targetId,targetName,el){
+  // Kelner transfer = change ownership of active orders so ready pushes go
+  // to the new kelner_id. Kitchen/bar transfer = station handoff; their
+  // active order queue is role-based, so we only move this tablet's push token.
+  if(!U||!targetId||!role)return;
+  const originalHtml=el?el.innerHTML:"";
+  if(el){el.style.pointerEvents="none";el.style.opacity=".65";el.innerHTML="<div style='padding:8px;color:var(--gold);font-size:12px'>Се префрла...</div>";}
+  let transferredCount=0;
+  let affectedTables=[];
+  try{
+    if(role==="kelner"){
+      let q=sb.from("orders")
+        .update({kelner_id:targetId,kelner_name:targetName,updated_at:new Date().toISOString()})
+        .in("status",["pending","preparing","ready"])
+        .eq("kelner_id",U.id);
+      if(tableNum!==null&&tableNum!==undefined&&String(tableNum)!=="")q=q.eq("table_number",Number(tableNum));
+      const{data,error}=await q.select("id,table_number,total_amount");
+      if(error)throw error;
+      transferredCount=(data||[]).length;
+      affectedTables=[...new Set((data||[]).map(o=>o.table_number).filter(v=>v!==null&&v!==undefined))];
+      if(!transferredCount){toast("Нема активни нарачки за префрлање","err");}
+    }
+
+    // Move this physical tablet/browser notification token to the incoming user.
+    await moveCurrentDevicePushToStaff(targetId,targetName,role);
+
+    // Notify the incoming kelner if a kelner table/order handoff happened.
+    if(role==="kelner"&&transferredCount>0){
+      try{
+        await pushTo({
+          target_user_id:targetId,
+          actor_staff_id:U?.id,
+          actor_role:U?.role,
+          tableNumber:affectedTables.length===1?affectedTables[0]:null,
+          type:"transfer",
+          title:"↔️ Префрлена маса",
+          body:affectedTables.length
+            ?`Префрлени активни маси: ${affectedTables.map(n=>"М"+n).join(", ")}`
+            :"Активните нарачки се префрлени на вас."
+        });
+      }catch(e){console.warn("[TRANSFER] target push skipped:",e.message);}
+    }
+
+    closeM("transferMod");
+    if(tableNum!==null&&tableNum!==undefined&&String(tableNum)!==""){
+      toast("Маса "+tableNum+" е префрлена на "+targetName,"ok");
+      try{await loadAmt();renderT();}catch(e){}
+      return;
+    }
+
+    // Whole-shift handoff. For kitchen/bar there are no kuvar_id/barmen_id
+    // columns in orders; the active queue is station/role-based, so the next
+    // logged-in same-role user will see the same pending work immediately.
+    const msg=role==="kelner"
+      ?`Префрлени се ${transferredCount} активни нарачки на ${targetName}.\nДа ја завршам смената и да излезам?`
+      :`Таблетот/известувањата се префрлени на ${targetName}.\nАктивните ${role==="kuvar"?"кујнски":"бар"} нарачки остануваат во редот за новата смена.\nДа ја завршам смената и да излезам?`;
+    if(confirm(msg))await finishShiftAndLogout();
+    else{
+      toast("Префрлањето е завршено","ok");
+      try{if(U.role==="kelner")await loadAmt(); if(U.role==="kuvar")await loadK(); if(U.role==="barmen")await loadB();}catch(e){}
+    }
+  }catch(e){
+    toast("Грешка при префрлање: "+e.message,"err");
+    console.error("[TRANSFER] error:",e);
+    if(el){el.style.pointerEvents="";el.style.opacity="";el.innerHTML=originalHtml;}
+  }
+}
+
+async function endShift(){
+  if(!U)return doLogout();
+
+  // Kelner cannot cleanly end a shift with active tables still owned by them,
+  // because ready push notifications target orders.kelner_id.
+  if(U.role==="kelner"){
+    try{
+      const{data,error}=await sb.from("orders")
+        .select("id,table_number,total_amount")
+        .eq("kelner_id",U.id)
+        .in("status",["pending","preparing","ready"]);
+      if(error)throw error;
+      const active=data||[];
+      if(active.length){
+        const tables=[...new Set(active.map(o=>o.table_number))].sort((a,b)=>a-b);
+        const msg=`Имаш ${active.length} активни нарачки на маси: ${tables.map(n=>"М"+n).join(", ")}.\n\nПрво префрли ги на келнерот од новата смена. Да отворам „Префрли“?`;
+        if(confirm(msg))openTransferModal(null,"kelner");
+        return;
+      }
+    }catch(e){
+      console.warn("[SHIFT] active-order check failed:",e.message);
+      if(!confirm("Не можам да проверам активни маси. Да продолжам со крај на смена?"))return;
+    }
+  }
+
+  if(!confirm("Крај на смена?"))return;
+  await finishShiftAndLogout();
+}
 
 // ===== REALTIME SUBSCRIPTIONS =====
 function subRT(){
@@ -2582,6 +2791,7 @@ setInterval(()=>{if(U&&U.role==="kelner")loadReadyCenter();},5000);
 
 async function doLogout(){
   try{
+    await releaseCurrentDevicePushMapping();
     // Attempt server signout — best effort, don't block on failure
     if(sb.auth)await sb.auth.signOut().catch(()=>{});
   }catch(e){
