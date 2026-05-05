@@ -759,34 +759,118 @@ function toast(m,t=""){
   setTimeout(()=>el.className="toast",3000);
 }
 
+function resetLoginButton(){
+  const b=document.getElementById("lbtn");
+  if(!b)return;
+  b.disabled=false;
+  b.textContent="ВЛЕЗ";
+  b.style.background="";
+  b.style.boxShadow="";
+}
+
+function showLoginError(message){
+  const e=document.getElementById("lerr");
+  if(e){
+    e.textContent=message||"Грешка при најава";
+    e.style.display="block";
+    e.style.color="var(--red)";
+  }
+  resetLoginButton();
+}
+
+function withTimeout(promise,ms,label){
+  let timer;
+  const timeout=new Promise((_,reject)=>{
+    timer=setTimeout(()=>reject(new Error((label||"Операцијата")+" трае предолго. Проверете интернет/Supabase и пробајте пак.")),ms||10000);
+  });
+  return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));
+}
+
+async function openShiftBestEffort(){
+  // Shift opening must never freeze login. If it fails, the app still opens
+  // and the next order/update can continue normally; KRAJ will simply skip SH.
+  if(!U||!sb)return null;
+  try{
+    const today=new Date().toISOString().split("T")[0];
+    const existing=await withTimeout(
+      sb.from("shifts")
+        .select("*")
+        .eq("staff_id",U.id)
+        .gte("clock_in",today+"T00:00:00")
+        .is("clock_out",null)
+        .order("clock_in",{ascending:false})
+        .limit(1)
+        .maybeSingle(),
+      8000,
+      "Проверка на смена"
+    );
+    if(existing&&!existing.error&&existing.data)return existing.data;
+  }catch(e){
+    console.warn("[LOGIN] existing shift lookup skipped:",e.message);
+  }
+  try{
+    const created=await withTimeout(
+      sb.from("shifts")
+        .insert({staff_id:U.id,staff_name:U.name,role:U.role,zone_name:"Сите зони"})
+        .select()
+        .single(),
+      8000,
+      "Отворање на смена"
+    );
+    if(created&&!created.error&&created.data)return created.data;
+    if(created&&created.error)console.warn("[LOGIN] shift insert error:",created.error.message);
+  }catch(e){
+    console.warn("[LOGIN] shift insert skipped:",e.message);
+  }
+  return null;
+}
+
 async function doLogin(){
-  if(!sb){if(!initSb()){const e=document.getElementById("lerr");e.textContent="Грешка: нема интернет конекција";e.style.display="block";return;}}
+  if(!sb){
+    if(!initSb()){
+      showLoginError("Грешка: нема интернет конекција или Supabase не се вчита");
+      return;
+    }
+  }
   const u=document.getElementById("uname").value.trim();
   const p=document.getElementById("upin").value.trim();
   const e=document.getElementById("lerr");
   const b=document.getElementById("lbtn");
-  e.style.display="none";
-  if(!u||!p){e.textContent="Внесете корисничко ime и PIN";e.style.display="block";return;}
-  b.textContent="Се вчитува...";b.disabled=true;
+  if(e){e.style.display="none";e.style.color="var(--red)";}
+  if(!u||!p){showLoginError("Внесете корисничко име и PIN");return;}
+  if(b){b.textContent="Се вчитува...";b.disabled=true;}
+
   try{
-    const{data,error}=await sb.from("staff").select("*").eq("username",u).eq("pin",p).eq("active",true).single();
-    if(error||!data){e.textContent="Погрешно корисничко ime или PIN";e.style.display="block";b.textContent="ВЛЕЗ";b.disabled=false;return;}
+    const staffRes=await withTimeout(
+      sb.from("staff").select("*").eq("username",u).eq("pin",p).eq("active",true).maybeSingle(),
+      10000,
+      "Најавата"
+    );
+    const data=staffRes&&staffRes.data;
+    const error=staffRes&&staffRes.error;
+    if(error||!data){
+      showLoginError("Погрешно корисничко име или PIN");
+      return;
+    }
+
     U=data;
-    // Save session to localStorage for auto-restore on refresh
     localStorage.setItem("roms_user",JSON.stringify({username:u,pin:p}));
-    const{data:sh}=await sb.from("shifts").insert({staff_id:U.id,staff_name:U.name,role:U.role,zone_name:"Сите зони"}).select().single();
-    SH=sh;
-    await loadAll();
-    // ✅ Success flash before entering app
-    b.textContent="✓ Добредојде, "+U.name.split(" ")[0]+"!";
-    b.style.background="linear-gradient(135deg,#4caf50,#66bb6a)";
-    b.style.boxShadow="0 4px 20px rgba(76,175,80,.4)";
+
+    SH=await openShiftBestEffort();
+    await withTimeout(loadAll(),15000,"Вчитувањето на податоците");
+
+    if(b){
+      b.textContent="✓ Добредојде, "+(U.name||"").split(" ")[0]+"!";
+      b.style.background="linear-gradient(135deg,#4caf50,#66bb6a)";
+      b.style.boxShadow="0 4px 20px rgba(76,175,80,.4)";
+    }
     const card=document.querySelector(".lcard");
     if(card){card.style.transition="transform .3s ease,box-shadow .3s ease";card.style.transform="scale(1.02)";card.style.boxShadow="0 0 80px rgba(201,168,76,.4)";}
-    await new Promise(r=>setTimeout(r,900));
+    await new Promise(r=>setTimeout(r,450));
     showApp();
   }catch(err){
-    e.textContent="Грешка: "+err.message;e.style.display="block";b.textContent="ВЛЕЗ";b.disabled=false;
+    console.error("[LOGIN] failed:",err);
+    showLoginError("Грешка при најава: "+(err&&err.message?err.message:"обидете се повторно"));
   }
 }
 
@@ -797,25 +881,23 @@ async function tryAutoLogin(){
   if(!saved)return;
   try{
     const{username,pin}=JSON.parse(saved);
-    const{data,error}=await sb.from("staff").select("*").eq("username",username).eq("pin",pin).eq("active",true).single();
-    if(error||!data){localStorage.removeItem("roms_user");return;}
-    U=data;
-    // Restore existing shift if from today
-    const today=new Date().toISOString().split("T")[0];
-    const{data:existingShift}=await sb.from("shifts")
-      .select("*").eq("staff_id",U.id)
-      .gte("clock_in",today+"T00:00:00")
-      .is("clock_out",null)
-      .order("clock_in",{ascending:false})
-      .limit(1).single();
-    if(existingShift){SH=existingShift;}
-    else{
-      const{data:sh}=await sb.from("shifts").insert({staff_id:U.id,staff_name:U.name,role:U.role,zone_name:"Сите зони"}).select().single();
-      SH=sh;
-    }
-    await loadAll();
+    const staffRes=await withTimeout(
+      sb.from("staff").select("*").eq("username",username).eq("pin",pin).eq("active",true).maybeSingle(),
+      10000,
+      "Автоматската најава"
+    );
+    if(staffRes.error||!staffRes.data){localStorage.removeItem("roms_user");return;}
+    U=staffRes.data;
+    SH=await openShiftBestEffort();
+    await withTimeout(loadAll(),15000,"Вчитувањето на податоците");
     showApp();
-  }catch(err){localStorage.removeItem("roms_user");}
+  }catch(err){
+    console.warn("[LOGIN] auto login skipped:",err.message);
+    localStorage.removeItem("roms_user");
+    const ls=document.getElementById("loginScreen");
+    if(ls)ls.classList.add("active");
+    resetLoginButton();
+  }
 }
 
 async function loadAll(){
@@ -2069,7 +2151,7 @@ async function syncPushForCurrentLogin(options={}){
 
     let reg;
     try{
-      reg=await navigator.serviceWorker.ready;
+      reg=await withTimeout(navigator.serviceWorker.ready,8000,"Service Worker");
     }catch(e){
       setPushBellState("off","Service Worker не е подготвен");
       if(!silent)alert("Service Worker грешка: "+e.message+"\nПроверете дека sw.js постои на серверот.");
@@ -2078,12 +2160,12 @@ async function syncPushForCurrentLogin(options={}){
 
     let sub;
     try{
-      sub=await reg.pushManager.getSubscription();
+      sub=await withTimeout(reg.pushManager.getSubscription(),8000,"Push subscription check");
       if(!sub){
-        sub=await reg.pushManager.subscribe({
+        sub=await withTimeout(reg.pushManager.subscribe({
           userVisibleOnly:true,
           applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC)
-        });
+        }),10000,"Push subscription create");
       }
     }catch(e){
       setPushBellState("off","Push subscription не успеа");
@@ -2127,18 +2209,26 @@ async function releaseCurrentDevicePushMapping(){
   try{
     if(!U||!sb||!("serviceWorker" in navigator)||!("PushManager" in window))return;
     if(("Notification" in window)&&Notification.permission!=="granted")return;
-    const reg=await navigator.serviceWorker.ready;
-    const sub=await reg.pushManager.getSubscription();
+    const reg=await withTimeout(navigator.serviceWorker.ready,5000,"Service Worker при одјава");
+    const sub=await withTimeout(reg.pushManager.getSubscription(),5000,"Push cleanup");
     const endpoint=pushEndpointFrom(sub);
     if(!endpoint)return;
-    const{data,error}=await sb.from("push_subscriptions")
-      .select("staff_id,subscription")
-      .eq("staff_id",U.id)
-      .limit(1);
+    const{data,error}=await withTimeout(
+      sb.from("push_subscriptions")
+        .select("staff_id,subscription")
+        .eq("staff_id",U.id)
+        .limit(1),
+      5000,
+      "Push mapping lookup"
+    );
     if(error){console.warn("[PUSH] logout mapping lookup failed:",error.message);return;}
     const row=(data||[])[0];
     if(row&&pushEndpointFrom(row.subscription)===endpoint){
-      const{error:delErr}=await sb.from("push_subscriptions").delete().eq("staff_id",U.id);
+      const{error:delErr}=await withTimeout(
+        sb.from("push_subscriptions").delete().eq("staff_id",U.id),
+        5000,
+        "Push mapping delete"
+      );
       if(delErr)console.warn("[PUSH] logout mapping delete failed:",delErr.message);
       else console.log("[PUSH] Released this tablet mapping for",U.name);
     }
