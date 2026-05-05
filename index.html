@@ -946,7 +946,8 @@ function showApp(){
     document.getElementById("kelnerScreen").classList.add("active");
     document.getElementById("stime").textContent=ts;
     const kn=document.getElementById("kelnerName");
-    if(kn)kn.textContent=(U.name||U.username||"-")+(U.username&&U.name&&U.username!==U.name?" ("+U.username+")":"");
+    // Compact mobile display: show username only, not full name + username.
+    if(kn)kn.textContent=(U.username||U.name||"-");
     renderK();RT=subRT();keepScreenOn();
   }else if(U.role==="kuvar"){
     document.getElementById("kujnaScreen").classList.add("active");
@@ -3338,6 +3339,41 @@ async function saveCorrection(){
 // ===== REALTIME SUBSCRIPTIONS =====
 function subRT(){
   console.log("[RT] Creating realtime channel...");
+
+  const STATION_ALERT_RECENT=new Map();
+  function currentStationType(){
+    if(U?.role==="kuvar")return "food";
+    if(U?.role==="barmen")return "drink";
+    return "";
+  }
+  function scheduleStationRefresh(stationType){
+    const isFood=stationType==="food";
+    const delays=[0,350,900,1800,3200,5200];
+    delays.forEach(ms=>setTimeout(()=>{
+      try{
+        if(isFood&&U?.role==="kuvar")loadK();
+        if(!isFood&&U?.role==="barmen")loadB();
+      }catch(e){console.error("[RT] station refresh error:",e);}
+    },ms));
+  }
+  async function stationOrderAlert(orderId,tableNumber,stationType){
+    const isFood=stationType==="food";
+    scheduleStationRefresh(stationType);
+    const key=`${U?.id||""}|${stationType}|${orderId||tableNumber||""}`;
+    const now=Date.now();
+    if(now-(STATION_ALERT_RECENT.get(key)||0)<15000)return;
+    STATION_ALERT_RECENT.set(key,now);
+    try{beep(isFood?"kitchen":"bar");}catch(e){}
+    try{notify(isFood?"🍽 Нова кујна":"🍹 Нова бар","Маса "+(tableNumber||"-"));}catch(e){}
+    try{toast((isFood?"Нова кујна нарачка":"Нова бар нарачка")+" — Маса "+(tableNumber||"-"),"ok");}catch(e){}
+  }
+  async function orderTableNumber(orderId,fallback){
+    if(fallback)return fallback;
+    try{
+      const{data}=await sb.from("orders").select("table_number").eq("id",orderId).maybeSingle();
+      return data?.table_number||"-";
+    }catch(e){return "-";}
+  }
   async function getOrderItemTypesForRealtime(orderId,retries=6,delayMs=300){
     for(let attempt=0;attempt<retries;attempt++){
       try{
@@ -3355,23 +3391,22 @@ function subRT(){
 
   const ch = sb.channel("roms-"+Date.now());
 
-  // NEW ORDER → kitchen/bar reload immediately, but chime ONLY for the station that has items.
+  // NEW ORDER → station dashboards must refresh automatically.
+  // The order row can arrive before order_items exist, so we refresh in a short burst.
+  // Chime/toast fires ONLY after we confirm the order contains the station's item type.
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"orders"},async p=>{
     console.log("[RT] INSERT orders:", p.new?.table_number, "role:", U?.role);
     try{
-      if(!U)return;
-      if(U.role==="kuvar"||U.role==="barmen"){
-        const types=await getOrderItemTypesForRealtime(p.new.id,6,300);
-        const hasFood=types.includes("food");
-        const hasDrink=types.includes("drink");
-
-        if(U.role==="kuvar"){
-          await loadK();
-          if(hasFood){beep("kitchen");notify("🍽 Нова кујна","Маса "+p.new.table_number);}
+      if(!U||!p.new)return;
+      const station=currentStationType();
+      if(station){
+        scheduleStationRefresh(station);
+        const types=await getOrderItemTypesForRealtime(p.new.id,12,400);
+        if(U.role==="kuvar"&&types.includes("food")){
+          await stationOrderAlert(p.new.id,p.new.table_number,"food");
         }
-        if(U.role==="barmen"){
-          await loadB();
-          if(hasDrink){beep("bar");notify("🍹 Нова бар","Маса "+p.new.table_number);}
+        if(U.role==="barmen"&&types.includes("drink")){
+          await stationOrderAlert(p.new.id,p.new.table_number,"drink");
         }
       }
       if(U.role==="kelner"){try{loadAmt();}catch(e){}}
@@ -3402,12 +3437,18 @@ function subRT(){
     }catch(e){console.error("[RT] UPDATE orders handler error:",e);}
   });
 
-  // ORDER ITEM INSERTED → station queues refresh fast when items arrive after the order row.
+  // ORDER ITEM INSERTED → this is the most reliable signal that kitchen/bar items exist.
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"order_items"},async p=>{
     try{
       if(!U||!p.new)return;
-      if(U.role==="kuvar"&&p.new.type==="food")await loadK();
-      if(U.role==="barmen"&&p.new.type==="drink")await loadB();
+      if(U.role==="kuvar"&&p.new.type==="food"){
+        const tn=await orderTableNumber(p.new.order_id);
+        await stationOrderAlert(p.new.order_id,tn,"food");
+      }
+      if(U.role==="barmen"&&p.new.type==="drink"){
+        const tn=await orderTableNumber(p.new.order_id);
+        await stationOrderAlert(p.new.order_id,tn,"drink");
+      }
     }catch(e){console.error("[RT] INSERT order_items handler error:",e);}
   });
 
@@ -3463,6 +3504,14 @@ setInterval(async()=>{
     if(isAdminLike&&isAdminLike())scheduleAdminSync();
   }
 },20000);
+
+// Kitchen/bar polling backup: realtime is primary, this catches missed mobile websocket events.
+setInterval(()=>{
+  try{
+    if(U&&U.role==="kuvar")loadK();
+    if(U&&U.role==="barmen")loadB();
+  }catch(e){}
+},7000);
 
 // Kelner ready center 5s polling backup
 setInterval(()=>{if(U&&U.role==="kelner")loadReadyCenter();},5000);
