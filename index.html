@@ -74,24 +74,24 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
 .sbar{background:rgba(201,168,76,.07);border:1px solid var(--bdr);border-radius:8px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
 .sinfo{color:var(--mut);font-size:11px;font-family:"DM Sans",sans-serif;font-weight:500}.sinfo b{color:var(--gold);font-weight:700;font-family:"Unbounded",sans-serif;font-size:10px}
 .esb{background:transparent;border:1px solid var(--org);color:var(--org);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:"DM Sans",sans-serif}
-.sbar.kshift{display:flex;flex-direction:column;align-items:stretch;gap:12px}
-.kshift-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.kshift-left{min-width:0;flex:1}
-.kshift-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--mut);font-size:12px}
-.kshift-main .label{color:var(--mut)}
-.kshift-main b{color:var(--text)}
-.kmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
-.kmeta-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:11px;line-height:1;font-weight:700;color:var(--mut)}
-.kmeta-pill b{color:var(--text)}
-.kshift-actions{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:10px;align-items:stretch;width:100%}
-.shift-total-box{background:linear-gradient(180deg,rgba(201,168,76,.12),rgba(201,168,76,.08));border:1px solid var(--gbd);color:var(--gold);border-radius:14px;padding:12px 14px;min-width:0;cursor:pointer;text-align:left;transition:all .18s;box-shadow:0 10px 24px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.03);font-family:"DM Sans",sans-serif;display:flex;flex-direction:column;justify-content:center;min-height:78px}
+/* KELNER HEADER — info row + aligned action cards. HTML/CSS only; JS IDs/handlers stay unchanged. */
+.sbar.kshift{display:flex;flex-direction:column;align-items:stretch;gap:14px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(201,168,76,.045));border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px 16px 18px;margin-bottom:14px;box-shadow:0 12px 36px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04)}
+.kelner-info-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:rgba(242,236,224,.58);font-size:13px;font-weight:500;line-height:1.25;letter-spacing:.1px}
+.kelner-info-row b{color:var(--text);font-family:"Unbounded",sans-serif;font-size:13px;font-weight:800;letter-spacing:-.2px}
+.kelner-info-row .sep{color:rgba(242,236,224,.26);font-weight:400}
+.kelner-action-row{display:flex;align-items:stretch;gap:12px;width:100%}
+.shift-total-box{flex:1 1 70%;min-width:0;min-height:92px;background:linear-gradient(135deg,rgba(255,255,255,.065),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.06);color:var(--gold);border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;transition:transform .16s,box-shadow .16s,border-color .16s,background .16s;box-shadow:0 10px 28px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.035);font-family:"DM Sans",sans-serif;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 .shift-total-box:active{transform:scale(.985)}
-.shift-total-box:hover{background:linear-gradient(180deg,rgba(201,168,76,.18),rgba(201,168,76,.11));box-shadow:0 0 18px rgba(201,168,76,.12)}
-.shift-total-box span{display:block;color:var(--mut);font-size:9px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;line-height:1;margin-bottom:7px}
-.shift-total-box b{display:block;color:var(--gold);font-family:"Unbounded",sans-serif;font-size:17px;font-weight:900;line-height:1.06}
-.shift-total-box small{display:block;color:var(--dim);font-size:10px;font-weight:700;margin-top:6px}
-.sbar.kshift .esb{min-width:0;width:100%;height:78px;border-radius:14px;font-size:15px;display:flex;align-items:center;justify-content:center}
-@media(max-width:520px){.kshift-main{font-size:11px}.kmeta-pill{font-size:10px;padding:5px 9px}.kshift-actions{grid-template-columns:minmax(0,1fr) 96px;gap:8px}.shift-total-box{min-height:72px;padding:10px 12px}.shift-total-box b{font-size:15px}.sbar.kshift .esb{height:72px;font-size:14px}}
+.shift-total-box:hover{border-color:rgba(201,168,76,.18);background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(201,168,76,.045));box-shadow:0 12px 34px rgba(0,0,0,.24),0 0 20px rgba(201,168,76,.08)}
+.shift-total-box span{display:block;color:#fff;font-size:11px;font-weight:900;letter-spacing:3px;text-transform:uppercase;line-height:1;margin-bottom:10px}
+.shift-total-box b{display:block;color:var(--gold);font-family:"Unbounded",sans-serif;font-size:31px;font-weight:900;line-height:1;letter-spacing:-1.2px;text-shadow:0 2px 14px rgba(201,168,76,.16);white-space:nowrap}
+.shift-total-box small{display:flex;align-items:center;gap:6px;color:rgba(242,236,224,.56);font-size:13px;font-weight:600;margin-top:10px;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+.shift-total-box small em{font-style:normal;color:rgba(242,236,224,.72);font-size:22px;line-height:0;transform:translateY(1px)}
+.sbar.kshift .esb.kelner-end-btn{flex:0 0 30%;min-width:96px;min-height:92px;height:auto;background:rgba(232,64,64,.045);border:2px solid rgba(232,64,64,.82);color:#ff5b5b;border-radius:16px;font-family:"DM Sans",sans-serif;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:transform .16s,background .16s,box-shadow .16s}
+.sbar.kshift .esb.kelner-end-btn:active{transform:scale(.985)}
+.sbar.kshift .esb.kelner-end-btn:hover{background:rgba(232,64,64,.10);box-shadow:0 0 22px rgba(232,64,64,.12)}
+@media(max-width:520px){.sbar.kshift{padding:14px;gap:12px;border-radius:16px}.kelner-info-row{font-size:12px;gap:7px}.kelner-info-row b{font-size:12px}.kelner-action-row{gap:8px}.shift-total-box{min-height:78px;padding:13px 14px;border-radius:14px}.shift-total-box span{font-size:10px;letter-spacing:2.4px;margin-bottom:8px}.shift-total-box b{font-size:22px;letter-spacing:-.8px}.shift-total-box small{font-size:11px;margin-top:8px}.sbar.kshift .esb.kelner-end-btn{flex-basis:29%;min-width:86px;min-height:78px;border-radius:14px;font-size:16px}}
+@media(max-width:360px){.kelner-info-row{font-size:11px}.kelner-info-row b{font-size:11px}.shift-total-box b{font-size:20px}.sbar.kshift .esb.kelner-end-btn{min-width:78px;font-size:15px}}
 
 /* KELNER LAYOUT - DESKTOP: always show 2 columns */
 .klyt{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px;align-items:start}
@@ -416,24 +416,20 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
   <div class="klyt">
     <div class="kleft">
       <div class="sbar kshift">
-        <div class="kshift-head">
-          <div class="kshift-left">
-            <div class="kshift-main">
-              <span class="label">Келнер:</span><b id="kelnerName">-</b>
-            </div>
-            <div class="kmeta">
-              <div class="kmeta-pill">Зона: <b id="szone">-</b></div>
-              <div class="kmeta-pill">Смена: <b id="stime">-</b></div>
-            </div>
-          </div>
+        <div class="kelner-info-row">
+          <span>Келнер: <b id="kelnerName">-</b></span>
+          <span class="sep">|</span>
+          <span>Зона: <b id="szone">-</b></span>
+          <span class="sep">|</span>
+          <span>Смена: <b id="stime">-</b></span>
         </div>
-        <div class="kshift-actions">
+        <div class="kelner-action-row">
           <button class="shift-total-box" onclick="openShiftHistory()" title="Отвори историја на смена">
-            <span>Моја смена</span>
+            <span>МОЈА СМЕНА</span>
             <b id="kelnerTotal">0 ден.</b>
-            <small>Историја на нарачки</small>
+            <small>Историја на нарачки <em>›</em></small>
           </button>
-          <button class="esb" onclick="endShift()">Крај</button>
+          <button class="esb kelner-end-btn" onclick="endShift()">Крај</button>
         </div>
       </div>
 
