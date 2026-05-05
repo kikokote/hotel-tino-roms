@@ -74,6 +74,15 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
 .sbar{background:rgba(201,168,76,.07);border:1px solid var(--bdr);border-radius:8px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
 .sinfo{color:var(--mut);font-size:11px;font-family:"DM Sans",sans-serif;font-weight:500}.sinfo b{color:var(--gold);font-weight:700;font-family:"Unbounded",sans-serif;font-size:10px}
 .esb{background:transparent;border:1px solid var(--org);color:var(--org);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:"DM Sans",sans-serif}
+.kshift-left{min-width:0;flex:1}
+.kshift-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.shift-total-box{background:rgba(201,168,76,.10);border:1px solid var(--gbd);color:var(--gold);border-radius:10px;padding:7px 12px;min-width:112px;cursor:pointer;text-align:left;transition:all .18s;box-shadow:0 0 0 0 rgba(201,168,76,0);font-family:"DM Sans",sans-serif}
+.shift-total-box:active{transform:scale(.98)}
+.shift-total-box:hover{background:rgba(201,168,76,.16);box-shadow:0 0 18px rgba(201,168,76,.12)}
+.shift-total-box span{display:block;color:var(--mut);font-size:8px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;line-height:1;margin-bottom:4px}
+.shift-total-box b{display:block;color:var(--gold);font-family:"Unbounded",sans-serif;font-size:14px;font-weight:900;line-height:1.08}
+.shift-total-box small{display:block;color:var(--dim);font-size:9px;font-weight:700;margin-top:3px}
+@media(max-width:520px){.sbar.kshift{align-items:flex-start}.kshift-actions{width:100%;justify-content:space-between}.shift-total-box{flex:1;min-width:0}.shift-total-box b{font-size:15px}.sbar.kshift .esb{min-width:82px;height:48px;font-size:13px}}
 
 /* KELNER LAYOUT - DESKTOP: always show 2 columns */
 .klyt{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px;align-items:start}
@@ -397,12 +406,19 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
   <div class="opov" id="opov" onclick="toggleOP(false)"></div>
   <div class="klyt">
     <div class="kleft">
-      <div class="sbar">
-        <div style="min-width:0;flex:1">
+      <div class="sbar kshift">
+        <div class="kshift-left">
           <div class="sinfo">Келнер: <b id="kelnerName">-</b> | Смена: <b id="stime">-</b></div>
-          <div class="sinfo" style="margin-top:4px;font-size:10px">Зона: <b id="szone">-</b> | Моја смена: <b id="kelnerTotal" onclick="openShiftHistory()" style="cursor:pointer">0 ден.</b></div>
+          <div class="sinfo" style="margin-top:4px;font-size:10px">Зона: <b id="szone">-</b></div>
         </div>
-        <button class="esb" onclick="endShift()">Крај</button>
+        <div class="kshift-actions">
+          <button class="shift-total-box" onclick="openShiftHistory()" title="Отвори историја на смена">
+            <span>Моја смена</span>
+            <b id="kelnerTotal">0 ден.</b>
+            <small>Историја</small>
+          </button>
+          <button class="esb" onclick="endShift()">Крај</button>
+        </div>
       </div>
 
       <!-- READY COMMAND CENTER -->
@@ -1827,6 +1843,18 @@ function animateLoginFields(){
   });
 }
 let readyItems = {food:[], drink:[]}; // cache of ready items
+let kelnerReadyBootstrapped=false;
+const kelnerReadyAlerted=new Set();
+function markKelnerReadyAlerted(itemId){
+  if(itemId)kelnerReadyAlerted.add(String(itemId));
+}
+function shouldAlertKelnerReady(itemId){
+  if(!itemId)return true;
+  const key=String(itemId);
+  if(kelnerReadyAlerted.has(key))return false;
+  kelnerReadyAlerted.add(key);
+  return true;
+}
 
 async function loadReadyCenter(){
   if(!U||U.role!=="kelner")return;
@@ -1860,6 +1888,20 @@ async function loadReadyCenter(){
 
     food.sort((a,b)=>new Date(a.ready_at)-new Date(b.ready_at));
     drink.sort((a,b)=>new Date(a.ready_at)-new Date(b.ready_at));
+
+    const currentReady=[...food,...drink];
+    if(!kelnerReadyBootstrapped){
+      currentReady.forEach(i=>markKelnerReadyAlerted(i.item_id));
+      kelnerReadyBootstrapped=true;
+    }else{
+      currentReady.forEach(i=>{
+        if(shouldAlertKelnerReady(i.item_id)){
+          try{beep(i.type==="food"?"foodReady":"drinkReady");}catch(e){}
+          try{showBanner(i.table_number,i.type,i.name,i.quantity);}catch(e){console.warn("[READY] polling toast error:",e.message||e);}
+        }
+      });
+    }
+
     readyItems={food,drink};
     updateReadyCenterUI();
   }catch(e){console.error("loadReadyCenter exception:",e);}
@@ -2365,19 +2407,70 @@ async function pushTo(opts){
   }catch(e){console.error("[PUSH] pushTo error:",e.message);}
 }
 
+function dismissReadyToast(el){
+  try{
+    if(el&&el.remove)el.remove();
+  }catch(e){}
+}
+function ensureReadyToastStack(){
+  let stack=document.getElementById("readyToastStack");
+  if(!stack){
+    stack=document.createElement("div");
+    stack.id="readyToastStack";
+    stack.style.cssText="position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:10080;width:min(calc(100vw - 22px),440px);display:flex;flex-direction:column;gap:8px;pointer-events:none";
+    document.body.appendChild(stack);
+  }
+  return stack;
+}
+function readyToastColor(type){return type==="food"?"var(--gold)":"var(--tel)";}
+function readyToastSoft(type){return type==="food"?"rgba(201,168,76,.16)":"rgba(74,158,255,.16)";}
+function readyToastIcon(type){return type==="food"?"🍽":"🍹";}
+function readyToastLabel(type){return type==="food"?"Кујна":"Бар";}
+function openReadyFromToast(type,el){
+  dismissReadyToast(el);
+  try{openReadyModal(type);}catch(e){}
+}
 function showBanner(tableNum,type,itemName,qty){
-  const old=document.getElementById("readyBanner");
-  if(old)old.remove();
-  const isFood=type==="food";
-  const color=isFood?"var(--gold)":"var(--tel)";
-  const label=isFood?"🍽 Кујна":"🍹 Бар";
+  const readyType=type==="drink"?"drink":"food";
+  const color=readyToastColor(readyType);
+  const soft=readyToastSoft(readyType);
+  const icon=readyToastIcon(readyType);
+  const label=readyToastLabel(readyType);
   const text=itemName?`${qty||1}x ${itemName}`:"Нарачката е готова";
+
+  // In-app waiter toast. Push notifications are for locked/background phones;
+  // this toast is for the visible Kelner dashboard.
+  try{toast(`${icon} ${label} готово — Маса ${tableNum}`,"ok");}catch(e){}
+
+  const stack=ensureReadyToastStack();
   const d=document.createElement("div");
-  d.id="readyBanner";
-  d.style.cssText=`position:fixed;top:70px;right:12px;z-index:9999;background:var(--dark);border:2px solid ${color};border-radius:12px;padding:12px 16px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:slideIn .3s ease`;
-  d.innerHTML=`<div style="color:${color};font-size:11px;font-weight:700;font-family:'Unbounded',sans-serif;letter-spacing:1px;margin-bottom:4px">${label} — ГОТОВО</div><div style="color:var(--text);font-size:13px;font-weight:600;margin-bottom:2px">Маса ${tableNum}</div><div style="color:var(--mut);font-size:11px">${text}</div><button onclick="this.closest('#readyBanner').remove()" style="position:absolute;top:8px;right:8px;background:transparent;border:none;color:var(--mut);font-size:16px;cursor:pointer;line-height:1">×</button>`;
-  document.body.appendChild(d);
-  setTimeout(()=>{try{d.remove();}catch(e){}},8000);
+  d.className="ready-toast-card";
+  d.style.cssText=`pointer-events:auto;background:linear-gradient(180deg,rgba(20,20,24,.98),rgba(12,12,15,.98));border:2px solid ${color};border-radius:16px;padding:13px 14px;box-shadow:0 16px 42px rgba(0,0,0,.50),0 0 0 1px ${soft} inset;animation:si .18s ease;position:relative;overflow:hidden`;
+  d.innerHTML=`
+    <button onclick="dismissReadyToast(this.closest('.ready-toast-card'))" aria-label="Затвори" style="position:absolute;top:7px;right:7px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;font-size:20px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center">×</button>
+    <div style="display:flex;gap:12px;align-items:center;padding-right:34px">
+      <div style="width:46px;height:46px;border-radius:14px;background:${soft};display:flex;align-items:center;justify-content:center;font-size:25px;flex-shrink:0;box-shadow:0 0 0 1px ${soft} inset">${icon}</div>
+      <div style="min-width:0;flex:1">
+        <div style="color:${color};font-size:11px;font-weight:900;font-family:'Unbounded',sans-serif;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:3px">${label} — ГОТОВО</div>
+        <div style="color:var(--text);font-size:25px;font-weight:900;line-height:1.06;font-family:'Unbounded',sans-serif">Маса ${tableNum}</div>
+        <div style="color:#fff;font-size:14px;font-weight:700;line-height:1.25;margin-top:5px;word-break:break-word">${text}</div>
+        <div style="color:var(--mut);font-size:11px;margin-top:4px">Спремно за подигнување.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button onclick="openReadyFromToast('${readyType}',this.closest('.ready-toast-card'))" style="flex:1;background:${color};border:none;color:${readyType==='food'?'#141414':'#06171a'};font-size:13px;font-weight:900;font-family:'DM Sans',sans-serif;padding:11px 12px;border-radius:11px;cursor:pointer">Отвори</button>
+      <button onclick="dismissReadyToast(this.closest('.ready-toast-card'))" style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:800;padding:11px 12px;border-radius:11px;cursor:pointer">Видов</button>
+    </div>
+    <div style="margin-top:10px;height:3px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden"><div style="height:100%;background:${color};animation:readyToastCountdown 12s linear forwards"></div></div>`;
+  stack.prepend(d);
+  while(stack.children.length>4)stack.lastElementChild.remove();
+  if(!document.getElementById("readyToastStyle")){
+    const st=document.createElement("style");
+    st.id="readyToastStyle";
+    st.textContent="@keyframes readyToastCountdown{from{transform:scaleX(1);transform-origin:left center}to{transform:scaleX(0);transform-origin:left center}}";
+    document.head.appendChild(st);
+  }
+  setTimeout(()=>{try{d.remove();}catch(e){}},12000);
 }
 
 // ===== STATION AUTO-REFRESH + ALERTS =====
@@ -3527,15 +3620,8 @@ function subRT(){
         try{loadAmt();}catch(e){}
         if(!p.new||p.new.kelner_id!==U.id)return;
         try{loadReadyCenter();}catch(e){}
-        if(p.new.status==="ready"){
-          try{
-            const{data:ord}=await sb.from("orders").select("table_number,order_items(type)").eq("id",p.new.id).single();
-            if(ord){
-              if(ord.order_items?.some(i=>i.type==="food"))showBanner(ord.table_number,"food");
-              if(ord.order_items?.some(i=>i.type==="drink"))showBanner(ord.table_number,"drink");
-            }
-          }catch(e){console.error("[RT] banner error:",e);}
-        }
+        // Ready toasts are shown from order_items UPDATE or the 5s ready-center polling backup.
+        // Avoid showing a duplicate whole-order toast here.
       }
     }catch(e){console.error("[RT] UPDATE orders handler error:",e);}
   });
@@ -3570,8 +3656,10 @@ function subRT(){
           try{await loadReadyCenter();}catch(e){}
           if(p.new.status==="ready"){
             const readyType=p.new.type==="food"?"food":"drink";
-            try{beep(readyType==="food"?"foodReady":"drinkReady");}catch(e){}
-            try{showBanner(ord.table_number,readyType,p.new.menu_item_name,p.new.quantity);}catch(e){}
+            if(shouldAlertKelnerReady(p.new.id)){
+              try{beep(readyType==="food"?"foodReady":"drinkReady");}catch(e){}
+              try{showBanner(ord.table_number,readyType,p.new.menu_item_name,p.new.quantity);}catch(e){}
+            }
           }
         }catch(e){console.error("[RT] order_items kelner handler error:",e);}
       }
