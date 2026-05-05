@@ -224,9 +224,102 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
 .mcat-btn:hover,.mcat-btn:active{border-color:var(--gold);background:rgba(201,168,76,.08)}
 .mcat-name{color:var(--text);font-size:13px;font-weight:600}
 .mcat-count{color:var(--mut);font-size:10px}
-.mback-btn{display:inline-flex;align-items:center;gap:6px;background:var(--d2);border:1px solid var(--bdr);border-radius:20px;color:var(--gold);font-size:12px;font-weight:600;padding:6px 14px;cursor:pointer;margin-bottom:10px;transition:all .2s}
-.mback-btn:hover{background:rgba(201,168,76,.15)}
-.mback-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+/* SUPER MODERN TACTILE BACK PILL — for all Назад controls */
+.back-pill-zone{
+  position:sticky;
+  top:8px;
+  z-index:60;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  width:100%;
+  padding:4px 0 12px;
+  pointer-events:none;
+  animation:backPillEnter .18s ease-out both;
+}
+.btn-back-pill{
+  pointer-events:auto;
+  min-height:48px;
+  padding:12px 24px 12px 18px;
+  border-radius:50px;
+  border:1px solid rgba(201,168,76,.24);
+  background:rgba(255,255,255,.08);
+  color:var(--gold);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  font-family:"DM Sans",sans-serif;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  line-height:1;
+  cursor:pointer;
+  user-select:none;
+  touch-action:manipulation;
+  box-shadow:0 10px 28px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+  transition:transform .10s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease;
+}
+.btn-back-pill:hover{
+  background:rgba(201,168,76,.12);
+  border-color:rgba(201,168,76,.42);
+  box-shadow:0 12px 34px rgba(0,0,0,.34), 0 0 18px rgba(201,168,76,.10), inset 0 1px 0 rgba(255,255,255,.10);
+}
+.btn-back-pill:active{
+  transform:scale(.92);
+  background:rgba(201,168,76,.18);
+  border-color:rgba(201,168,76,.58);
+  box-shadow:0 4px 14px rgba(0,0,0,.34), inset 0 2px 8px rgba(0,0,0,.18);
+}
+.btn-back-pill:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(201,168,76,.22), 0 10px 28px rgba(0,0,0,.28);
+}
+.btn-back-pill svg{
+  width:20px;
+  height:20px;
+  flex:0 0 auto;
+  stroke:currentColor;
+  stroke-width:2.8;
+  transition:transform .12s ease;
+}
+.btn-back-pill:active svg{transform:translateX(-3px)}
+.btn-back-pill .back-pill-text{white-space:nowrap}
+.back-pill-zone.is-fixed{
+  position:fixed;
+  top:calc(env(safe-area-inset-top, 0px) + 70px);
+  left:14px;
+  width:auto;
+  padding:0;
+}
+.btn-back-pill.is-compact{
+  min-height:44px;
+  padding:10px 18px 10px 14px;
+  font-size:12px;
+}
+/* Keep old class name as a harmless compatibility hook; visual styling now comes from .btn-back-pill */
+.mback-btn{margin-bottom:0}
+.mback-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px}
+.mback-bar .back-pill-zone{width:auto;flex:0 0 auto;padding:0}
+.modal-back-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.modal-back-head .back-pill-zone{position:static;top:auto;width:auto;flex:0 0 auto;padding:0}
+.modal-back-title{margin:0;color:var(--gold);text-align:right;flex:1}
+@media(max-width:520px){.modal-back-head{align-items:flex-start;flex-direction:column}.modal-back-title{text-align:left}}
+@media(max-width:520px){
+  .back-pill-zone{top:6px;padding:3px 0 10px}
+  .btn-back-pill{min-height:50px;padding:13px 22px 13px 17px;font-size:13px;gap:9px}
+  .btn-back-pill svg{width:21px;height:21px}
+}
+@media(prefers-reduced-motion:reduce){
+  .back-pill-zone,.btn-back-pill,.btn-back-pill svg{animation:none;transition:none}
+}
+@keyframes backPillEnter{
+  from{opacity:0;transform:translateX(-10px) translateY(-4px)}
+  to{opacity:1;transform:translateX(0) translateY(0)}
+}
 
 @media(max-width:768px){
   .mgrp-grid{grid-template-columns:repeat(3,1fr)}
@@ -609,9 +702,14 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
 <!-- SHIFT HISTORY MODAL -->
 <div class="mov" id="shiftHistMod">
   <div class="mdl" style="max-width:500px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div class="mtt" style="margin:0;color:var(--gold)"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg> Моја Смена</div>
-      <button class="cnc" onclick="closeM('shiftHistMod')">Затвори</button>
+    <div class="modal-back-head">
+      <div class="back-pill-zone">
+        <button type="button" class="btn-back-pill is-compact" onclick="closeM('shiftHistMod')" aria-label="Назад">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="back-pill-text">Назад</span>
+        </button>
+      </div>
+      <div class="mtt modal-back-title"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg> Моја Смена</div>
     </div>
     <div id="shiftHistMeta" style="color:var(--mut);font-size:11px;margin-bottom:14px"></div>
     <div id="shiftHistList" style="max-height:65vh;overflow-y:auto"></div>
@@ -1168,7 +1266,7 @@ function renderMenuNav(){
 
   if(!menuCat && grpCats.length > 1){
     // SUB-LEVEL — show categories within group
-    let h = `<div class="mback-btn" onclick="backToGroups()">← Назад</div>`;
+    let h = `<div class="back-pill-zone"><button type="button" class="btn-back-pill mback-btn" onclick="backToGroups()" aria-label="Назад"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="back-pill-text">Назад</span></button></div>`;
     h += `<div class="mcat-grid">`;
     grpCats.forEach(c => {
       const items = ITM.filter(i=>i.category_id===c.id);
@@ -1191,9 +1289,9 @@ function renderMenuNav(){
   const list = ITM.filter(i => catIds.includes(i.category_id));
 
   // Back button
-  let backLabel = grpCats.length > 1 ? `← ${grp.label}` : "← Назад";
+  let backLabel = grpCats.length > 1 ? `${grp.label}` : "Назад";
   let bh = `<div class="mback-bar">
-    <div class="mback-btn" onclick="${grpCats.length>1?`backToCats()`:`backToGroups()`}">${backLabel}</div>
+    <div class="back-pill-zone"><button type="button" class="btn-back-pill mback-btn" onclick="${grpCats.length>1?`backToCats()`:`backToGroups()`}" aria-label="Назад"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="back-pill-text">${backLabel}</span></button></div>
     <span style="color:var(--mut);font-size:11px">${menuCat ? CAT.find(c=>c.id===menuCat)?.name : grp.label}</span>
   </div>`;
   el.innerHTML = "";
