@@ -398,7 +398,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
   <div class="klyt">
     <div class="kleft">
       <div class="sbar">
-        <div class="sinfo">Смена: <b id="stime">-</b> | Зона: <b id="szone">-</b></div>
+        <div class="sinfo">Смена: <b id="stime">-</b> | Келнер: <b id="kelnerName">-</b> | Зона: <b id="szone">-</b></div>
         <div style="display:flex;align-items:center;gap:8px">
           <div onclick="openShiftHistory()" style="background:rgba(201,168,76,.1);border:1px solid var(--bdr);border-radius:8px;padding:4px 10px;text-align:center;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bdr)'">
             <div style="color:var(--dim);font-size:9px;letter-spacing:1px;text-transform:uppercase">Моја смена</div>
@@ -923,7 +923,7 @@ function showApp(){
 
   document.getElementById("loginScreen").classList.remove("active");
   document.getElementById("topbar").style.display="flex";
-  const rn={kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен",menager:"Менаџер",admin:"Администратор"};
+  const rn={kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен",menager:"Менаџер",manager:"Менаџер",admin:"Администратор"};
   document.getElementById("ubadge").textContent=U.name+" · "+(rn[U.role]||"");
   syncPushForCurrentLogin({silent:true,requestPermission:false});
   // Start live clock
@@ -945,6 +945,8 @@ function showApp(){
   if(U.role==="kelner"){
     document.getElementById("kelnerScreen").classList.add("active");
     document.getElementById("stime").textContent=ts;
+    const kn=document.getElementById("kelnerName");
+    if(kn)kn.textContent=(U.name||U.username||"-")+(U.username&&U.name&&U.username!==U.name?" ("+U.username+")":"");
     renderK();RT=subRT();keepScreenOn();
   }else if(U.role==="kuvar"){
     document.getElementById("kujnaScreen").classList.add("active");
@@ -959,6 +961,8 @@ function showApp(){
   }else{
     document.getElementById("adminScreen").classList.add("active");
     loadAdmin();
+    RT=subRT();
+    keepScreenOn();
   }
 }
 
@@ -1987,16 +1991,53 @@ async function confirmServed(tableNum,type,btn){
 }
 
 // ===== AUDIO / NOTIFICATIONS =====
-function beep(){
+function beep(kind="default"){
   try{
-    const a=new(window.AudioContext||window.webkitAudioContext)();
-    const o=a.createOscillator();
-    const g=a.createGain();
-    o.connect(g);g.connect(a.destination);
-    o.frequency.value=880;
-    g.gain.setValueAtTime(.3,a.currentTime);
-    g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.5);
-    o.start();o.stop(a.currentTime+.5);
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx)return;
+    const a=new Ctx();
+    const now=a.currentTime;
+    const master=a.createGain();
+    master.connect(a.destination);
+    master.gain.setValueAtTime(0.0001,now);
+    master.gain.exponentialRampToValueAtTime(0.22,now+0.015);
+
+    const profiles={
+      kitchen:{notes:[740,932,1175],dur:.115,gap:.045,wave:"triangle",vol:.24},
+      food:{notes:[740,932,1175],dur:.115,gap:.045,wave:"triangle",vol:.24},
+      kuvar:{notes:[740,932,1175],dur:.115,gap:.045,wave:"triangle",vol:.24},
+
+      bar:{notes:[1046,1318,1568],dur:.09,gap:.035,wave:"sine",vol:.20},
+      drink:{notes:[1046,1318,1568],dur:.09,gap:.035,wave:"sine",vol:.20},
+      barmen:{notes:[1046,1318,1568],dur:.09,gap:.035,wave:"sine",vol:.20},
+
+      foodReady:{notes:[1175,932,740,1175],dur:.105,gap:.04,wave:"triangle",vol:.23},
+      drinkReady:{notes:[1568,1318,1046,1568],dur:.09,gap:.035,wave:"sine",vol:.20},
+      ready:{notes:[988,1244,1568],dur:.105,gap:.04,wave:"triangle",vol:.22},
+
+      default:{notes:[880,1175],dur:.12,gap:.05,wave:"sine",vol:.20}
+    };
+    const p=profiles[kind]||profiles.default;
+    master.gain.setValueAtTime(p.vol,now+.02);
+
+    p.notes.forEach((freq,idx)=>{
+      const t=now+idx*(p.dur+p.gap);
+      const o=a.createOscillator();
+      const g=a.createGain();
+      o.type=p.wave;
+      o.frequency.setValueAtTime(freq,t);
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.9,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+p.dur);
+      o.connect(g);g.connect(master);
+      o.start(t);
+      o.stop(t+p.dur+.025);
+    });
+
+    const total=p.notes.length*(p.dur+p.gap)+.08;
+    master.gain.setValueAtTime(p.vol,now+Math.max(.02,total-.08));
+    master.gain.exponentialRampToValueAtTime(0.0001,now+total);
+    setTimeout(()=>{try{a.close();}catch(e){}},Math.ceil((total+0.12)*1000));
   }catch(e){}
 }
 
@@ -2329,19 +2370,165 @@ async function pushTo(opts){
   }catch(e){console.error("[PUSH] pushTo error:",e.message);}
 }
 
+const READY_BANNER_RECENT=new Map();
+let READY_BANNER_SEQ=0;
+
+function escReadyHtml(v){
+  return String(v??"").replace(/[&<>"']/g,ch=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[ch]));
+}
+function ensureReadyBannerStyles(){
+  if(document.getElementById("readyBannerDynStyle"))return;
+  const st=document.createElement("style");
+  st.id="readyBannerDynStyle";
+  st.textContent=`
+    #readyBannerStack{
+      position:fixed;top:74px;left:50%;transform:translateX(-50%);
+      z-index:9999;width:min(calc(100vw - 22px),440px);
+      display:flex;flex-direction:column;gap:10px;pointer-events:none;
+    }
+    .ready-card{
+      pointer-events:auto;position:relative;overflow:hidden;
+      background:linear-gradient(180deg,rgba(24,24,27,.98),rgba(10,10,12,.98));
+      border:2px solid var(--ready-color);border-radius:20px;
+      padding:14px 14px 12px 14px;
+      box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 0 1px var(--ready-soft) inset,0 0 36px var(--ready-glow);
+      backdrop-filter:blur(12px);
+      transform-origin:top center;
+      animation:readyPopIn .38s cubic-bezier(.16,1.25,.32,1),readyGlow 1.65s ease-in-out infinite;
+    }
+    .ready-card.ready-exit{animation:readyPopOut .18s ease forwards}
+    .ready-card::before{
+      content:"";position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(circle at 20% 0%,var(--ready-soft),transparent 45%);
+      opacity:.9;
+    }
+    .ready-card-top{display:flex;align-items:flex-start;gap:12px;padding-right:40px;position:relative;z-index:1}
+    .ready-card-icon{
+      width:48px;height:48px;border-radius:16px;background:var(--ready-soft);
+      display:flex;align-items:center;justify-content:center;font-size:26px;
+      box-shadow:0 0 0 1px var(--ready-soft) inset,0 0 18px var(--ready-glow);
+      flex-shrink:0;animation:readyIconPulse 1.25s ease-in-out infinite;
+    }
+    .ready-card-pill{
+      display:inline-flex;align-items:center;gap:7px;color:var(--ready-color);
+      font-size:12px;font-weight:900;font-family:'Unbounded',sans-serif;
+      letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;
+    }
+    .ready-card-dot{
+      display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ready-color);
+      box-shadow:0 0 12px var(--ready-color);animation:readyDotPulse 1s ease-in-out infinite;
+    }
+    .ready-card-table{color:var(--text);font-size:31px;line-height:1.03;font-weight:900;margin-bottom:6px}
+    .ready-card-item{color:#fff;font-size:16px;font-weight:700;line-height:1.28;margin-bottom:6px;word-break:break-word}
+    .ready-card-sub{color:var(--mut);font-size:12px;line-height:1.3}
+    .ready-card-close{
+      position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;
+      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+      color:#fff;font-size:24px;cursor:pointer;line-height:1;
+      display:flex;align-items:center;justify-content:center;z-index:2;
+    }
+    .ready-card-actions{display:flex;gap:10px;margin-top:13px;position:relative;z-index:1}
+    .ready-card-primary,.ready-card-secondary{
+      flex:1;font-size:14px;font-weight:900;padding:12px 14px;border-radius:13px;cursor:pointer;
+    }
+    .ready-card-primary{background:var(--ready-color);border:none;color:var(--ready-button-text)}
+    .ready-card-secondary{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.13);color:#fff}
+    .ready-progress{height:4px;margin-top:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;position:relative;z-index:1}
+    .ready-progress>div{height:100%;width:100%;background:var(--ready-color);transform-origin:left center;animation:readyCountdown 14s linear forwards}
+    @keyframes readyPopIn{0%{opacity:0;transform:translateY(-22px) scale(.84)}65%{opacity:1;transform:translateY(5px) scale(1.035)}100%{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes readyPopOut{to{opacity:0;transform:translateY(-10px) scale(.96);max-height:0;margin-top:-10px;padding-top:0;padding-bottom:0}}
+    @keyframes readyGlow{0%,100%{box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 0 1px var(--ready-soft) inset,0 0 24px var(--ready-glow)}50%{box-shadow:0 24px 66px rgba(0,0,0,.6),0 0 0 1px var(--ready-soft) inset,0 0 48px var(--ready-glow)}}
+    @keyframes readyIconPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+    @keyframes readyDotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.72)}}
+    @keyframes readyCountdown{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+    @media(max-width:600px){
+      #readyBannerStack{top:72px;width:calc(100vw - 18px);gap:8px}
+      .ready-card{border-radius:18px;padding:13px 12px 11px}
+      .ready-card-icon{width:44px;height:44px;border-radius:14px;font-size:24px}
+      .ready-card-table{font-size:29px}
+      .ready-card-item{font-size:15px}
+    }
+  `;
+  document.head.appendChild(st);
+}
+function ensureReadyBannerStack(){
+  ensureReadyBannerStyles();
+  let stack=document.getElementById("readyBannerStack");
+  if(!stack){
+    stack=document.createElement("div");
+    stack.id="readyBannerStack";
+    document.body.appendChild(stack);
+  }
+  return stack;
+}
+function dismissReadyBanner(id){
+  const el=id?document.getElementById(id):document.querySelector("#readyBannerStack .ready-card");
+  if(!el)return;
+  el.classList.add("ready-exit");
+  setTimeout(()=>{try{el.remove();}catch(e){}},180);
+}
+function openReadyFromBanner(id,type){
+  dismissReadyBanner(id);
+  try{openReadyModal(type);}catch(e){}
+}
+function hasRecentReadyBanner(tableNum,type,ms=3500){
+  const t=READY_BANNER_RECENT.get(`station:${type}:table:${tableNum}`)||0;
+  return Date.now()-t<ms;
+}
 function showBanner(tableNum,type,itemName,qty){
-  const old=document.getElementById("readyBanner");
-  if(old)old.remove();
   const isFood=type==="food";
+  const stationType=isFood?"food":"drink";
+  const key=`${stationType}|${tableNum}|${itemName||""}|${qty||""}`;
+  const now=Date.now();
+  if(now-(READY_BANNER_RECENT.get(key)||0)<2500)return;
+  READY_BANNER_RECENT.set(key,now);
+  READY_BANNER_RECENT.set(`station:${stationType}:table:${tableNum}`,now);
+
+  const stack=ensureReadyBannerStack();
+  while(stack.children.length>=4){
+    try{stack.lastElementChild.remove();}catch(e){break;}
+  }
+
   const color=isFood?"var(--gold)":"var(--tel)";
-  const label=isFood?"🍽 Кујна":"🍹 Бар";
+  const soft=isFood?"rgba(201,168,76,.18)":"rgba(74,158,255,.18)";
+  const glow=isFood?"rgba(201,168,76,.38)":"rgba(74,158,255,.38)";
+  const btnText=isFood?"#161616":"#06121c";
+  const label=isFood?"Кујна":"Бар";
+  const icon=isFood?"🍽":"🍹";
   const text=itemName?`${qty||1}x ${itemName}`:"Нарачката е готова";
+  const id=`readyBanner-${++READY_BANNER_SEQ}`;
+
   const d=document.createElement("div");
-  d.id="readyBanner";
-  d.style.cssText=`position:fixed;top:70px;right:12px;z-index:9999;background:var(--dark);border:2px solid ${color};border-radius:12px;padding:12px 16px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:slideIn .3s ease`;
-  d.innerHTML=`<div style="color:${color};font-size:11px;font-weight:700;font-family:'Unbounded',sans-serif;letter-spacing:1px;margin-bottom:4px">${label} — ГОТОВО</div><div style="color:var(--text);font-size:13px;font-weight:600;margin-bottom:2px">Маса ${tableNum}</div><div style="color:var(--mut);font-size:11px">${text}</div><button onclick="this.closest('#readyBanner').remove()" style="position:absolute;top:8px;right:8px;background:transparent;border:none;color:var(--mut);font-size:16px;cursor:pointer;line-height:1">×</button>`;
-  document.body.appendChild(d);
-  setTimeout(()=>{try{d.remove();}catch(e){}},8000);
+  d.id=id;
+  d.className=`ready-card ${isFood?"ready-food":"ready-drink"}`;
+  d.style.setProperty("--ready-color",color);
+  d.style.setProperty("--ready-soft",soft);
+  d.style.setProperty("--ready-glow",glow);
+  d.style.setProperty("--ready-button-text",btnText);
+  d.innerHTML=`
+    <button class="ready-card-close" onclick="dismissReadyBanner('${id}')" aria-label="Затвори">×</button>
+    <div class="ready-card-top">
+      <div class="ready-card-icon">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div class="ready-card-pill"><span class="ready-card-dot"></span>${label} — ГОТОВО</div>
+        <div class="ready-card-table">Маса ${escReadyHtml(tableNum)}</div>
+        <div class="ready-card-item">${escReadyHtml(text)}</div>
+        <div class="ready-card-sub">Нарачката е спремна за подигнување.</div>
+      </div>
+    </div>
+    <div class="ready-card-actions">
+      <button class="ready-card-primary" onclick="openReadyFromBanner('${id}','${stationType}')">Отвори</button>
+      <button class="ready-card-secondary" onclick="dismissReadyBanner('${id}')">Видов</button>
+    </div>
+    <div class="ready-progress"><div></div></div>`;
+  stack.prepend(d);
+
+  try{
+    if(navigator.vibrate)navigator.vibrate(isFood?[220,80,220]:[120,60,120,60,160]);
+  }catch(e){}
+  setTimeout(()=>dismissReadyBanner(id),14000);
 }
 
 // ===== KITCHEN =====
@@ -2518,6 +2705,7 @@ async function keepScreenOn(){
     if(U&&U.role==="kuvar")loadK();
     if(U&&U.role==="barmen")loadB();
     if(U&&U.role==="kelner")loadReadyCenter();
+    if(U&&isAdminLike&&isAdminLike())scheduleAdminSync();
   },25000);
   if(timerInterval)clearInterval(timerInterval);
   timerInterval=setInterval(()=>{
@@ -2542,6 +2730,7 @@ document.addEventListener("visibilitychange",async()=>{
     if(U.role==="kuvar")loadK();
     if(U.role==="barmen")loadB();
     if(U.role==="kelner")loadAmt();
+    if(isAdminLike&&isAdminLike())scheduleAdminSync();
     if("wakeLock"in navigator&&(!wakeLock||wakeLock.released)){try{wakeLock=await navigator.wakeLock.request("screen");}catch(e){}}
     if(RT&&RT.state==="closed"){
       try{sb.removeChannel(RT);}catch(e){}
@@ -2777,32 +2966,413 @@ async function endShift(){
   await finishShiftAndLogout();
 }
 
+
+// ===== ADMIN / MANAGER LIVE DASHBOARD + CRUD =====
+let ADMIN_TAB="dash";
+let ADMIN_SYNC_T=null;
+let ADMIN_LOADING=false;
+let ADM_ITM=[]; // all menu items, including unavailable, for Admin/Menu tab
+let CORR={order:null,items:[]};
+
+function isAdminLike(){return !!U&&(U.role==="admin"||U.role==="menager"||U.role==="manager");}
+function fmtMoney(v){return (Number(v)||0).toLocaleString("mk-MK");}
+function safeText(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+function setTxt(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function setHTML(id,v){const el=document.getElementById(id);if(el)el.innerHTML=v;}
+function localDayStart(d=new Date()){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function dateKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function dateInputStart(v){if(!v)return localDayStart();const a=String(v).split("-").map(Number);return new Date(a[0],a[1]-1,a[2]);}
+function roleLabel(r){return ({kelner:"Келнер",kuvar:"Готвач",barmen:"Бармен",menager:"Менаџер",manager:"Менаџер",admin:"Администратор"}[r]||r||"-");}
+function roleClass(r){return ({kelner:"tkl",kuvar:"tku",barmen:"tbr",menager:"tmg",manager:"tmg",admin:"tad"}[r]||"tf");}
+function statusLabel(s){return ({pending:"Активна",preparing:"Во подготовка",ready:"Готова",served:"Наплатена",cancelled:"Откажана"}[s]||s||"-");}
+function statusClass(s){return s==="served"?"tdr":(s==="ready"?"tbr":(s==="cancelled"?"tad":"tf"));}
+function adminTabVisible(tab){const el=document.getElementById("tab-"+tab);return el&&el.style.display!=="none";}
+
+async function loadAdminCatalog(){
+  const res=await sb.from("menu_items").select("*,menu_categories(name,type)").order("sort_order",{ascending:true}).order("name",{ascending:true});
+  if(res.error)throw res.error;
+  ADM_ITM=(res.data||[]).map(item=>({...item,type:item.menu_categories?.type||item.type||"food"}));
+}
+
+async function loadAdmin(opts={}){
+  if(!isAdminLike())return;
+  if(ADMIN_LOADING&&opts.silent)return;
+  ADMIN_LOADING=true;
+  try{
+    if(!opts.silent)setTxt("liveTicker","Се вчитува...");
+    await loadAll();
+    await loadAdminCatalog();
+    await renderAdminDashboard();
+    renderAdminMenu();
+    renderAdminStaff();
+    renderAdminZones();
+    if(ADMIN_TAB==="rep")await loadRep();
+  }catch(e){
+    console.error("[ADMIN] load failed",e);
+    setTxt("liveTicker","Грешка при синхронизација: "+(e.message||e));
+    if(!opts.silent)toast("Admin sync грешка: "+(e.message||e),"err");
+  }finally{ADMIN_LOADING=false;}
+}
+
+function scheduleAdminSync(){
+  if(!isAdminLike())return;
+  clearTimeout(ADMIN_SYNC_T);
+  ADMIN_SYNC_T=setTimeout(()=>loadAdmin({silent:true}),550);
+}
+
+async function renderAdminDashboard(){
+  const today=localDayStart();
+  const tomorrow=addDays(today,1);
+  const weekStart=addDays(today,-6);
+  const monthStart=new Date(today.getFullYear(),today.getMonth(),1);
+  const [todayRes,activeRes,weekRes,monthRes]=await Promise.all([
+    sb.from("orders").select("*").gte("created_at",today.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}),
+    sb.from("orders").select("*").in("status",["pending","preparing","ready"]),
+    sb.from("orders").select("total_amount,created_at,status").gte("created_at",weekStart.toISOString()).lt("created_at",tomorrow.toISOString()),
+    sb.from("orders").select("total_amount,created_at,status").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString())
+  ]);
+  [todayRes,activeRes,weekRes,monthRes].forEach(r=>{if(r.error)throw r.error;});
+  const todayOrders=(todayRes.data||[]).filter(o=>o.status!=="cancelled");
+  const activeOrders=(activeRes.data||[]).filter(o=>o.status!=="cancelled");
+  const weekOrders=(weekRes.data||[]).filter(o=>o.status!=="cancelled");
+  const monthOrders=(monthRes.data||[]).filter(o=>o.status!=="cancelled");
+  const rev=todayOrders.reduce((s,o)=>s+Number(o.total_amount||0),0);
+  const avg=todayOrders.length?Math.round(rev/todayOrders.length):0;
+  const weekRev=weekOrders.reduce((s,o)=>s+Number(o.total_amount||0),0);
+  const monthRev=monthOrders.reduce((s,o)=>s+Number(o.total_amount||0),0);
+  setTxt("stR",fmtMoney(rev));
+  setTxt("stO",todayOrders.length);
+  setTxt("stT",new Set(activeOrders.map(o=>o.table_number)).size);
+  setTxt("stA",fmtMoney(avg));
+  setTxt("stW",fmtMoney(weekRev));
+  setTxt("stM",fmtMoney(monthRev));
+
+  const byKelner={};
+  todayOrders.forEach(o=>{const k=o.kelner_name||"Непознат";byKelner[k]=(byKelner[k]||0)+Number(o.total_amount||0);});
+  const topK=Object.entries(byKelner).sort((a,b)=>b[1]-a[1])[0];
+  setTxt("topKelner",topK?topK[0]:"—");
+  setTxt("topKelnerAmt",topK?fmtMoney(topK[1])+" ден.":"0 ден.");
+
+  const ids=todayOrders.map(o=>o.id);
+  let itemRows=[];
+  if(ids.length){
+    const itemRes=await sb.from("order_items").select("order_id,menu_item_name,quantity,type").in("order_id",ids);
+    if(itemRes.error)throw itemRes.error;
+    itemRows=itemRes.data||[];
+  }
+  const byItem={};
+  itemRows.forEach(i=>{const n=i.menu_item_name||"Артикл";byItem[n]=(byItem[n]||0)+Number(i.quantity||0);});
+  const topI=Object.entries(byItem).sort((a,b)=>b[1]-a[1])[0];
+  setTxt("topItem",topI?topI[0]:"—");
+  setTxt("topItemCnt",topI?topI[1]+" пати нарачан":"0 пати нарачан");
+
+  // 7-day revenue chart
+  const dayTotals={};
+  for(let i=6;i>=0;i--){const d=addDays(today,-i);dayTotals[dateKey(d)]=0;}
+  weekOrders.forEach(o=>{const k=dateKey(new Date(o.created_at));if(dayTotals[k]!==undefined)dayTotals[k]+=Number(o.total_amount||0);});
+  const max=Math.max(1,...Object.values(dayTotals));
+  let ch="";
+  Object.entries(dayTotals).forEach(([k,v])=>{
+    const d=dateInputStart(k);const h=Math.max(3,Math.round(v/max*82));
+    const isToday=k===dateKey(today);
+    ch+=`<div class="cbw" title="${safeText(fmtMoney(v))} ден."><div class="cb ${isToday?"td":""}" style="height:${h}px"></div><div class="cdy">${d.toLocaleDateString("mk-MK",{day:"2-digit",month:"2-digit"})}</div></div>`;
+  });
+  setHTML("rchart",ch);
+
+  const zoneMap={};
+  ZON.forEach(z=>zoneMap[z.name]={name:z.name,color:z.color||"var(--gold)",orders:0,total:0,tables:new Set()});
+  todayOrders.forEach(o=>{const z=o.zone_name||"Без зона";if(!zoneMap[z])zoneMap[z]={name:z,color:"var(--gold)",orders:0,total:0,tables:new Set()};zoneMap[z].orders++;zoneMap[z].total+=Number(o.total_amount||0);zoneMap[z].tables.add(o.table_number);});
+  const zoneCards=Object.values(zoneMap).sort((a,b)=>b.total-a.total).map(z=>`<div class="sc"><div class="scl" style="color:${safeText(z.color)}">${safeText(z.name)}</div><div class="scv" style="font-size:18px;color:${safeText(z.color)}">${fmtMoney(z.total)}</div><div class="scs">${z.orders} нар. · ${z.tables.size} маси</div></div>`).join("");
+  setHTML("zStats",zoneCards||`<div style="color:var(--dim);font-size:12px;padding:10px">Нема податоци</div>`);
+
+  const rows=todayOrders.slice(0,60).map(o=>`<tr><td>М${safeText(o.table_number)}</td><td>${safeText(o.kelner_name||"-")}</td><td>${safeText(o.zone_name||"-")}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(o.total_amount)} ден.</td><td><span class="tag ${statusClass(o.status)}">${statusLabel(o.status)}</span></td><td>${new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td></tr>`).join("");
+  setHTML("todayT",rows||`<tr><td colspan="6" style="color:var(--dim);text-align:center;padding:18px">Нема нарачки денес</td></tr>`);
+
+  setTxt("liveTicker",`Синхронизирано ${new Date().toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit",second:"2-digit"})} · ${activeOrders.length} активни нарачки · ${todayOrders.length} денес · ${fmtMoney(rev)} ден.`);
+}
+
+function aTab(btn,tab){
+  ADMIN_TAB=tab;
+  document.querySelectorAll("#adminScreen .ab").forEach(b=>b.classList.remove("on"));
+  if(btn)btn.classList.add("on");
+  else{const b=[...document.querySelectorAll("#adminScreen .ab")].find(x=>String(x.getAttribute("onclick")||"").includes("'"+tab+"'"));if(b)b.classList.add("on");}
+  ["dash","menu","staff","zones","rep"].forEach(t=>{const el=document.getElementById("tab-"+t);if(el)el.style.display=t===tab?"block":"none";});
+  if(tab==="dash")loadAdmin({silent:true});
+  if(tab==="menu"){loadAdminCatalog().then(()=>renderAdminMenu()).catch(e=>toast(e.message,"err"));}
+  if(tab==="staff"){loadAll().then(()=>renderAdminStaff()).catch(e=>toast(e.message,"err"));}
+  if(tab==="zones"){loadAll().then(()=>renderAdminZones()).catch(e=>toast(e.message,"err"));}
+  if(tab==="rep")loadRep();
+}
+
+function renderAdminMenu(){
+  const catsById=Object.fromEntries(CAT.map(c=>[c.id,c]));
+  const items=(ADM_ITM.length?ADM_ITM:ITM).slice().sort((a,b)=>(a.menu_categories?.type||a.type||"").localeCompare(b.menu_categories?.type||b.type||"")||(a.menu_categories?.name||"").localeCompare(b.menu_categories?.name||"")||(a.sort_order||0)-(b.sort_order||0)||a.name.localeCompare(b.name));
+  setHTML("menuT",items.map(it=>{
+    const cat=catsById[it.category_id]||it.menu_categories||{};
+    const av=it.available!==false;
+    return `<tr><td>${safeText(it.name)}</td><td>${safeText(cat.name||"-")}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(it.price)}</td><td><span class="tag ${it.type==="drink"?"tdr":"tf"}">${it.type==="drink"?"Пијалок":"Јадење"}</span></td><td><span class="tag ${av?"tf":"tad"}">${av?"Да":"Не"}</span></td><td><button class="act" onclick="editItem('${it.id}')">Уреди</button><button class="act" onclick="toggleItemAvail('${it.id}',${av})">${av?"Исклучи":"Вклучи"}</button><button class="act del" onclick="deleteItem('${it.id}')">Бриши</button></td></tr>`;
+  }).join("")||`<tr><td colspan="6" style="color:var(--dim);text-align:center;padding:18px">Нема артикли</td></tr>`);
+  setHTML("catT",CAT.map(c=>`<tr><td>${safeText(c.name)}</td><td><span class="tag ${c.type==="drink"?"tdr":"tf"}">${c.type==="drink"?"Пијалок":"Јадење"}</span></td><td><button class="act" onclick="editCat('${c.id}')">Уреди</button><button class="act del" onclick="deleteCat('${c.id}')">Бриши</button></td></tr>`).join("")||`<tr><td colspan="3" style="color:var(--dim);text-align:center;padding:18px">Нема категории</td></tr>`);
+}
+
+function fillItemCatOptions(type,selected){
+  const sel=document.getElementById("iCat");if(!sel)return;
+  let cats=CAT.filter(c=>!type||c.type===type);
+  if(!cats.length)cats=CAT;
+  sel.innerHTML=cats.map(c=>`<option value="${c.id}" ${c.id===selected?"selected":""}>${safeText(c.name)}</option>`).join("");
+}
+function showAddItem(){
+  document.getElementById("iTit").textContent="Додај артикл";
+  document.getElementById("eItemId").value="";
+  document.getElementById("iNm").value="";document.getElementById("iPr").value="";document.getElementById("iTp").value="food";
+  fillItemCatOptions("food",null);
+  document.getElementById("iTp").onchange=function(){fillItemCatOptions(this.value,null);};
+  document.getElementById("iMod").classList.add("on");
+}
+function showAddCat(){
+  document.getElementById("cNm").dataset.id="";
+  document.querySelector("#cMod .mtt").textContent="Додај категорија";
+  document.getElementById("cNm").value="";document.getElementById("cTp").value="food";
+  document.getElementById("cMod").classList.add("on");
+}
+function editItem(id){
+  const it=(ADM_ITM.length?ADM_ITM:ITM).find(x=>x.id===id);if(!it)return;
+  document.getElementById("iTit").textContent="Уреди артикл";
+  document.getElementById("eItemId").value=id;
+  document.getElementById("iNm").value=it.name||"";document.getElementById("iPr").value=Number(it.price||0);document.getElementById("iTp").value=it.type||"food";
+  fillItemCatOptions(it.type||"food",it.category_id);
+  document.getElementById("iTp").onchange=function(){fillItemCatOptions(this.value,null);};
+  document.getElementById("iMod").classList.add("on");
+}
+async function saveItem(){
+  const id=document.getElementById("eItemId").value;
+  const name=document.getElementById("iNm").value.trim();
+  const price=Number(document.getElementById("iPr").value||0);
+  const type=document.getElementById("iTp").value;
+  const category_id=document.getElementById("iCat").value||null;
+  if(!name||price<0){toast("Внеси назив и цена","err");return;}
+  const payload={name,price,type,category_id,updated_at:new Date().toISOString()};
+  const res=id?await sb.from("menu_items").update(payload).eq("id",id):await sb.from("menu_items").insert({...payload,available:true}).select().single();
+  if(res.error){toast(res.error.message,"err");return;}
+  closeM("iMod");await loadAll();await loadAdminCatalog();renderAdminMenu();toast("Мени е зачувано","ok");scheduleAdminSync();
+}
+async function toggleItemAvail(id,isAvail){
+  const res=await sb.from("menu_items").update({available:!isAvail,updated_at:new Date().toISOString()}).eq("id",id);
+  if(res.error){toast(res.error.message,"err");return;}
+  await loadAll();await loadAdminCatalog();renderAdminMenu();toast("Артиклот е ажуриран","ok");
+}
+async function deleteItem(id){
+  if(!confirm("Да го избришам артиклот?"))return;
+  const res=await sb.from("menu_items").delete().eq("id",id);
+  if(res.error){toast(res.error.message,"err");return;}
+  await loadAll();await loadAdminCatalog();renderAdminMenu();toast("Артиклот е избришан","ok");
+}
+function editCat(id){
+  const c=CAT.find(x=>x.id===id);if(!c)return;
+  document.getElementById("cNm").dataset.id=id;
+  document.querySelector("#cMod .mtt").textContent="Уреди категорија";
+  document.getElementById("cNm").value=c.name||"";document.getElementById("cTp").value=c.type||"food";
+  document.getElementById("cMod").classList.add("on");
+}
+async function saveCat(){
+  const id=document.getElementById("cNm").dataset.id||"";
+  const name=document.getElementById("cNm").value.trim();
+  const type=document.getElementById("cTp").value;
+  if(!name){toast("Внеси назив на категорија","err");return;}
+  const payload={name,type,updated_at:new Date().toISOString()};
+  const res=id?await sb.from("menu_categories").update(payload).eq("id",id):await sb.from("menu_categories").insert(payload).select().single();
+  if(res.error){toast(res.error.message,"err");return;}
+  closeM("cMod");await loadAll();await loadAdminCatalog();renderAdminMenu();toast("Категоријата е зачувана","ok");
+}
+async function deleteCat(id){
+  if(!confirm("Да ја избришам категоријата? Артиклите ќе останат без категорија."))return;
+  const res=await sb.from("menu_categories").delete().eq("id",id);
+  if(res.error){toast(res.error.message,"err");return;}
+  await loadAll();await loadAdminCatalog();renderAdminMenu();toast("Категоријата е избришана","ok");
+}
+
+function renderAdminStaff(){
+  const rows=STF.slice().sort((a,b)=>(a.role||"").localeCompare(b.role||"")||a.name.localeCompare(b.name)).map(s=>`<tr><td>${safeText(s.name)}</td><td>${safeText(s.username)}</td><td><span class="tag ${roleClass(s.role)}">${roleLabel(s.role)}</span></td><td>${safeText(s.pin)}</td><td><span class="sw ${s.active?"on":""}" onclick="toggleStaffActive('${s.id}',${!!s.active})"></span></td><td><button class="act" onclick="editStaff('${s.id}')">Уреди</button><button class="act del" onclick="deleteStaff('${s.id}')">Бриши</button></td></tr>`).join("");
+  setHTML("staffT",rows||`<tr><td colspan="6" style="color:var(--dim);text-align:center;padding:18px">Нема вработени</td></tr>`);
+}
+function showAddStaff(){
+  document.getElementById("sTit").textContent="Додај вработен";document.getElementById("eStId").value="";
+  document.getElementById("sNm").value="";document.getElementById("sUn").value="";document.getElementById("sPin").value="";document.getElementById("sRol").value="kelner";
+  document.getElementById("sMod").classList.add("on");
+}
+function editStaff(id){
+  const s=STF.find(x=>x.id===id);if(!s)return;
+  document.getElementById("sTit").textContent="Уреди вработен";document.getElementById("eStId").value=id;
+  document.getElementById("sNm").value=s.name||"";document.getElementById("sUn").value=s.username||"";document.getElementById("sPin").value=s.pin||"";document.getElementById("sRol").value=s.role||"kelner";
+  document.getElementById("sMod").classList.add("on");
+}
+async function saveStaff(){
+  const id=document.getElementById("eStId").value;
+  const name=document.getElementById("sNm").value.trim();
+  const username=document.getElementById("sUn").value.trim();
+  const pin=document.getElementById("sPin").value.trim();
+  const role=document.getElementById("sRol").value;
+  if(!name||!username||!pin){toast("Внеси име, username и PIN","err");return;}
+  const payload={name,username,pin,role,updated_at:new Date().toISOString()};
+  const res=id?await sb.from("staff").update(payload).eq("id",id):await sb.from("staff").insert({...payload,active:true}).select().single();
+  if(res.error){toast(res.error.message,"err");return;}
+  closeM("sMod");await loadAll();renderAdminStaff();toast("Вработениот е зачуван","ok");scheduleAdminSync();
+}
+async function toggleStaffActive(id,isActive){
+  if(U&&U.id===id&&isActive){toast("Не можеш да се деактивираш себеси додека си најавен","err");return;}
+  const res=await sb.from("staff").update({active:!isActive,updated_at:new Date().toISOString()}).eq("id",id);
+  if(res.error){toast(res.error.message,"err");return;}
+  await loadAll();renderAdminStaff();toast("Статусот е ажуриран","ok");
+}
+async function deleteStaff(id){
+  if(U&&U.id===id){toast("Не можеш да го избришеш најавениот корисник","err");return;}
+  const s=STF.find(x=>x.id===id);if(!confirm(`Да го избришам ${s?.name||"овој корисник"}?`))return;
+  const res=await sb.from("staff").delete().eq("id",id);
+  if(res.error){toast(res.error.message,"err");return;}
+  await loadAll();renderAdminStaff();toast("Вработениот е избришан","ok");
+}
+
+function renderAdminZones(){
+  const rows=ZON.map(z=>{const cnt=TBL.filter(t=>t.zone_id===z.id).length;return `<tr><td>${safeText(z.name)}</td><td>${cnt}</td><td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:${safeText(z.color||"#b8860b")};border:1px solid var(--bdr)"></span> ${safeText(z.color||"")}</td><td><button class="act" onclick="openZoneTables('${z.id}')">Маси</button><button class="act" onclick="editZone('${z.id}')">Уреди</button><button class="act del" onclick="deleteZone('${z.id}')">Бриши</button></td></tr>`;}).join("");
+  setHTML("zonesT",rows||`<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:18px">Нема зони</td></tr>`);
+}
+function showAddZone(){
+  document.querySelector("#zMod .mtt").textContent="Додај зона";document.getElementById("zNm").dataset.id="";document.getElementById("zNm").value="";document.getElementById("zCol").value="#b8860b";document.getElementById("zMod").classList.add("on");
+}
+function editZone(id){
+  const z=ZON.find(x=>x.id===id);if(!z)return;
+  document.querySelector("#zMod .mtt").textContent="Уреди зона";document.getElementById("zNm").dataset.id=id;document.getElementById("zNm").value=z.name||"";document.getElementById("zCol").value=z.color||"#b8860b";document.getElementById("zMod").classList.add("on");
+}
+async function saveZone(){
+  const id=document.getElementById("zNm").dataset.id||"";
+  const name=document.getElementById("zNm").value.trim();
+  const color=document.getElementById("zCol").value||"#b8860b";
+  if(!name){toast("Внеси назив на зона","err");return;}
+  const payload={name,color,updated_at:new Date().toISOString()};
+  const res=id?await sb.from("zones").update(payload).eq("id",id):await sb.from("zones").insert(payload).select().single();
+  if(res.error){toast(res.error.message,"err");return;}
+  closeM("zMod");await loadAll();renderAdminZones();renderZ();renderT();toast("Зоната е зачувана","ok");
+}
+async function deleteZone(id){
+  const z=ZON.find(x=>x.id===id);if(!confirm(`Да ја избришам зоната ${z?.name||""}? Масите ќе останат без зона.`))return;
+  const res=await sb.from("zones").delete().eq("id",id);
+  if(res.error){toast(res.error.message,"err");return;}
+  await loadAll();renderAdminZones();toast("Зоната е избришана","ok");
+}
+function openZoneTables(zoneId){
+  const z=ZON.find(x=>x.id===zoneId);if(!z)return;
+  document.getElementById("zoneTableTitle").textContent="Маси во зона — "+z.name;
+  let h="";
+  TBL.forEach(t=>{const inZ=t.zone_id===zoneId;h+=`<div onclick="toggleTableZone('${t.id}','${zoneId}',${inZ})" style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:${inZ?"rgba(201,168,76,.10)":"var(--d2)"};border:1px solid ${inZ?"var(--gold)":"var(--bdr)"};border-radius:8px;margin-bottom:6px;cursor:pointer"><span style="font-weight:700;color:${inZ?"var(--gold)":"var(--text)"}">Маса ${t.number}</span><span class="tag ${inZ?"tf":"tdr"}">${inZ?"Во зона":"Додај"}</span></div>`;});
+  setHTML("zoneTableList",h);
+  document.getElementById("zoneTableMod").dataset.zoneId=zoneId;
+  document.getElementById("zoneTableMod").classList.add("on");
+}
+async function toggleTableZone(tableId,zoneId,inZone){
+  const res=await sb.from("tables").update({zone_id:inZone?null:zoneId,updated_at:new Date().toISOString()}).eq("id",tableId);
+  if(res.error){toast(res.error.message,"err");return;}
+  await loadAll();renderAdminZones();openZoneTables(zoneId);toast("Масите се ажурирани","ok");
+}
+
+async function loadRep(){
+  ADMIN_TAB="rep";
+  const fromEl=document.getElementById("rFrom"),toEl=document.getElementById("rTo");
+  const today=localDayStart();
+  if(fromEl&&!fromEl.value)fromEl.value=dateKey(addDays(today,-30));
+  if(toEl&&!toEl.value)toEl.value=dateKey(today);
+  const start=dateInputStart(fromEl?.value);const end=addDays(dateInputStart(toEl?.value),1);
+  const res=await sb.from("orders").select("*").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).order("created_at",{ascending:false});
+  if(res.error){toast(res.error.message,"err");return;}
+  const orders=(res.data||[]).filter(o=>o.status!=="cancelled");
+  const total=orders.reduce((s,o)=>s+Number(o.total_amount||0),0);
+  const active=orders.filter(o=>["pending","preparing","ready"].includes(o.status)).length;
+  setHTML("repSt",`<div class="sc"><div class="scl">Вкупно приход</div><div class="scv">${fmtMoney(total)}</div><div class="scs">денари</div></div><div class="sc"><div class="scl">Нарачки</div><div class="scv">${orders.length}</div></div><div class="sc"><div class="scl">Активни</div><div class="scv">${active}</div></div><div class="sc"><div class="scl">Просек</div><div class="scv">${fmtMoney(orders.length?Math.round(total/orders.length):0)}</div><div class="scs">денари</div></div>`);
+  setHTML("repT",orders.map(o=>`<tr><td>${new Date(o.created_at).toLocaleDateString("mk-MK")} ${new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td><td>М${safeText(o.table_number)}</td><td>${safeText(o.kelner_name||"-")}</td><td>${safeText(o.zone_name||"-")}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(o.total_amount)} ден.</td><td><span class="tag ${statusClass(o.status)}">${statusLabel(o.status)}</span></td><td><button class="act" onclick="openCorrection('${o.id}')">Корекција</button></td></tr>`).join("")||`<tr><td colspan="7" style="color:var(--dim);text-align:center;padding:18px">Нема нарачки во периодот</td></tr>`);
+  const perf={};orders.forEach(o=>{const id=o.kelner_id||o.kelner_name||"unknown";if(!perf[id])perf[id]={name:o.kelner_name||"Непознат",role:"kelner",orders:0,total:0};perf[id].orders++;perf[id].total+=Number(o.total_amount||0);});
+  setHTML("perfT",Object.values(perf).sort((a,b)=>b.total-a.total).map(p=>`<tr><td>${safeText(p.name)}</td><td><span class="tag tkl">Келнер</span></td><td>${p.orders}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(p.total)} ден.</td></tr>`).join("")||`<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:18px">Нема податоци</td></tr>`);
+}
+
+async function openCorrection(orderId){
+  const res=await sb.from("orders").select("*,order_items(id,menu_item_name,quantity,price,type,status,notes)").eq("id",orderId).single();
+  if(res.error){toast(res.error.message,"err");return;}
+  CORR={order:res.data,items:(res.data.order_items||[]).map(x=>({...x}))};
+  document.getElementById("corrMeta").innerHTML=`Маса <b style="color:var(--text)">${safeText(res.data.table_number)}</b> · Келнер <b style="color:var(--text)">${safeText(res.data.kelner_name||"-")}</b> · ${new Date(res.data.created_at).toLocaleString("mk-MK")}`;
+  let h="";
+  CORR.items.forEach(it=>{
+    h+=`<div style="display:grid;grid-template-columns:1fr 76px 92px;gap:8px;align-items:center;background:var(--d2);border:1px solid var(--bdr);border-radius:8px;padding:9px;margin-bottom:7px"><div><div style="font-size:13px;font-weight:700;color:var(--text)">${safeText(it.menu_item_name)}</div><div style="font-size:10px;color:var(--mut)">${it.type==="drink"?"Пијалок":"Јадење"} · ${statusLabel(it.status)}</div></div><input id="cq-${it.id}" class="fi" type="number" min="0" value="${Number(it.quantity||0)}" oninput="updateCorrTotal()" style="padding:7px;text-align:center"><input id="cp-${it.id}" class="fi" type="number" min="0" step="0.01" value="${Number(it.price||0)}" oninput="updateCorrTotal()" style="padding:7px;text-align:right"></div>`;
+  });
+  setHTML("corrItems",h||`<div style="color:var(--dim);text-align:center;padding:18px">Нема артикли</div>`);
+  updateCorrTotal();
+  document.getElementById("corrMod").classList.add("on");
+}
+function updateCorrTotal(){
+  let total=0;
+  (CORR.items||[]).forEach(it=>{const q=Number(document.getElementById("cq-"+it.id)?.value||0);const pr=Number(document.getElementById("cp-"+it.id)?.value||0);if(q>0&&pr>=0)total+=q*pr;});
+  setTxt("corrTotal",fmtMoney(total)+" ден.");
+}
+async function saveCorrection(){
+  if(!CORR.order)return;
+  let total=0;
+  for(const it of CORR.items){
+    const q=Number(document.getElementById("cq-"+it.id)?.value||0);
+    const pr=Number(document.getElementById("cp-"+it.id)?.value||0);
+    if(q<=0){await sb.from("order_items").delete().eq("id",it.id);continue;}
+    total+=q*pr;
+    const res=await sb.from("order_items").update({quantity:q,price:pr,updated_at:new Date().toISOString()}).eq("id",it.id);
+    if(res.error){toast(res.error.message,"err");return;}
+  }
+  if(total<=0){
+    if(!confirm("Нарачката има 0 денари. Да ја избришам целата нарачка?"))return;
+    const del=await sb.from("orders").delete().eq("id",CORR.order.id);
+    if(del.error){toast(del.error.message,"err");return;}
+  }else{
+    const payload={total_amount:total,corrected_by:U?.name||"admin",corrected_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+    if(CORR.order.original_amount==null)payload.original_amount=Number(CORR.order.total_amount||0);
+    const upd=await sb.from("orders").update(payload).eq("id",CORR.order.id);
+    if(upd.error){toast(upd.error.message,"err");return;}
+  }
+  closeM("corrMod");toast("Корекцијата е зачувана","ok");await loadAdmin({silent:true});if(ADMIN_TAB==="rep")await loadRep();
+}
+
 // ===== REALTIME SUBSCRIPTIONS =====
 function subRT(){
   console.log("[RT] Creating realtime channel...");
+  async function getOrderItemTypesForRealtime(orderId,retries=6,delayMs=300){
+    for(let attempt=0;attempt<retries;attempt++){
+      try{
+        const{data,error}=await sb.from("order_items").select("type,status").eq("order_id",orderId);
+        if(error)throw error;
+        const rows=(data||[]).filter(i=>i&&i.type);
+        if(rows.length)return [...new Set(rows.map(i=>String(i.type)))];
+      }catch(e){
+        console.warn("[RT] getOrderItemTypesForRealtime attempt",attempt+1,"failed:",e.message||e);
+      }
+      if(attempt<retries-1)await new Promise(r=>setTimeout(r,delayMs));
+    }
+    return [];
+  }
+
   const ch = sb.channel("roms-"+Date.now());
 
-  // NEW ORDER → kitchen/bar must reload immediately
+  // NEW ORDER → kitchen/bar reload immediately, but chime ONLY for the station that has items.
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"orders"},async p=>{
     console.log("[RT] INSERT orders:", p.new?.table_number, "role:", U?.role);
     try{
       if(!U)return;
-      if(U.role==="kuvar"){
-        await loadK();
-        // Fetch items to check type for selective beep
-        try{
-          const{data:o}=await sb.from("orders").select("order_items(type)").eq("id",p.new.id).single();
-          if(o?.order_items?.some(i=>i.type==="food")){beep();notify("Нова нарачка","Маса "+p.new.table_number);}
-          else{beep();} // beep regardless — new order arrived
-        }catch(e){beep();} // still beep even if detail fetch fails
-      }
-      if(U.role==="barmen"){
-        await loadB();
-        try{
-          const{data:o}=await sb.from("orders").select("order_items(type)").eq("id",p.new.id).single();
-          if(o?.order_items?.some(i=>i.type==="drink")){beep();notify("Нова нарачка","Маса "+p.new.table_number);}
-          else{beep();}
-        }catch(e){beep();}
+      if(U.role==="kuvar"||U.role==="barmen"){
+        const types=await getOrderItemTypesForRealtime(p.new.id,6,300);
+        const hasFood=types.includes("food");
+        const hasDrink=types.includes("drink");
+
+        if(U.role==="kuvar"){
+          await loadK();
+          if(hasFood){beep("kitchen");notify("🍽 Нова кујна","Маса "+p.new.table_number);}
+        }
+        if(U.role==="barmen"){
+          await loadB();
+          if(hasDrink){beep("bar");notify("🍹 Нова бар","Маса "+p.new.table_number);}
+        }
       }
       if(U.role==="kelner"){try{loadAmt();}catch(e){}}
     }catch(e){console.error("[RT] INSERT handler error:",e);}
@@ -2823,13 +3393,22 @@ function subRT(){
           try{
             const{data:ord}=await sb.from("orders").select("table_number,order_items(type)").eq("id",p.new.id).single();
             if(ord){
-              if(ord.order_items?.some(i=>i.type==="food"))showBanner(ord.table_number,"food");
-              if(ord.order_items?.some(i=>i.type==="drink"))showBanner(ord.table_number,"drink");
+              if(ord.order_items?.some(i=>i.type==="food")&&!hasRecentReadyBanner(ord.table_number,"food",3500))showBanner(ord.table_number,"food");
+              if(ord.order_items?.some(i=>i.type==="drink")&&!hasRecentReadyBanner(ord.table_number,"drink",3500))showBanner(ord.table_number,"drink");
             }
           }catch(e){console.error("[RT] banner error:",e);}
         }
       }
     }catch(e){console.error("[RT] UPDATE orders handler error:",e);}
+  });
+
+  // ORDER ITEM INSERTED → station queues refresh fast when items arrive after the order row.
+  ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"order_items"},async p=>{
+    try{
+      if(!U||!p.new)return;
+      if(U.role==="kuvar"&&p.new.type==="food")await loadK();
+      if(U.role==="barmen"&&p.new.type==="drink")await loadB();
+    }catch(e){console.error("[RT] INSERT order_items handler error:",e);}
   });
 
   // ORDER ITEM UPDATED → per-item ready
@@ -2845,12 +3424,20 @@ function subRT(){
           if(!ord||ord.kelner_id!==U.id)return;
           try{await loadReadyCenter();}catch(e){}
           if(p.new.status==="ready"){
-            try{beep();}catch(e){}
-            try{showBanner(ord.table_number,p.new.type==="food"?"food":"drink",p.new.menu_item_name,p.new.quantity);}catch(e){}
+            const readyType=p.new.type==="food"?"food":"drink";
+            try{beep(readyType==="food"?"foodReady":"drinkReady");}catch(e){}
+            try{showBanner(ord.table_number,readyType,p.new.menu_item_name,p.new.quantity);}catch(e){}
           }
         }catch(e){console.error("[RT] order_items kelner handler error:",e);}
       }
     }catch(e){console.error("[RT] UPDATE order_items handler error:",e);}
+  });
+
+  // Admin / Manager live sync for dashboard, menu, staff, zones and reports.
+  ["orders","order_items","tables","zones","menu_items","menu_categories","staff","shifts"].forEach(tbl=>{
+    ch.on("postgres_changes",{event:"*",schema:"public",table:tbl},async()=>{
+      if(isAdminLike&&isAdminLike())scheduleAdminSync();
+    });
   });
 
   ch.subscribe((status,err)=>{
@@ -2873,6 +3460,7 @@ setInterval(async()=>{
     RT=subRT();
     if(U.role==="kuvar")loadK();
     if(U.role==="barmen")loadB();
+    if(isAdminLike&&isAdminLike())scheduleAdminSync();
   }
 },20000);
 
