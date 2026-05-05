@@ -412,6 +412,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
 .fi:focus{outline:none;border-color:var(--gold)}
 .fs{width:100%;background:var(--d2);border:1px solid var(--d4);border-radius:6px;color:var(--text);padding:9px 10px;font-size:14px;font-family:"DM Sans",sans-serif}
 .svb{background:var(--gold);border:none;border-radius:7px;color:var(--black);font-size:12px;font-weight:700;font-family:"Unbounded",sans-serif;letter-spacing:1px;padding:10px 22px;cursor:pointer}
+.svb:disabled,.svb.loading{opacity:.72;cursor:wait;filter:saturate(.75);transform:none!important}
 .export-btn{background:linear-gradient(135deg,rgba(201,168,76,.16),rgba(201,168,76,.08));border:1px solid var(--gbd);color:var(--gold);border-radius:10px;font-size:11px;font-weight:900;font-family:"DM Sans",sans-serif;letter-spacing:.8px;text-transform:uppercase;padding:10px 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;box-shadow:0 10px 24px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.05);transition:transform .12s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease;white-space:nowrap}
 .export-btn:hover{background:linear-gradient(135deg,rgba(201,168,76,.22),rgba(201,168,76,.10));border-color:rgba(201,168,76,.48);box-shadow:0 12px 30px rgba(0,0,0,.22),0 0 18px rgba(201,168,76,.10)}
 .export-btn:active{transform:scale(.94);background:rgba(201,168,76,.20)}
@@ -689,7 +690,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
           <div class="admin-report-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
             <input type="date" class="fi" id="rFrom" style="width:130px">
             <input type="date" class="fi" id="rTo" style="width:130px">
-            <button class="svb" onclick="loadRep()">Прикажи</button>
+            <button type="button" class="svb" id="reportFilterBtn" data-report-filter="true">Прикажи</button>
             <button type="button" class="export-btn" onclick="exportOrdersToCSV()" title="Преземи CSV извештај">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 21h14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <span>Преземи Извештај</span>
@@ -3453,24 +3454,105 @@ async function toggleTableZone(tableId,zoneId,inZone){
   await loadAll();renderAdminZones();openZoneTables(zoneId);toast("Масите се ажурирани","ok");
 }
 
-async function loadRep(){
-  ADMIN_TAB="rep";
-  const fromEl=document.getElementById("rFrom"),toEl=document.getElementById("rTo");
+let REPORT_LOADING=false;
+let REPORT_REQUEST_ID=0;
+
+function getReportDateRange(){
+  const fromEl=document.getElementById("rFrom");
+  const toEl=document.getElementById("rTo");
   const today=localDayStart();
+
+  // Read the input values fresh on every click.
   if(fromEl&&!fromEl.value)fromEl.value=dateKey(addDays(today,-30));
   if(toEl&&!toEl.value)toEl.value=dateKey(today);
-  const start=dateInputStart(fromEl?.value);const end=addDays(dateInputStart(toEl?.value),1);
-  const res=await sb.from("orders").select("*").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).order("created_at",{ascending:false});
-  if(res.error){toast(res.error.message,"err");return;}
-  const orders=(res.data||[]).filter(o=>o.status!=="cancelled");
-  ADMIN_REPORT_ORDERS=orders;
-  const total=orders.reduce((s,o)=>s+Number(o.total_amount||0),0);
-  const active=orders.filter(o=>["pending","preparing","ready"].includes(o.status)).length;
-  setHTML("repSt",`<div class="sc"><div class="scl">Вкупно приход</div><div class="scv">${fmtMoney(total)}</div><div class="scs">денари</div></div><div class="sc"><div class="scl">Нарачки</div><div class="scv">${orders.length}</div></div><div class="sc"><div class="scl">Активни</div><div class="scv">${active}</div></div><div class="sc"><div class="scl">Просек</div><div class="scv">${fmtMoney(orders.length?Math.round(total/orders.length):0)}</div><div class="scs">денари</div></div>`);
-  setHTML("repT",orders.map(o=>`<tr><td>${new Date(o.created_at).toLocaleDateString("mk-MK")} ${new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td><td>М${safeText(o.table_number)}</td><td>${safeText(o.kelner_name||"-")}</td><td>${safeText(o.zone_name||"-")}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(o.total_amount)} ден.</td><td><span class="tag ${statusClass(o.status)}">${statusLabel(o.status)}</span></td><td><button class="act" onclick="openCorrection('${o.id}')">Корекција</button></td></tr>`).join("")||`<tr><td colspan="7" style="color:var(--dim);text-align:center;padding:18px">Нема нарачки во периодот</td></tr>`);
-  const perf={};orders.forEach(o=>{const id=o.kelner_id||o.kelner_name||"unknown";if(!perf[id])perf[id]={name:o.kelner_name||"Непознат",role:"kelner",orders:0,total:0};perf[id].orders++;perf[id].total+=Number(o.total_amount||0);});
-  setHTML("perfT",Object.values(perf).sort((a,b)=>b.total-a.total).map(p=>`<tr><td>${safeText(p.name)}</td><td><span class="tag tkl">Келнер</span></td><td>${p.orders}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(p.total)} ден.</td></tr>`).join("")||`<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:18px">Нема податоци</td></tr>`);
+
+  let start=dateInputStart(fromEl?.value);
+  let endDay=dateInputStart(toEl?.value);
+  if(start>endDay){
+    const tmp=start;
+    start=endDay;
+    endDay=tmp;
+    if(fromEl)fromEl.value=dateKey(start);
+    if(toEl)toEl.value=dateKey(endDay);
+  }
+  const end=addDays(endDay,1);
+  return {fromEl,toEl,start,end};
 }
+
+function setReportFilterLoading(isLoading){
+  const btn=document.getElementById("reportFilterBtn")||document.querySelector('[data-report-filter="true"]');
+  if(!btn)return;
+  btn.disabled=!!isLoading;
+  btn.classList.toggle("loading",!!isLoading);
+  btn.textContent=isLoading?"Се вчитува...":"Прикажи";
+}
+
+function runReportFilter(e){
+  if(e){
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  loadRep({force:true});
+  return false;
+}
+
+function bindReportFilterButton(){
+  if(window.__romsReportFilterBound)return;
+  window.__romsReportFilterBound=true;
+  document.addEventListener("click",function(e){
+    const btn=e.target.closest&&e.target.closest('[data-report-filter="true"]');
+    if(!btn)return;
+    runReportFilter(e);
+  });
+}
+
+async function loadRep(opts={}){
+  ADMIN_TAB="rep";
+  if(REPORT_LOADING&&!opts.force)return;
+  const requestId=++REPORT_REQUEST_ID;
+  REPORT_LOADING=true;
+  setReportFilterLoading(true);
+
+  try{
+    const {start,end}=getReportDateRange();
+    const res=await sb.from("orders")
+      .select("*")
+      .gte("created_at",start.toISOString())
+      .lt("created_at",end.toISOString())
+      .order("created_at",{ascending:false});
+
+    // If a newer click already started another request, ignore this older response.
+    if(requestId!==REPORT_REQUEST_ID)return;
+
+    if(res.error){toast(res.error.message,"err");return;}
+    const orders=(res.data||[]).filter(o=>o.status!=="cancelled");
+    ADMIN_REPORT_ORDERS=orders;
+
+    const total=orders.reduce((s,o)=>s+Number(o.total_amount||0),0);
+    const active=orders.filter(o=>["pending","preparing","ready"].includes(o.status)).length;
+    setHTML("repSt",`<div class="sc"><div class="scl">Вкупно приход</div><div class="scv">${fmtMoney(total)}</div><div class="scs">денари</div></div><div class="sc"><div class="scl">Нарачки</div><div class="scv">${orders.length}</div></div><div class="sc"><div class="scl">Активни</div><div class="scv">${active}</div></div><div class="sc"><div class="scl">Просек</div><div class="scv">${fmtMoney(orders.length?Math.round(total/orders.length):0)}</div><div class="scs">денари</div></div>`);
+    setHTML("repT",orders.map(o=>`<tr><td>${new Date(o.created_at).toLocaleDateString("mk-MK")} ${new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td><td>М${safeText(o.table_number)}</td><td>${safeText(o.kelner_name||"-")}</td><td>${safeText(o.zone_name||"-")}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(o.total_amount)} ден.</td><td><span class="tag ${statusClass(o.status)}">${statusLabel(o.status)}</span></td><td><button class="act" onclick="openCorrection('${o.id}')">Корекција</button></td></tr>`).join("")||`<tr><td colspan="7" style="color:var(--dim);text-align:center;padding:18px">Нема нарачки во периодот</td></tr>`);
+
+    const perf={};
+    orders.forEach(o=>{
+      const id=o.kelner_id||o.kelner_name||"unknown";
+      if(!perf[id])perf[id]={name:o.kelner_name||"Непознат",role:"kelner",orders:0,total:0};
+      perf[id].orders++;
+      perf[id].total+=Number(o.total_amount||0);
+    });
+    setHTML("perfT",Object.values(perf).sort((a,b)=>b.total-a.total).map(p=>`<tr><td>${safeText(p.name)}</td><td><span class="tag tkl">Келнер</span></td><td>${p.orders}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(p.total)} ден.</td></tr>`).join("")||`<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:18px">Нема податоци</td></tr>`);
+  }catch(e){
+    console.error("[ADMIN] loadRep failed",e);
+    toast("Грешка при филтрирање: "+(e.message||e),"err");
+  }finally{
+    if(requestId===REPORT_REQUEST_ID){
+      REPORT_LOADING=false;
+      setReportFilterLoading(false);
+    }
+  }
+}
+
+bindReportFilterButton();
 
 
 function csvCell(value){
