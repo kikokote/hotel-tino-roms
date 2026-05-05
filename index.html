@@ -412,6 +412,11 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
 .fi:focus{outline:none;border-color:var(--gold)}
 .fs{width:100%;background:var(--d2);border:1px solid var(--d4);border-radius:6px;color:var(--text);padding:9px 10px;font-size:14px;font-family:"DM Sans",sans-serif}
 .svb{background:var(--gold);border:none;border-radius:7px;color:var(--black);font-size:12px;font-weight:700;font-family:"Unbounded",sans-serif;letter-spacing:1px;padding:10px 22px;cursor:pointer}
+.export-btn{background:linear-gradient(135deg,rgba(201,168,76,.16),rgba(201,168,76,.08));border:1px solid var(--gbd);color:var(--gold);border-radius:10px;font-size:11px;font-weight:900;font-family:"DM Sans",sans-serif;letter-spacing:.8px;text-transform:uppercase;padding:10px 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;box-shadow:0 10px 24px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.05);transition:transform .12s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease;white-space:nowrap}
+.export-btn:hover{background:linear-gradient(135deg,rgba(201,168,76,.22),rgba(201,168,76,.10));border-color:rgba(201,168,76,.48);box-shadow:0 12px 30px rgba(0,0,0,.22),0 0 18px rgba(201,168,76,.10)}
+.export-btn:active{transform:scale(.94);background:rgba(201,168,76,.20)}
+.export-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.4;flex:0 0 auto}
+@media(max-width:520px){.export-btn{width:100%;min-height:46px;padding:12px 14px}.admin-report-actions{width:100%;display:grid!important;grid-template-columns:1fr 1fr;gap:8px}.admin-report-actions input{width:100%!important}.admin-report-actions .svb,.admin-report-actions .export-btn{grid-column:auto}.admin-report-actions .export-btn{grid-column:1 / -1}}
 .chart{background:var(--d2);border-radius:9px;padding:14px;margin-bottom:12px}
 .cbrs{display:flex;align-items:flex-end;gap:5px;height:126px;margin-top:10px}
 .cbw{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -681,10 +686,14 @@ body{font-family:"DM Sans",sans-serif;background:var(--black);color:var(--text);
       <div class="asec">
         <div class="ash">
           <div class="ast">Историја на нарачки</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <div class="admin-report-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
             <input type="date" class="fi" id="rFrom" style="width:130px">
             <input type="date" class="fi" id="rTo" style="width:130px">
             <button class="svb" onclick="loadRep()">Прикажи</button>
+            <button type="button" class="export-btn" onclick="exportOrdersToCSV()" title="Преземи CSV извештај">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 21h14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>Преземи Извештај</span>
+            </button>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -3134,6 +3143,7 @@ let ADMIN_TAB="dash";
 let ADMIN_SYNC_T=null;
 let ADMIN_LOADING=false;
 let ADM_ITM=[]; // all menu items, including unavailable, for Admin/Menu tab
+let ADMIN_REPORT_ORDERS=[]; // currently loaded/filtered Admin Reports orders for CSV export
 let CORR={order:null,items:[]};
 
 function isAdminLike(){return !!U&&(U.role==="admin"||U.role==="menager"||U.role==="manager");}
@@ -3453,12 +3463,63 @@ async function loadRep(){
   const res=await sb.from("orders").select("*").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).order("created_at",{ascending:false});
   if(res.error){toast(res.error.message,"err");return;}
   const orders=(res.data||[]).filter(o=>o.status!=="cancelled");
+  ADMIN_REPORT_ORDERS=orders;
   const total=orders.reduce((s,o)=>s+Number(o.total_amount||0),0);
   const active=orders.filter(o=>["pending","preparing","ready"].includes(o.status)).length;
   setHTML("repSt",`<div class="sc"><div class="scl">Вкупно приход</div><div class="scv">${fmtMoney(total)}</div><div class="scs">денари</div></div><div class="sc"><div class="scl">Нарачки</div><div class="scv">${orders.length}</div></div><div class="sc"><div class="scl">Активни</div><div class="scv">${active}</div></div><div class="sc"><div class="scl">Просек</div><div class="scv">${fmtMoney(orders.length?Math.round(total/orders.length):0)}</div><div class="scs">денари</div></div>`);
   setHTML("repT",orders.map(o=>`<tr><td>${new Date(o.created_at).toLocaleDateString("mk-MK")} ${new Date(o.created_at).toLocaleTimeString("mk-MK",{hour:"2-digit",minute:"2-digit"})}</td><td>М${safeText(o.table_number)}</td><td>${safeText(o.kelner_name||"-")}</td><td>${safeText(o.zone_name||"-")}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(o.total_amount)} ден.</td><td><span class="tag ${statusClass(o.status)}">${statusLabel(o.status)}</span></td><td><button class="act" onclick="openCorrection('${o.id}')">Корекција</button></td></tr>`).join("")||`<tr><td colspan="7" style="color:var(--dim);text-align:center;padding:18px">Нема нарачки во периодот</td></tr>`);
   const perf={};orders.forEach(o=>{const id=o.kelner_id||o.kelner_name||"unknown";if(!perf[id])perf[id]={name:o.kelner_name||"Непознат",role:"kelner",orders:0,total:0};perf[id].orders++;perf[id].total+=Number(o.total_amount||0);});
   setHTML("perfT",Object.values(perf).sort((a,b)=>b.total-a.total).map(p=>`<tr><td>${safeText(p.name)}</td><td><span class="tag tkl">Келнер</span></td><td>${p.orders}</td><td style="color:var(--gold);font-weight:700">${fmtMoney(p.total)} ден.</td></tr>`).join("")||`<tr><td colspan="4" style="color:var(--dim);text-align:center;padding:18px">Нема податоци</td></tr>`);
+}
+
+
+function csvCell(value){
+  const v=value==null?"":String(value);
+  return '"'+v.replace(/"/g,'""')+'"';
+}
+function exportOrdersToCSV(){
+  const orders=(ADMIN_REPORT_ORDERS||[]).slice();
+  if(!orders.length){
+    toast("Нема податоци за извоз. Притисни Прикажи или избери друг период.","err");
+    return;
+  }
+  const headers=[
+    "ID на нарачка",
+    "Датум и Време",
+    "Келнер",
+    "Маса",
+    "Зона",
+    "Износ",
+    "Статус"
+  ];
+  const rows=orders.map(o=>{
+    const dt=o.created_at?new Date(o.created_at):null;
+    const dateTime=dt&&!isNaN(dt)?dt.toLocaleString("mk-MK",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+    return [
+      o.id||"",
+      dateTime,
+      o.kelner_name||"-",
+      o.table_number!=null?"М"+o.table_number:"-",
+      o.zone_name||"-",
+      Number(o.total_amount||0),
+      statusLabel(o.status)
+    ];
+  });
+  const csv=[headers,...rows].map(row=>row.map(csvCell).join(",")).join("\r\n");
+  const bom="\uFEFF";
+  const blob=new Blob([bom+csv],{type:"text/csv;charset=utf-8"});
+  const from=(document.getElementById("rFrom")?.value||dateKey(new Date())).replace(/-/g,"");
+  const to=(document.getElementById("rTo")?.value||dateKey(new Date())).replace(/-/g,"");
+  const fileName=`ROMS_Izveshtaj_${from}_${to}.csv`;
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast("Извештајот е преземен ✓","ok");
 }
 
 
